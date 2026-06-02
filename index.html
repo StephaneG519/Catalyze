@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catalyze — Meriaux &amp; Fils</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f0f0; display: flex; align-items: flex-start; justify-content: center; min-height: 100vh; padding: 24px; }
+
+.shell { display: flex; height: 780px; width: 100%; max-width: 1280px; border: 1px solid #e2e2e2; border-radius: 12px; overflow: hidden; background: #fff; box-shadow: 0 4px 32px rgba(0,0,0,0.10); }
+
+/* Sidebar */
+.sidebar { width: 148px; min-width: 148px; background: #f9f9f9; border-right: 1px solid #e2e2e2; padding: 16px 0; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+.sidebar-logo { padding: 0 14px 14px; border-bottom: 1px solid #e2e2e2; margin-bottom: 8px; }
+.sidebar-logo-name { font-size: 13px; font-weight: 700; color: #111; letter-spacing: -0.3px; }
+.sidebar-company { font-size: 10px; color: #999; margin-top: 2px; }
+
+.nav-item { display: flex; align-items: center; gap: 7px; padding: 7px 14px; font-size: 12px; color: #888; cursor: pointer; user-select: none; transition: background 0.1s; position: relative; }
+.nav-item:hover { background: #f0f0f0; color: #555; }
+.nav-item.active { background: #fff; color: #111; font-weight: 600; border-right: 2px solid #111; }
+.nav-item i { font-size: 14px; flex-shrink: 0; }
+
+.nav-item.dim { opacity: 0.4; cursor: default; }
+.nav-item.dim:hover { background: none; color: #888; }
+.nav-item.dim .coming-soon { display: block; }
+
+.coming-soon { display: none; position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%); background: #333; color: #fff; font-size: 10px; padding: 4px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; z-index: 10; }
+.coming-soon::before { content: ''; position: absolute; right: 100%; top: 50%; transform: translateY(-50%); border: 4px solid transparent; border-right-color: #333; }
+
+/* iframe fills remaining space */
+.content { flex: 1; display: flex; overflow: hidden; }
+iframe { flex: 1; border: none; width: 100%; height: 100%; display: block; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-name">Catalyze</div>
+      <div class="sidebar-company">Meriaux &amp; Fils</div>
+    </div>
+    <div class="nav-item active" data-src="meeting_capture.html">
+      <i class="ti ti-clipboard-list"></i> Meeting capture
+    </div>
+    <div class="nav-item" data-src="topic_backlog.html">
+      <i class="ti ti-stack-2"></i> Topic backlog
+    </div>
+    <div class="nav-item dim">
+      <i class="ti ti-calendar-event"></i> Meeting prep
+      <span class="coming-soon">Coming soon</span>
+    </div>
+    <div class="nav-item dim">
+      <i class="ti ti-target"></i> Goal setting
+      <span class="coming-soon">Coming soon</span>
+    </div>
+  </nav>
+
+  <div class="content">
+    <iframe id="main-frame" src="meeting_capture.html"></iframe>
+  </div>
+
+</div>
+
+<script>
+const frame = document.getElementById('main-frame');
+
+document.querySelectorAll('.nav-item[data-src]').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    frame.src = item.dataset.src;
+  });
+});
+</script>
+</body>
+</html>

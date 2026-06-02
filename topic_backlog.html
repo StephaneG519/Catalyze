@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catalyze — Topic Backlog</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f0f0; display: flex; align-items: flex-start; justify-content: center; min-height: 100vh; padding: 24px; }
+
+/* ── Shell ── */
+.shell { display: flex; height: 780px; width: 100%; max-width: 1280px; border: 1px solid #e2e2e2; border-radius: 12px; overflow: hidden; background: #fff; box-shadow: 0 4px 32px rgba(0,0,0,.10); position: relative; }
+
+/* ── Sidebar ── */
+.sidebar { width: 148px; min-width: 148px; background: #f9f9f9; border-right: 1px solid #e2e2e2; padding: 16px 0; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+.sidebar-logo { padding: 0 14px 14px; border-bottom: 1px solid #e2e2e2; margin-bottom: 8px; }
+.sidebar-logo-name { font-size: 13px; font-weight: 700; color: #111; letter-spacing: -.3px; }
+.sidebar-company { font-size: 10px; color: #999; margin-top: 2px; }
+.nav-item { display: flex; align-items: center; gap: 7px; padding: 7px 14px; font-size: 12px; color: #888; cursor: pointer; user-select: none; transition: background .1s; }
+.nav-item:hover { background: #f0f0f0; color: #555; }
+.nav-item.active { background: #fff; color: #111; font-weight: 600; border-right: 2px solid #111; }
+.nav-item.dim { opacity: .4; pointer-events: none; }
+.nav-item i { font-size: 14px; }
+
+/* ── Main ── */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+/* ── Topbar ── */
+.topbar { padding: 12px 18px 10px; border-bottom: 1px solid #e2e2e2; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.topbar-left { display: flex; flex-direction: column; gap: 1px; }
+.topbar-title { font-size: 14px; font-weight: 700; color: #111; }
+.topbar-meta { font-size: 11px; color: #999; }
+.topbar-right { display: flex; gap: 8px; align-items: center; }
+
+/* ── Buttons ── */
+.btn { font-size: 11px; padding: 6px 11px; border-radius: 7px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; font-weight: 500; border: 1px solid #ddd; background: #fff; color: #333; transition: background .1s, border-color .1s; white-space: nowrap; }
+.btn:hover { background: #f5f5f5; border-color: #bbb; }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn-filled { background: #111; border-color: #111; color: #fff; }
+.btn-filled:hover { background: #2a2a2a; border-color: #2a2a2a; }
+
+/* ── Context pill ── */
+.ctx-pill { display: none; font-size: 10px; color: #1D9E75; background: #E1F5EE; padding: 3px 9px; border-radius: 10px; font-weight: 600; align-items: center; gap: 4px; }
+.ctx-pill.on { display: inline-flex; }
+
+/* ── Filters ── */
+.filters-bar { padding: 8px 18px; border-bottom: 1px solid #e2e2e2; display: flex; gap: 6px; align-items: center; flex-shrink: 0; flex-wrap: wrap; }
+.filter-label { font-size: 11px; color: #ccc; margin-right: 2px; }
+.chip { font-size: 11px; padding: 3px 10px; border: 1px solid #e2e2e2; border-radius: 20px; color: #666; background: #fff; cursor: pointer; user-select: none; transition: all .1s; white-space: nowrap; }
+.chip:hover { border-color: #bbb; color: #333; }
+.chip.on { border-color: #111; color: #111; background: #f5f5f5; font-weight: 600; }
+
+/* ── Content ── */
+.content { flex: 1; display: flex; overflow: hidden; }
+
+/* ── Table column ── */
+.table-col { flex: 1; overflow-y: auto; min-width: 0; }
+table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+thead th { padding: 7px 10px; text-align: left; font-size: 10px; font-weight: 600; color: #999; border-bottom: 1px solid #e2e2e2; background: #fafafa; position: sticky; top: 0; z-index: 2; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; cursor: pointer; user-select: none; }
+thead th:hover { color: #555; }
+thead th .si { font-size: 10px; color: #ccc; margin-left: 2px; vertical-align: middle; }
+thead th.sorted .si { color: #555; }
+.col-topic  { width: 32%; }
+.col-cat    { width: 13%; }
+.col-pri    { width: 10%; }
+.col-owner  { width: 9%;  }
+.col-tags   { width: 20%; }
+.col-status { width: 16%; }
+tbody tr { border-bottom: 1px solid #f2f2f2; cursor: pointer; transition: background .08s; }
+tbody tr:hover { background: #fafafa; }
+tbody tr.sel { background: #f5faf8; border-right: 2px solid #1D9E75; }
+tbody tr.hide { display: none; }
+tbody td { padding: 9px 10px; vertical-align: middle; }
+
+/* ── Badges ── */
+.badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
+.b-strategic { background: #EEEDFE; color: #534AB7; }
+.b-tactical  { background: #E1F5EE; color: #0F6E56; }
+.b-high   { background: #FCEBEB; color: #A32D2D; }
+.b-medium { background: #FEF3DA; color: #854F0B; }
+.b-low    { background: #EAF3DE; color: #3B6D11; }
+.b-notstarted { background: #f5f5f5; color: #888; border: 1px solid #e8e8e8; }
+.b-inprogress { background: #E6F1FB; color: #185FA5; }
+.b-completed  { background: #EAF3DE; color: #3B6D11; }
+.b-open { background: #f5f5f5; color: #888; border: 1px solid #e8e8e8; }
+.b-resolved { background: #EAF3DE; color: #3B6D11; }
+
+/* Category badge — editable */
+.cat-badge { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+.cat-badge .pencil { font-size: 9px; color: #bbb; transition: color .1s; }
+.cat-badge:hover .pencil { color: #666; }
+
+/* Status badge — clickable */
+.status-badge { cursor: pointer; }
+.status-badge:hover { opacity: .8; }
+
+/* Topic cell */
+.topic-wrap { display: flex; align-items: center; gap: 5px; }
+.topic-txt { font-size: 12px; color: #111; line-height: 1.4; }
+.link-icon { font-size: 11px; color: #bbb; flex-shrink: 0; }
+
+/* Owner */
+.owner-txt { font-size: 12px; color: #555; }
+
+/* Tag pills */
+.tag { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 500; margin-right: 3px; white-space: nowrap; }
+
+/* ── Resizer ── */
+.resizer { width: 5px; background: #e2e2e2; cursor: col-resize; flex-shrink: 0; position: relative; transition: background .15s; }
+.resizer:hover, .resizer.drag { background: #1D9E75; }
+.resizer::after { content: ''; position: absolute; inset: 0 -4px; }
+
+/* ── Deep-dive panel ── */
+.dd-panel { width: 308px; min-width: 200px; max-width: 540px; display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; }
+.dd-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ccc; gap: 10px; }
+.dd-empty i { font-size: 30px; }
+.dd-empty-txt { font-size: 12px; }
+.dd-inner { flex: 1; display: flex; flex-direction: column; overflow: hidden; animation: fadein .12s ease; }
+@keyframes fadein { from { opacity:0 } to { opacity:1 } }
+
+.dd-hd { padding: 13px 16px 11px; border-bottom: 1px solid #e2e2e2; flex-shrink: 0; }
+.dd-title { font-size: 13px; font-weight: 700; color: #111; line-height: 1.4; margin-bottom: 8px; }
+.dd-meta-row { display: flex; gap: 4px; flex-wrap: wrap; }
+
+.dd-body { flex: 1; overflow-y: auto; padding: 13px 16px; display: flex; flex-direction: column; gap: 13px; }
+.dd-sec { display: flex; flex-direction: column; gap: 5px; }
+.dd-lbl { font-size: 10px; font-weight: 700; color: #bbb; text-transform: uppercase; letter-spacing: .5px; }
+.dd-val { font-size: 12px; color: #333; line-height: 1.6; }
+.dd-desc { font-size: 12px; color: #777; line-height: 1.6; }
+
+/* AI opinion box */
+.ai-box { background: #fafafa; border: 1px solid #ebebeb; border-radius: 9px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.ai-hd { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: .5px; }
+.ai-dot { width: 6px; height: 6px; border-radius: 50%; background: #1D9E75; flex-shrink: 0; }
+.ai-flag { display: flex; align-items: flex-start; gap: 6px; font-size: 11px; color: #A32D2D; background: #FCEBEB; padding: 6px 8px; border-radius: 7px; line-height: 1.5; }
+.ai-flag i { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+.ai-rec { font-size: 12px; color: #333; line-height: 1.6; }
+.ai-risk { font-size: 11px; color: #666; line-height: 1.55; font-style: italic; border-left: 2px solid #e2e2e2; padding-left: 8px; }
+.ai-ok { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #3B6D11; background: #EAF3DE; padding: 6px 8px; border-radius: 7px; }
+.ai-ok i { font-size: 13px; flex-shrink: 0; }
+.ai-pending { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #aaa; background: #fafafa; border: 1px dashed #e0e0e0; border-radius: 9px; padding: 11px 13px; }
+.ai-pending i { font-size: 15px; color: #ccc; flex-shrink: 0; }
+
+/* Match cards */
+.match-list { display: flex; flex-direction: column; gap: 6px; }
+.match-card { border: 1px solid #ebebeb; border-radius: 9px; padding: 9px 11px; display: flex; flex-direction: column; gap: 5px; transition: border-color .1s; }
+.match-card:hover { border-color: #d0d0d0; background: #fafafa; }
+.match-card.confirmed { border-color: #1D9E75; background: #f5faf8; }
+.match-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.match-title { font-size: 12px; color: #111; line-height: 1.4; flex: 1; font-weight: 500; }
+.match-reason { font-size: 11px; color: #999; line-height: 1.5; }
+.match-actions { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 2px; }
+.mbtn { font-size: 10px; padding: 3px 9px; border: 1px solid #e0e0e0; border-radius: 10px; color: #555; background: #fff; cursor: pointer; font-family: inherit; transition: all .1s; }
+.mbtn:hover { border-color: #bbb; background: #f5f5f5; }
+.mbtn.confirm { border-color: #1D9E75; color: #1D9E75; }
+.mbtn.confirm:hover { background: #f0faf7; }
+.confirmed-label { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #1D9E75; font-weight: 600; }
+
+/* Action buttons */
+.dd-actions { padding: 11px 16px; border-top: 1px solid #e2e2e2; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; background: #fafafa; }
+.act-btn { font-size: 11px; padding: 7px 11px; background: #fff; border: 1px solid #ddd; border-radius: 8px; color: #111; cursor: pointer; display: flex; align-items: center; gap: 8px; font-family: inherit; transition: background .1s, border-color .1s; text-align: left; }
+.act-btn:hover { background: #f5f5f5; border-color: #bbb; }
+.act-btn i { font-size: 15px; color: #888; flex-shrink: 0; }
+.act-lbl { display: flex; flex-direction: column; gap: 1px; }
+.act-sub { font-size: 10px; color: #aaa; }
+.act-expert { border-color: #534AB7; }
+.act-expert i { color: #534AB7; }
+.act-expert:hover { background: #f5f4ff; border-color: #7b74d6; }
+
+/* ── Modals ── */
+.overlay { position: absolute; inset: 0; background: rgba(0,0,0,.35); display: none; align-items: center; justify-content: center; z-index: 100; }
+.overlay.open { display: flex; }
+.modal { background: #fff; border-radius: 12px; border: 1px solid #ddd; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 12px 48px rgba(0,0,0,.16); width: 460px; }
+.modal.wide { width: 520px; }
+.modal.narrow { width: 340px; }
+.modal-hd { padding: 15px 18px 13px; border-bottom: 1px solid #ebebeb; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.modal-title { font-size: 14px; font-weight: 700; color: #111; }
+.modal-x { font-size: 18px; color: #aaa; cursor: pointer; background: none; border: none; display: flex; align-items: center; padding: 2px; transition: color .1s; }
+.modal-x:hover { color: #333; }
+.modal-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 13px; overflow-y: auto; max-height: 500px; }
+.modal-ft { padding: 12px 18px; border-top: 1px solid #ebebeb; display: flex; justify-content: flex-end; gap: 8px; background: #fafafa; flex-shrink: 0; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.fl { font-size: 11px; font-weight: 600; color: #888; }
+.fi { font-size: 12px; padding: 7px 10px; border: 1px solid #ddd; border-radius: 7px; color: #111; background: #fff; font-family: inherit; outline: none; transition: border-color .15s; width: 100%; }
+.fi:focus { border-color: #999; }
+.frow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fta { font-size: 11px; padding: 8px 10px; border: 1px solid #ddd; border-radius: 7px; color: #111; background: #fff; font-family: inherit; line-height: 1.6; resize: none; outline: none; transition: border-color .15s; width: 100%; }
+.fta:focus { border-color: #999; }
+.fhint { font-size: 10px; color: #bbb; }
+.radio-opt { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid #ebebeb; border-radius: 8px; cursor: pointer; font-size: 12px; color: #333; margin-bottom: 6px; transition: border-color .1s; }
+.radio-opt:last-child { margin-bottom: 0; }
+.radio-opt:hover { border-color: #bbb; }
+.radio-opt.picked { border-color: #1D9E75; background: #f5faf8; }
+
+/* ── Toast ── */
+.toast { position: absolute; bottom: 20px; right: 20px; background: #111; color: #fff; font-size: 12px; padding: 10px 16px; border-radius: 8px; display: none; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.2); z-index: 200; }
+.toast.show { display: flex; animation: slideup .2s ease; }
+@keyframes slideup { from { transform:translateY(8px); opacity:0 } to { transform:translateY(0); opacity:1 } }
+
+/* ── New-row flash ── */
+@keyframes rowflash { 0%{background:#E1F5EE} 100%{background:transparent} }
+.newrow td { animation: rowflash 2s ease forwards; }
+
+/* ── New badge ── */
+.b-new { background: #1D9E75; color: #fff; font-size: 9px; padding: 1px 5px; border-radius: 8px; font-weight: 700; margin-left: 4px; vertical-align: middle; cursor: default; }
+
+/* ── Analyse spinner ── */
+@keyframes spin { to { transform: rotate(360deg) } }
+.spin { display: inline-block; animation: spin .7s linear infinite; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-name">Catalyze</div>
+    <div class="sidebar-company">Meriaux &amp; Fils</div>
+  </div>
+  <div class="nav-item dim"><i class="ti ti-clipboard-list"></i> Meeting capture</div>
+  <div class="nav-item active"><i class="ti ti-stack-2"></i> Topic backlog</div>
+  <div class="nav-item dim"><i class="ti ti-calendar-event"></i> Meeting prep</div>
+  <div class="nav-item dim"><i class="ti ti-target"></i> Goal setting</div>
+</nav>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title">Topic backlog</div>
+      <div class="topbar-meta" id="meta-txt">8 topics · 4 high priority</div>
+    </div>
+    <div class="topbar-right">
+      <span class="ctx-pill" id="ctx-pill"><i class="ti ti-brain"></i> <span id="ctx-n">0</span> context note(s)</span>
+      <button class="btn" id="btn-inform"><i class="ti ti-message-bolt"></i> Inform AI</button>
+      <button class="btn" id="btn-analyse"><i class="ti ti-sparkles"></i> Analyse all</button>
+      <button class="btn btn-filled" id="btn-add"><i class="ti ti-plus"></i> Add topic</button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-bar">
+    <span class="filter-label">Filter:</span>
+    <span class="chip on"  data-f="all">All</span>
+    <span class="chip" data-f="Strategic">Strategic</span>
+    <span class="chip" data-f="Tactical">Tactical</span>
+    <span class="chip" data-f="High">High priority</span>
+    <span class="chip" data-f="Finance">Finance</span>
+    <span class="chip" data-f="Sales">Sales</span>
+    <span class="chip" data-f="Marc">Marc</span>
+    <span class="chip" data-f="Sarah">Sarah</span>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Table -->
+    <div class="table-col" id="table-col">
+      <table>
+        <thead>
+          <tr>
+            <th class="col-topic"  data-sort="topic">Topic <i class="ti ti-selector si"></i></th>
+            <th class="col-cat"    data-sort="category">Category <i class="ti ti-selector si"></i></th>
+            <th class="col-pri"    data-sort="priority">Priority <i class="ti ti-selector si"></i></th>
+            <th class="col-owner"  data-sort="owner">Owner <i class="ti ti-selector si"></i></th>
+            <th class="col-tags">Tags</th>
+            <th class="col-status" data-sort="status">Status <i class="ti ti-selector si"></i></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- Resizer -->
+    <div class="resizer" id="resizer"></div>
+
+    <!-- Deep dive -->
+    <div class="dd-panel" id="dd-panel">
+      <div class="dd-empty" id="dd-empty">
+        <i class="ti ti-stack-2"></i>
+        <div class="dd-empty-txt">Select a topic to view details</div>
+      </div>
+      <div class="dd-inner" id="dd-inner" style="display:none"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── MODALS ── -->
+
+<!-- Inform AI -->
+<div class="overlay" id="ov-inform">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title">Inform AI</div>
+      <button class="modal-x" data-ov="ov-inform"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <div class="fl">Share context the AI doesn't have</div>
+        <textarea class="fta" id="inform-ta" style="height:96px" placeholder="A decision made verbally, something that happened outside the meeting, a constraint the AI should factor into its opinions…"></textarea>
+        <div style="display:flex;justify-content:space-between">
+          <span class="fhint">Injected into every subsequent AI analysis this session.</span>
+          <span class="fhint"><span id="inform-n">0</span>/500</span>
+        </div>
+      </div>
+      <div id="existing-notes" style="display:none">
+        <div class="fl" style="margin-bottom:6px">Saved this session</div>
+        <div id="notes-list" style="display:flex;flex-direction:column;gap:5px"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" data-ov="ov-inform">Cancel</button>
+      <button class="btn btn-filled" id="inform-save"><i class="ti ti-check"></i> Save context</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add topic -->
+<div class="overlay" id="ov-add">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title">Add topic</div>
+      <button class="modal-x" data-ov="ov-add"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <div class="fl">Topic description</div>
+        <textarea class="fta" id="add-desc" style="height:68px" placeholder="Describe the issue, decision, opportunity, or development…"></textarea>
+      </div>
+      <div class="frow">
+        <div class="field">
+          <div class="fl">Category</div>
+          <select class="fi" id="add-cat"><option>Strategic</option><option>Tactical</option></select>
+        </div>
+        <div class="field">
+          <div class="fl">Priority</div>
+          <select class="fi" id="add-pri"><option>High</option><option selected>Medium</option><option>Low</option></select>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="field">
+          <div class="fl">Owner</div>
+          <select class="fi" id="add-owner">
+            <option>Thomas</option><option>Sarah</option><option>Marc</option><option>Julie</option><option>Pierre</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="fl">Forum</div>
+          <select class="fi" id="add-forum">
+            <option>Weekly ELT</option><option>Weekly Sales Review</option><option>Monthly Business Review</option><option>Quarterly Strategy</option>
+          </select>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="field">
+          <div class="fl">Tags <span style="font-weight:400">(comma-separated)</span></div>
+          <input class="fi" id="add-tags" placeholder="Finance, Sales, IT…">
+        </div>
+        <div class="field">
+          <div class="fl">Source</div>
+          <input class="fi" id="add-source" placeholder="e.g. Weekly ELT — 26 May">
+        </div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" data-ov="ov-add">Cancel</button>
+      <button class="btn btn-filled" id="add-save"><i class="ti ti-plus"></i> Add to backlog</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit category -->
+<div class="overlay" id="ov-cat">
+  <div class="modal narrow">
+    <div class="modal-hd">
+      <div class="modal-title">Change category</div>
+      <button class="modal-x" data-ov="ov-cat"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:#666;margin-bottom:4px">Select the correct category for this topic:</p>
+      <label class="radio-opt" id="cat-strategic">
+        <input type="radio" name="cat-pick" value="Strategic">
+        <span class="badge b-strategic">Strategic</span>
+        <span style="color:#666">— direction, position, major resources</span>
+      </label>
+      <label class="radio-opt" id="cat-tactical">
+        <input type="radio" name="cat-pick" value="Tactical">
+        <span class="badge b-tactical">Tactical</span>
+        <span style="color:#666">— operational fix, process, execution</span>
+      </label>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" data-ov="ov-cat">Cancel</button>
+      <button class="btn btn-filled" id="cat-save"><i class="ti ti-check"></i> Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit status -->
+<div class="overlay" id="ov-status">
+  <div class="modal narrow">
+    <div class="modal-hd">
+      <div class="modal-title">Update status</div>
+      <button class="modal-x" data-ov="ov-status"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body" id="status-opts"></div>
+    <div class="modal-ft">
+      <button class="btn" data-ov="ov-status">Cancel</button>
+      <button class="btn btn-filled" id="status-save"><i class="ti ti-check"></i> Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- Action modal (shared) -->
+<div class="overlay" id="ov-action">
+  <div class="modal wide">
+    <div class="modal-hd">
+      <div class="modal-title" id="act-title">Action</div>
+      <button class="modal-x" data-ov="ov-action"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body" id="act-body"></div>
+    <div class="modal-ft" id="act-ft"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"><i class="ti ti-check"></i><span id="toast-msg"></span></div>
+
+</div><!-- /shell -->
+
+<script>
+// ─── Tag colours ──────────────────────────────────────────────────────────────
+const TAGS = {
+  Finance: { bg:'#E6F1FB', color:'#185FA5' },
+  Sales:   { bg:'#FAEEDA', color:'#854F0B' },
+  IT:      { bg:'#E1F5EE', color:'#0F6E56' },
+  HR:      { bg:'#FBEAF0', color:'#993556' },
+};
+function tagHTML(name) {
+  const c = TAGS[name] || { bg:'#eee', color:'#555' };
+  return `<span class="tag" style="background:${c.bg};color:${c.color}">${name}</span>`;
+}
+
+// ─── Data ─────────────────────────────────────────────────────────────────────
+const DATA = [
+  {
+    id:1, topic:'Sales pipeline Q2 below target by €700k',
+    category:'Strategic', priority:'High', owner:'Marc',
+    forum:'Weekly ELT', source:'Weekly ELT — 12 May',
+    status:'Not started', tags:['Finance','Sales'],
+    desc:'Raised in Weekly ELT on 12 May. Q2 pipeline sits at €2.1M vs the €2.8M target. Three key accounts — Durand SA, Technic Pro, and Lefebvre Industries — have pushed decisions to Q3 without clear reasons.',
+    rootCause:'No structured account review process — key account slippage goes undetected until late in the quarter, leaving no time to intervene.',
+    aiFlag:'No recovery plan and no deadline. Marc is owner but has not committed to a specific next step.',
+    aiRec:'Marc should present a recovery plan covering the three stalled accounts by 23 May — go/no-go decision at next Weekly ELT. If no plan by then, Thomas must escalate directly.',
+    aiRisk:'Q2 closes below €2.8M. June cash shortfall. Board meeting with no recovery narrative.',
+    analysed:true,
+    matches:[
+      { id:6, title:'No structured account review process for key accounts', open:true,  reason:'Both point to the absence of a key account monitoring process as the shared root cause.' },
+      { id:-1, title:'Q3 pipeline recovery — Durand SA', open:false, reason:'Similar account slippage resolved in Q3 2025 — recovery plan and owner defined at Weekly ELT.' },
+    ],
+    matchState:{},
+  },
+  {
+    id:2, topic:'CRM not configured for new sales reps',
+    category:'Tactical', priority:'High', owner:'Sarah',
+    forum:'Weekly ELT', source:'Weekly ELT — 19 May',
+    status:'In progress', tags:['IT','Sales'],
+    desc:'Raised on 19 May by Pierre. Two sales reps hired in April still lack proper CRM access and are using spreadsheets. Marc said it was IT\'s responsibility; Sarah took ownership after it was clarified that IT reports to her.',
+    rootCause:'No IT onboarding checklist exists for new hires. CRM access is handled ad hoc rather than as part of a defined process.',
+    aiFlag:'In progress but no confirmed deadline. Risk of another week passing without resolution.',
+    aiRec:'Sarah to confirm CRM access live for both reps by 23 May and report to Thomas directly. If blocked by IT capacity, flag to Thomas that same day.',
+    aiRisk:'New reps remain under-equipped for another sprint. Pipeline visibility suffers for Q2 and the onboarding gap never gets formally fixed.',
+    analysed:true,
+    matches:[
+      { id:8, title:'IT access management process missing', open:true, reason:'The CRM issue is a direct symptom of the same absent IT onboarding process.' },
+    ],
+    matchState:{},
+  },
+  {
+    id:3, topic:'Technic Pro margin at 4% vs 12% target',
+    category:'Strategic', priority:'High', owner:'Marc',
+    forum:'Weekly ELT', source:'Weekly ELT — 19 May',
+    status:'Not started', tags:['Finance'],
+    desc:'Raised on 19 May by Julie. The Technic Pro contract renews in July. Current margin is 4% against a 12% company target. Julie recommends renegotiating or exiting. Marc pushed back citing Technic Pro\'s reference client status.',
+    rootCause:'The account was onboarded at a discounted rate with no defined path to margin normalisation. No account review has surfaced this gap until the renewal pressure arrived.',
+    aiFlag:'No decision on renegotiate-or-exit. Marc agreed to prepare a proposal but no format or deadline was set.',
+    aiRec:'Marc to submit a margin proposal — renegotiation terms or a clear exit rationale — by 23 May. Thomas to make the call at next Weekly ELT. Do not let this run to the renewal date without a position.',
+    aiRisk:'Contract auto-renews in July at 4% margin. Technic Pro becomes a precedent for other accounts sitting below margin target.',
+    analysed:true,
+    matches:[],
+    matchState:{},
+  },
+  {
+    id:4, topic:'Q2 EBITDA forecast 6.2% vs 7% board target',
+    category:'Strategic', priority:'High', owner:'Julie',
+    forum:'Monthly Business Review', source:'Weekly ELT — 19 May',
+    status:'Not started', tags:['Finance'],
+    desc:'Julie presented the Q2 forecast on 19 May: €17.8M revenue, EBITDA at 6.2%. Board expects 7%. Thomas asked if there are any levers. Discussion was inconclusive and no actions were taken.',
+    rootCause:'Revenue miss on key accounts is compressing EBITDA. No cost reduction plan exists to compensate, and the gap has been visible for two months without a formal response.',
+    aiFlag:'No recovery actions defined. No owner for cost lever identification. A discussion happened but nothing was committed.',
+    aiRec:'Julie to identify at least two cost levers worth €150k+ and present to Thomas by 30 May. Marc to quantify revenue upside from Technic Pro resolution and pipeline recovery by the same date.',
+    aiRisk:'Q2 closes at 6.2%. Board meeting without a plan. Credibility gap with the board on management\'s ability to course-correct mid-quarter.',
+    analysed:true,
+    matches:[
+      { id:1, title:'Sales pipeline Q2 below target by €700k', open:true, reason:'The pipeline revenue miss is a direct driver of the EBITDA shortfall.' },
+    ],
+    matchState:{},
+  },
+  {
+    id:5, topic:'New sales rep onboarding process undefined',
+    category:'Tactical', priority:'Medium', owner:'Sarah',
+    forum:'Weekly ELT', source:'Weekly ELT — 5 May',
+    status:'In progress', tags:['HR'],
+    desc:'Raised on 5 May. Two new sales reps hired in April have no structured onboarding: no CRM access, no product training schedule, no key account briefings. This is extending ramp time and depressing early pipeline quality.',
+    rootCause:'The company has grown headcount without building the corresponding onboarding infrastructure. No sales rep playbook or ramp checklist exists.',
+    aiFlag:'Marked in progress but no process document exists yet. Progress is based on a verbal commitment from Sarah, not a defined plan.',
+    aiRec:'Sarah to produce a one-page onboarding checklist — covering CRM, product, and key accounts — by 31 May. Share with Thomas and Marc for sign-off before next hire.',
+    aiRisk:'New reps take 4–6 months to reach full productivity instead of 2–3. Q3 pipeline suffers. The problem recurs with every subsequent hire.',
+    analysed:true,
+    matches:[
+      { id:2, title:'CRM not configured for new sales reps', open:true, reason:'CRM access is one unresolved component of the broader onboarding gap.' },
+    ],
+    matchState:{},
+  },
+  {
+    id:6, topic:'No structured account review process for key accounts',
+    category:'Strategic', priority:'Medium', owner:'Marc',
+    forum:'Monthly Business Review', source:'Weekly Sales Review — 14 May',
+    status:'Not started', tags:['Sales'],
+    desc:'Pattern identified across multiple ELTs and the MBR on 1 May. Key account slippage is only detected at quarter end. No regular account review cadence exists to surface at-risk accounts early.',
+    rootCause:'Account management is reactive. Marc manages relationships informally — no structured review forces early flagging of accounts that are stalling or drifting off target.',
+    aiFlag:'No owner for process design and no committed timeline. This has been raised three times without a specific action being assigned.',
+    aiRec:'Marc to define a weekly 30-min key account review cadence and a standard account health template by 30 May. First session to run by 2 June. Thomas to hold Marc accountable at next ELT.',
+    aiRisk:'Q3 pipeline surprises replicate the Q2 pattern. Board confidence in commercial predictability continues to erode. Same conversation returns at Q3 MBR.',
+    analysed:true,
+    matches:[
+      { id:1, title:'Sales pipeline Q2 below target by €700k', open:true, reason:'Absence of account reviews is the structural root cause of the pipeline miss.' },
+    ],
+    matchState:{},
+  },
+  {
+    id:7, topic:'Q1 sales team performance — strong quarter',
+    category:'Tactical', priority:'Low', owner:'Marc',
+    forum:'Weekly ELT', source:'Weekly ELT — 5 May',
+    status:'Completed', tags:['Sales'],
+    desc:'Q1 closed at €4.8M revenue — above the €4.5M target. Three deals were signed in the final week. The team hit target for the second consecutive quarter. Noted for morale and board reporting.',
+    rootCause:'Strong execution in final-week close. No structural issue — positive signal worth tracking for context.',
+    aiFlag:null,
+    aiRec:'No action required. Reference this in Q2 board reporting as evidence of commercial execution capability. Identify what enabled the final-week close and replicate the conditions for Q2.',
+    aiRisk:null,
+    analysed:true,
+    matches:[],
+    matchState:{},
+  },
+  {
+    id:8, topic:'IT access management process missing',
+    category:'Tactical', priority:'Low', owner:'Sarah',
+    forum:'Weekly ELT', source:'Weekly ELT — 5 May',
+    status:'Not started', tags:['IT'],
+    desc:'Raised on 5 May by Pierre. No documented process for IT access provisioning when new staff join. The CRM issue is a direct symptom. IT access requests are currently handled informally with no tracking.',
+    rootCause:'IT infrastructure has not scaled with headcount growth. No onboarding owner and no documentation for system access provisioning.',
+    aiFlag:'Low priority but recurring — this is the third IT access gap flagged in the last six months.',
+    aiRec:'Sarah to document a basic IT access checklist covering the five core systems by 31 May. Assign a named point person for all IT access requests — Pierre is a candidate or an external IT contact.',
+    aiRisk:'CRM issue recurs with next hire. IT access gaps create ongoing operational friction and a growing security exposure as the team scales.',
+    analysed:true,
+    matches:[
+      { id:2, title:'CRM not configured for new sales reps', open:true, reason:'The CRM configuration gap is a direct instance of the missing IT access process.' },
+    ],
+    matchState:{},
+  },
+];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let selId       = null;
+let activeFilter = 'all';
+let sortCol     = null;
+let sortDir     = 1;
+let ctxNotes    = [];
+let catEditId   = null;
+let statusEditId = null;
+let analyseState = 'idle'; // idle | running | done
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const byId    = id => DATA.find(t => t.id === id);
+const $       = id => document.getElementById(id);
+const open    = id => $(id).classList.add('open');
+const close   = id => $(id).classList.remove('open');
+
+function toast(msg, ms = 2400) {
+  $('toast-msg').textContent = msg;
+  const el = $('toast');
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), ms);
+}
+
+function skFromStatus(s) {
+  return s.toLowerCase().replace(' ','');
+}
+
+function prioRank(p) { return {High:0,Medium:1,Low:2}[p] ?? 9; }
+function statRank(s) { return {'Not started':0,'In progress':1,'Completed':2}[s] ?? 9; }
+
+function matchesFilter(t) {
+  if (activeFilter === 'all') return true;
+  if (activeFilter === 'Strategic' || activeFilter === 'Tactical') return t.category === activeFilter;
+  if (activeFilter === 'High') return t.priority === 'High';
+  if (['Finance','Sales','IT','HR'].includes(activeFilter)) return t.tags.includes(activeFilter);
+  if (['Thomas','Sarah','Marc','Julie','Pierre'].includes(activeFilter)) return t.owner === activeFilter;
+  return true;
+}
+
+function updateMeta() {
+  const vis = DATA.filter(matchesFilter);
+  const hi  = vis.filter(t => t.priority === 'High').length;
+  $('meta-txt').textContent = `${vis.length} topic${vis.length !== 1 ? 's' : ''} · ${hi} high priority`;
+}
+
+function hasActiveMatches(t) {
+  return t.matches.some(m => t.matchState[m.id] !== 'dismissed');
+}
+
+// ─── Render table ─────────────────────────────────────────────────────────────
+function renderTable() {
+  let rows = [...DATA];
+
+  if (sortCol) {
+    rows.sort((a, b) => {
+      let av = a[sortCol], bv = b[sortCol];
+      if (sortCol === 'priority') { av = prioRank(av); bv = prioRank(bv); return sortDir * (av - bv); }
+      if (sortCol === 'status')   { av = statRank(av); bv = statRank(bv); return sortDir * (av - bv); }
+      return sortDir * String(av).localeCompare(String(bv));
+    });
+  }
+
+  const tbody = $('tbody');
+  tbody.innerHTML = '';
+
+  rows.forEach(t => {
+    const hidden  = !matchesFilter(t);
+    const linkIco = hasActiveMatches(t) ? `<i class="ti ti-link link-icon" title="Possible duplicate detected"></i>` : '';
+
+    const tr = document.createElement('tr');
+    tr.dataset.id = t.id;
+    if (t.id === selId)  tr.classList.add('sel');
+    if (hidden)           tr.classList.add('hide');
+
+    tr.innerHTML = `
+      <td>
+        <div class="topic-wrap">
+          <span class="topic-txt">${t.topic}</span>
+          ${t._new ? `<span class="b-new new-badge" data-id="${t.id}" title="Added from meeting capture">New</span>` : ''}
+          ${linkIco}
+        </div>
+      </td>
+      <td>
+        <span class="badge b-${t.category.toLowerCase()} cat-badge" data-id="${t.id}">
+          ${t.category} <i class="ti ti-pencil pencil"></i>
+        </span>
+      </td>
+      <td><span class="badge b-${t.priority.toLowerCase()}">${t.priority}</span></td>
+      <td><span class="owner-txt">${t.owner}</span></td>
+      <td>${t.tags.map(tagHTML).join('')}</td>
+      <td>
+        <span class="badge b-${skFromStatus(t.status)} status-badge" data-id="${t.id}">
+          ${t.status}
+        </span>
+      </td>
+    `;
+
+    // Row click → deep dive (not on badges)
+    tr.addEventListener('click', e => {
+      if (e.target.closest('.cat-badge') || e.target.closest('.status-badge')) return;
+      selectTopic(t.id);
+    });
+
+    tbody.appendChild(tr);
+  });
+
+  // Category badge clicks
+  tbody.querySelectorAll('.cat-badge').forEach(el =>
+    el.addEventListener('click', e => { e.stopPropagation(); openCatModal(+el.dataset.id); })
+  );
+
+  // Status badge clicks
+  tbody.querySelectorAll('.status-badge').forEach(el =>
+    el.addEventListener('click', e => { e.stopPropagation(); openStatusModal(+el.dataset.id); })
+  );
+
+  // New badge clicks — dismiss the badge
+  tbody.querySelectorAll('.new-badge').forEach(el =>
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      const t = byId(+el.dataset.id);
+      if (t) { t._new = false; renderTable(); }
+    })
+  );
+
+  updateMeta();
+}
+
+// ─── Select topic ─────────────────────────────────────────────────────────────
+function selectTopic(id) {
+  selId = id;
+  renderTable();
+  renderDD();
+}
+
+// ─── Render deep dive ─────────────────────────────────────────────────────────
+function renderDD() {
+  const t = byId(selId);
+  $('dd-empty').style.display = t ? 'none' : 'flex';
+  const inner = $('dd-inner');
+  if (!t) { inner.style.display = 'none'; return; }
+  inner.style.display = 'flex';
+  inner.style.flexDirection = 'column';
+  inner.style.overflow = 'hidden';
+
+  const activeMatches = t.matches.filter(m => t.matchState[m.id] !== 'dismissed');
+
+  inner.innerHTML = `
+    <div class="dd-hd">
+      <div class="dd-title">${t.topic}</div>
+      <div class="dd-meta-row">
+        <span class="badge b-${t.category.toLowerCase()}">${t.category}</span>
+        <span class="badge b-${t.priority.toLowerCase()}">${t.priority}</span>
+        <span class="badge b-${skFromStatus(t.status)}">${t.status}</span>
+        ${t.tags.map(tagHTML).join('')}
+      </div>
+    </div>
+
+    <div class="dd-body">
+
+      <div class="dd-sec">
+        <div class="dd-lbl">Description</div>
+        <div class="dd-desc">${t.desc}</div>
+      </div>
+
+      <div class="dd-sec">
+        <div class="dd-lbl">Owner · Forum</div>
+        <div class="dd-val">${t.owner} · ${t.forum}</div>
+      </div>
+
+      <div class="dd-sec">
+        <div class="dd-lbl">Source</div>
+        <div class="dd-val" style="color:#999;font-size:11px">${t.source}</div>
+      </div>
+
+      <div class="dd-sec">
+        <div class="dd-lbl">Root cause</div>
+        <div class="dd-val">${t.rootCause}</div>
+      </div>
+
+      ${t.analysed ? `
+      <div class="ai-box">
+        <div class="ai-hd"><span class="ai-dot"></span> AI opinion</div>
+        ${t.aiFlag
+          ? `<div class="ai-flag"><i class="ti ti-alert-triangle"></i>${t.aiFlag}</div>`
+          : `<div class="ai-ok"><i class="ti ti-circle-check"></i>No critical flags for this topic.</div>`
+        }
+        <div class="ai-rec">${t.aiRec}</div>
+        ${t.aiRisk ? `<div class="ai-risk"><strong style="color:#555">Risk in 30 days:</strong> ${t.aiRisk}</div>` : ''}
+      </div>` : `
+      <div class="ai-pending">
+        <i class="ti ti-sparkles"></i>
+        <span>AI analysis pending — click <strong>Analyse all</strong> to generate root cause, flag, and recommendation.</span>
+      </div>`}
+
+      ${activeMatches.length ? `
+      <div class="dd-sec">
+        <div class="dd-lbl">Possibly the same topic</div>
+        <div class="match-list">
+          ${activeMatches.map(m => `
+            <div class="match-card ${t.matchState[m.id] === 'confirmed' ? 'confirmed' : ''}" id="mc-${m.id}">
+              <div class="match-top">
+                <span class="match-title">${m.title}</span>
+                <span class="badge ${m.open ? 'b-open' : 'b-resolved'}">${m.open ? 'Open' : 'Resolved'}</span>
+              </div>
+              <div class="match-reason">${m.reason}</div>
+              <div class="match-actions">
+                ${t.matchState[m.id] === 'confirmed'
+                  ? `<span class="confirmed-label"><i class="ti ti-check"></i>Link confirmed</span>`
+                  : `<button class="mbtn confirm" onclick="confirmMatch(${t.id},${m.id})">Confirm link</button>
+                     <button class="mbtn" onclick="dismissMatch(${t.id},${m.id})">Dismiss</button>
+                     ${m.open ? `<button class="mbtn" onclick="mergeTopics(${t.id},${m.id})">Merge</button>` : ''}`
+                }
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>` : ''}
+
+    </div>
+
+    <div class="dd-actions">
+      <button class="act-btn" onclick="doAction('gather',${t.id})">
+        <i class="ti ti-mail"></i>
+        <div class="act-lbl"><span>Gather more information</span><span class="act-sub">Validate questions · send via CEO email</span></div>
+      </button>
+      <button class="act-btn" onclick="doAction('agenda',${t.id})">
+        <i class="ti ti-calendar-plus"></i>
+        <div class="act-lbl"><span>Put on agenda</span><span class="act-sub">Select forum · confirm slot</span></div>
+      </button>
+      <button class="act-btn" onclick="doAction('goal',${t.id})">
+        <i class="ti ti-target"></i>
+        <div class="act-lbl"><span>Create a project or goal</span><span class="act-sub">Define objective · assign owner</span></div>
+      </button>
+      <button class="act-btn act-expert" onclick="doAction('expert',${t.id})">
+        <i class="ti ti-user-star"></i>
+        <div class="act-lbl"><span>Ask a Catalyze Expert</span><span class="act-sub">AI drafts · you review &amp; send</span></div>
+      </button>
+    </div>
+  `;
+}
+
+// ─── Match actions ────────────────────────────────────────────────────────────
+function confirmMatch(tid, mid) {
+  byId(tid).matchState[mid] = 'confirmed';
+  renderDD();
+  toast('Link confirmed — topics are now formally connected.');
+}
+
+function dismissMatch(tid, mid) {
+  byId(tid).matchState[mid] = 'dismissed';
+  renderTable();
+  renderDD();
+  toast('Match dismissed.');
+}
+
+function mergeTopics(tid, mid) {
+  const t = byId(tid);
+  const idx = DATA.findIndex(x => x.id === mid);
+  if (idx === -1) return;
+  const removed = DATA.splice(idx, 1)[0];
+  t.matches = t.matches.filter(m => m.id !== mid);
+  if (selId === mid) selId = tid;
+  renderTable();
+  renderDD();
+  toast(`Topics merged — "${removed.topic.slice(0,42)}…" removed from backlog.`);
+}
+
+// ─── Category modal ───────────────────────────────────────────────────────────
+function openCatModal(id) {
+  catEditId = id;
+  const t = byId(id);
+  document.querySelectorAll('input[name="cat-pick"]').forEach(r => {
+    r.checked = r.value === t.category;
+  });
+  ['Strategic','Tactical'].forEach(v => {
+    $(`cat-${v.toLowerCase()}`).classList.toggle('picked', t.category === v);
+  });
+  open('ov-cat');
+}
+
+document.querySelectorAll('input[name="cat-pick"]').forEach(r => {
+  r.addEventListener('change', () => {
+    $('cat-strategic').classList.toggle('picked', r.value === 'Strategic' && r.checked);
+    $('cat-tactical').classList.toggle('picked',  r.value === 'Tactical'  && r.checked);
+  });
+});
+
+$('cat-save').addEventListener('click', () => {
+  const val = document.querySelector('input[name="cat-pick"]:checked')?.value;
+  if (!val || !catEditId) return;
+  byId(catEditId).category = val;
+  close('ov-cat');
+  renderTable();
+  if (selId === catEditId) renderDD();
+  toast('Category updated.');
+});
+
+// ─── Status modal ─────────────────────────────────────────────────────────────
+const STATUSES = ['Not started','In progress','Completed'];
+
+function openStatusModal(id) {
+  statusEditId = id;
+  const cur = byId(id).status;
+  $('status-opts').innerHTML = STATUSES.map(s => `
+    <label class="radio-opt ${s === cur ? 'picked' : ''}">
+      <input type="radio" name="stat-pick" value="${s}" ${s === cur ? 'checked' : ''}>
+      <span class="badge b-${skFromStatus(s)}">${s}</span>
+    </label>`).join('');
+
+  $('status-opts').querySelectorAll('input').forEach(r => {
+    r.addEventListener('change', () => {
+      $('status-opts').querySelectorAll('.radio-opt').forEach(o =>
+        o.classList.toggle('picked', o.querySelector('input').value === r.value)
+      );
+    });
+  });
+
+  open('ov-status');
+}
+
+$('status-save').addEventListener('click', () => {
+  const val = document.querySelector('input[name="stat-pick"]:checked')?.value;
+  if (!val || !statusEditId) return;
+  byId(statusEditId).status = val;
+  close('ov-status');
+  renderTable();
+  if (selId === statusEditId) renderDD();
+  toast('Status updated.');
+});
+
+// ─── Filters ──────────────────────────────────────────────────────────────────
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+    chip.classList.add('on');
+    activeFilter = chip.dataset.f;
+    selId = null;
+    renderTable();
+    $('dd-empty').style.display = 'flex';
+    $('dd-inner').style.display = 'none';
+  });
+});
+
+// ─── Sort ─────────────────────────────────────────────────────────────────────
+document.querySelectorAll('thead th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.sort;
+    sortDir = sortCol === col ? sortDir * -1 : 1;
+    sortCol = col;
+    document.querySelectorAll('thead th').forEach(h => {
+      h.classList.remove('sorted');
+      h.querySelector('.si').className = 'ti ti-selector si';
+    });
+    th.classList.add('sorted');
+    th.querySelector('.si').className = `ti ${sortDir === 1 ? 'ti-sort-ascending' : 'ti-sort-descending'} si`;
+    renderTable();
+  });
+});
+
+// ─── Inform AI ────────────────────────────────────────────────────────────────
+$('btn-inform').addEventListener('click', () => {
+  $('inform-ta').value = '';
+  $('inform-n').textContent = '0';
+  renderNotesList();
+  open('ov-inform');
+});
+
+$('inform-ta').addEventListener('input', function() {
+  this.value = this.value.slice(0, 500);
+  $('inform-n').textContent = this.value.length;
+});
+
+$('inform-save').addEventListener('click', () => {
+  const txt = $('inform-ta').value.trim();
+  if (!txt) { close('ov-inform'); return; }
+  ctxNotes.push(txt);
+  updateCtxPill();
+  close('ov-inform');
+  toast('Context saved — AI will factor this into future analyses.');
+});
+
+function renderNotesList() {
+  const wrap = $('existing-notes');
+  const list = $('notes-list');
+  wrap.style.display = ctxNotes.length ? 'block' : 'none';
+  list.innerHTML = ctxNotes.map((n, i) => `
+    <div style="font-size:11px;color:#555;background:#fafafa;border:1px solid #ebebeb;border-radius:7px;padding:7px 10px;display:flex;justify-content:space-between;gap:8px;line-height:1.5">
+      <span>${n}</span>
+      <span onclick="removeNote(${i})" style="color:#ccc;cursor:pointer;font-size:14px;flex-shrink:0"><i class="ti ti-x"></i></span>
+    </div>`).join('');
+}
+
+function removeNote(i) { ctxNotes.splice(i,1); updateCtxPill(); renderNotesList(); }
+
+function updateCtxPill() {
+  $('ctx-n').textContent = ctxNotes.length;
+  $('ctx-pill').classList.toggle('on', ctxNotes.length > 0);
+}
+
+// ─── Analyse all ──────────────────────────────────────────────────────────────
+$('btn-analyse').addEventListener('click', () => {
+  if (analyseState === 'done') { toast('All topics already have AI analysis.'); return; }
+  if (analyseState === 'running') return;
+  analyseState = 'running';
+  const btn = $('btn-analyse');
+  btn.innerHTML = `<i class="ti ti-loader-2 spin"></i> Analysing…`;
+  btn.disabled = true;
+  setTimeout(() => {
+    DATA.forEach(t => { t.analysed = true; });
+    analyseState = 'done';
+    btn.innerHTML = `<i class="ti ti-check"></i> All analysed`;
+    btn.disabled = false;
+    if (selId) renderDD();
+    toast(`All ${DATA.length} topics analysed.`);
+  }, 1800);
+});
+
+// ─── Add topic ────────────────────────────────────────────────────────────────
+$('btn-add').addEventListener('click', () => open('ov-add'));
+
+$('add-save').addEventListener('click', () => {
+  const desc = $('add-desc').value.trim();
+  if (!desc) { toast('Please enter a topic description.'); return; }
+
+  const tags = $('add-tags').value.split(',').map(s => s.trim()).filter(Boolean);
+  const newId = Math.max(...DATA.map(t => t.id)) + 1;
+
+  DATA.unshift({
+    id: newId,
+    topic: desc,
+    category: $('add-cat').value,
+    priority: $('add-pri').value,
+    owner: $('add-owner').value,
+    forum: $('add-forum').value,
+    source: $('add-source').value.trim() || 'Manual entry',
+    status: 'Not started',
+    tags,
+    desc,
+    rootCause: 'Pending AI analysis.',
+    aiFlag: 'Analysis not yet run — click Analyse all to generate an opinion.',
+    aiRec: 'Run Analyse all to generate a specific recommendation for this topic.',
+    aiRisk: null,
+    analysed: false,
+    matches: [],
+    matchState: {},
+  });
+
+  // Reset filter/sort so the new row is visible
+  activeFilter = 'all';
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+  document.querySelector('.chip[data-f="all"]').classList.add('on');
+  sortCol = null;
+  document.querySelectorAll('thead th').forEach(h => {
+    h.classList.remove('sorted');
+    const si = h.querySelector('.si');
+    if (si) si.className = 'ti ti-selector si';
+  });
+
+  if (analyseState === 'done') {
+    analyseState = 'idle';
+    $('btn-analyse').innerHTML = `<i class="ti ti-sparkles"></i> Analyse all`;
+    $('btn-analyse').disabled = false;
+  }
+
+  close('ov-add');
+  renderTable();
+  selectTopic(newId);
+
+  setTimeout(() => {
+    const row = document.querySelector(`tr[data-id="${newId}"]`);
+    if (row) row.classList.add('newrow');
+  }, 40);
+
+  toast(`Topic added to backlog.`);
+
+  // Clear form
+  $('add-desc').value = '';
+  $('add-tags').value = '';
+  $('add-source').value = '';
+});
+
+// ─── Action modal (shared) ────────────────────────────────────────────────────
+const FORUMS_UPCOMING = [
+  'Weekly ELT #26 — Mon 26 May',
+  'Weekly Sales Review #25 — Wed 28 May',
+  'Weekly ELT #27 — Mon 2 Jun',
+  'Monthly Business Review #6 — Thu 5 Jun',
+];
+
+function doAction(type, tid) {
+  const t = byId(tid);
+
+  if (type === 'gather') {
+    $('act-title').textContent = 'Gather more information';
+    $('act-body').innerHTML = `
+      <p style="font-size:12px;color:#666;line-height:1.7;margin-bottom:10px">The AI has drafted these questions to send via Thomas's email. Edit before sending:</p>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="padding:9px 12px;border:1px solid #ebebeb;border-radius:8px;background:#fafafa;font-size:12px;color:#333;line-height:1.6">
+          <strong>To ${t.owner}:</strong> What is the current status of the following topic: "<em>${t.topic}</em>"? What specifically is blocking a decision, and by when can you commit to a next step?
+        </div>
+        ${t.aiFlag ? `<div style="padding:9px 12px;border:1px solid #ebebeb;border-radius:8px;background:#fafafa;font-size:12px;color:#333;line-height:1.6">
+          <strong>Follow-up:</strong> The AI has flagged: "${t.aiFlag}" — please address this specifically in your reply.
+        </div>` : ''}
+      </div>
+      <p style="font-size:11px;color:#bbb;margin-top:8px">Replies will automatically update this topic in the backlog.</p>`;
+    $('act-ft').innerHTML = `
+      <button class="btn" data-ov="ov-action">Cancel</button>
+      <button class="btn btn-filled" onclick="close('ov-action');toast('Questions sent (simulated) — awaiting replies.')"><i class="ti ti-send"></i> Send questions</button>`;
+
+  } else if (type === 'agenda') {
+    $('act-title').textContent = 'Put on agenda';
+    $('act-body').innerHTML = `
+      <p style="font-size:12px;color:#666;margin-bottom:12px">Select the meeting to route this topic to:</p>
+      ${FORUMS_UPCOMING.map((f, i) => `
+        <label class="radio-opt ${i===0?'picked':''}">
+          <input type="radio" name="agenda-pick" value="${f}" ${i===0?'checked':''}>
+          ${f}
+        </label>`).join('')}`;
+    $('act-body').querySelectorAll('input').forEach(r => {
+      r.addEventListener('change', () => {
+        $('act-body').querySelectorAll('.radio-opt').forEach(o =>
+          o.classList.toggle('picked', o.querySelector('input').value === r.value)
+        );
+      });
+    });
+    $('act-ft').innerHTML = `
+      <button class="btn" data-ov="ov-action">Cancel</button>
+      <button class="btn btn-filled" onclick="close('ov-action');toast('Topic added to agenda — visible in Meeting prep.')"><i class="ti ti-calendar-plus"></i> Add to agenda</button>`;
+
+  } else if (type === 'goal') {
+    const isOKR = t.priority === 'High' && t.category === 'Strategic';
+    $('act-title').textContent = 'Create a project or goal';
+    $('act-body').innerHTML = `
+      <p style="font-size:12px;color:#666;margin-bottom:12px;line-height:1.6">The AI has drafted a goal from this topic. Review and edit before creating:</p>
+      <div class="field" style="margin-bottom:13px">
+        <div class="fl">Goal type</div>
+        <div style="display:flex;gap:8px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:7px 12px;border:1px solid #ebebeb;border-radius:7px;flex:1">
+            <input type="radio" name="goal-type" value="OKR" ${isOKR?'checked':''}> OKR (with key results)
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:7px 12px;border:1px solid #ebebeb;border-radius:7px;flex:1">
+            <input type="radio" name="goal-type" value="Simple" ${!isOKR?'checked':''}> Simple goal
+          </label>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:13px">
+        <div class="fl">Objective</div>
+        <textarea class="fta" style="height:60px">${goalObjective(t)}</textarea>
+      </div>
+      ${isOKR ? `<div class="field" style="margin-bottom:13px">
+        <div class="fl">Key results (one per line)</div>
+        <textarea class="fta" style="height:76px">${goalKRs(t)}</textarea>
+      </div>` : ''}
+      <div class="frow">
+        <div class="field">
+          <div class="fl">Owner</div>
+          <select class="fi">${['Thomas','Sarah','Marc','Julie','Pierre'].map(n=>`<option ${n===t.owner?'selected':''}>${n}</option>`).join('')}</select>
+        </div>
+        <div class="field">
+          <div class="fl">Deadline</div>
+          <input type="date" class="fi" value="2026-06-30">
+        </div>
+      </div>`;
+    $('act-ft').innerHTML = `
+      <button class="btn" data-ov="ov-action">Cancel</button>
+      <button class="btn btn-filled" onclick="close('ov-action');toast('Goal created — visible in Goal setting module.')"><i class="ti ti-target"></i> Create goal</button>`;
+
+  } else if (type === 'expert') {
+    $('act-title').textContent = 'Ask a Catalyze Expert';
+    $('act-body').innerHTML = `
+      <p style="font-size:12px;color:#666;margin-bottom:12px;line-height:1.6">The AI has drafted a briefing. Edit before sending:</p>
+      <textarea class="fta" style="height:200px">${expertBriefing(t)}</textarea>
+      <p style="font-size:11px;color:#bbb;line-height:1.6">A Catalyze Expert will respond within 24 hours with a structured recommendation.</p>`;
+    $('act-ft').innerHTML = `
+      <button class="btn" data-ov="ov-action">Cancel</button>
+      <button class="btn btn-filled" onclick="close('ov-action');toast('Briefing sent to Catalyze Expert.')"><i class="ti ti-send"></i> Send briefing</button>`;
+  }
+
+  // Wire close buttons inside the newly-set HTML
+  $('act-ft').querySelectorAll('[data-ov]').forEach(el =>
+    el.addEventListener('click', () => close(el.dataset.ov))
+  );
+  $('act-body').querySelectorAll('[data-ov]').forEach(el =>
+    el.addEventListener('click', () => close(el.dataset.ov))
+  );
+
+  open('ov-action');
+}
+
+function goalObjective(t) {
+  const map = {
+    1:'Recover Q2 commercial momentum by re-engaging the three stalled key accounts before 30 June.',
+    2:'Ensure both new sales reps have full CRM access and are no longer using spreadsheets by end of May.',
+    3:'Resolve the Technic Pro margin situation — renegotiate to ≥12% or exit before the July renewal.',
+    4:'Close Q2 at or above 7% EBITDA by identifying and executing cost and revenue levers before 30 June.',
+    5:'Define and implement a structured onboarding process for all new sales hires by end of June.',
+    6:'Build a key account review process that surfaces pipeline risks at least 6 weeks before quarter end.',
+    7:'Document Q1 commercial performance and replicate enabling factors for Q2 execution.',
+    8:'Define and implement an IT access provisioning process for all new hires.',
+  };
+  return map[t.id] || `Resolve: ${t.topic}.`;
+}
+
+function goalKRs(t) {
+  const map = {
+    1:'Durand SA deal signed or formally deferred — by 31 May\nTechnic Pro renewal proposal submitted — by 23 May\nLefebvre Industries meeting rescheduled — by 23 May',
+    3:'Margin proposal submitted to Thomas — by 23 May\nDecision: renegotiate or exit — by 2 Jun\nRevised contract signed or exit communicated — by 31 Jul',
+    4:'Two cost levers (≥€150k) identified — by 30 May\nMargin improvement plan presented to board — by 15 Jun\nQ2 EBITDA closes ≥6.8% — by 30 Jun',
+    6:'Weekly 30-min key account review running — by 2 Jun\nAccount health template defined and shared — by 27 May',
+  };
+  return map[t.id] || 'Key result 1 — by [date]\nKey result 2 — by [date]';
+}
+
+function expertBriefing(t) {
+  const d = new Date().toLocaleDateString('en-GB');
+  return `CATALYZE EXPERT BRIEFING
+Company: Meriaux & Fils | Date: ${d}
+
+TOPIC: ${t.topic}
+Category: ${t.category} | Priority: ${t.priority} | Owner: ${t.owner} | Status: ${t.status}
+Source: ${t.source}
+
+DESCRIPTION:
+${t.desc}
+
+ROOT CAUSE (AI):
+${t.rootCause}
+${t.aiFlag ? `\nFLAG:\n${t.aiFlag}` : ''}
+
+RECOMMENDATION (AI):
+${t.aiRec}
+
+QUESTION FOR EXPERT:
+${t.priority === 'High'
+  ? 'This topic has been open for over a week with no committed action plan. We need a second opinion on the best approach and whether the current owner assignment is right.'
+  : 'Seeking an independent perspective on the recommended approach and whether there are blind spots the AI may have missed.'}`;
+}
+
+// ─── Close modals ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.modal-x, [data-ov]').forEach(el => {
+  const target = el.dataset.ov;
+  if (target) el.addEventListener('click', () => close(target));
+});
+document.querySelectorAll('.overlay').forEach(ov => {
+  ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('open'); });
+});
+
+// ─── Resizable divider ────────────────────────────────────────────────────────
+(function () {
+  const resizer = $('resizer');
+  const dd = document.querySelector('.dd-panel');
+  let startX, startW;
+
+  resizer.addEventListener('mousedown', e => {
+    startX = e.clientX;
+    startW = dd.offsetWidth;
+    resizer.classList.add('drag');
+    document.body.style.cssText += ';cursor:col-resize;user-select:none';
+
+    const onMove = e => {
+      const w = Math.min(540, Math.max(200, startW + (startX - e.clientX)));
+      dd.style.width = w + 'px';
+    };
+    const onUp = () => {
+      resizer.classList.remove('drag');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+})();
+
+// ─── localStorage merge ───────────────────────────────────────────────────────
+function loadFromLocalStorage() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('catalyze_backlog_topics') || '[]');
+    const existingTitles = new Set(DATA.map(t => t.topic));
+    stored.forEach(s => {
+      if (existingTitles.has(s.title)) return;
+      const newId = Math.max(...DATA.map(t => t.id)) + 1;
+      DATA.unshift({
+        id: newId,
+        topic: s.title,
+        category: s.category || 'Tactical',
+        priority: s.priority || 'Medium',
+        owner: s.owner || 'Thomas',
+        forum: s.forum || 'Weekly ELT',
+        source: s.source || 'Meeting capture',
+        status: s.status || 'Not started',
+        tags: s.tags || [],
+        desc: s.rationale || s.title,
+        rootCause: 'Pending AI analysis.',
+        aiFlag: 'Analysis not yet run — click Analyse all to generate an opinion.',
+        aiRec: 'Run Analyse all to generate a specific recommendation for this topic.',
+        aiRisk: null,
+        analysed: false,
+        matches: [],
+        matchState: {},
+        _new: s._new || false,
+      });
+      existingTitles.add(s.title);
+    });
+  } catch(e) {}
+}
+
+function highlightFromURL() {
+  const param = new URLSearchParams(window.location.search).get('highlight');
+  if (!param) return false;
+  const decoded = decodeURIComponent(param);
+  const match = DATA.find(t => t.topic === decoded || t.topic.toLowerCase().includes(decoded.toLowerCase()));
+  if (!match) return false;
+  selectTopic(match.id);
+  setTimeout(() => {
+    const row = document.querySelector(`tr[data-id="${match.id}"]`);
+    if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 80);
+  return true;
+}
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+loadFromLocalStorage();
+renderTable();
+if (!highlightFromURL()) selectTopic(1);
+</script>
+</body>
+</html>

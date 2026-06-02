@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catalyze — Meeting Capture</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f0f0; display: flex; align-items: flex-start; justify-content: center; min-height: 100vh; padding: 24px; }
+
+/* Shell */
+.shell { display: flex; height: 780px; width: 100%; max-width: 1280px; border: 1px solid #e2e2e2; border-radius: 12px; overflow: hidden; background: #fff; box-shadow: 0 4px 32px rgba(0,0,0,0.10); position: relative; }
+
+/* Sidebar */
+.sidebar { width: 148px; min-width: 148px; background: #f9f9f9; border-right: 1px solid #e2e2e2; padding: 16px 0; display: flex; flex-direction: column; gap: 2px; }
+.sidebar-logo { padding: 0 14px 14px; border-bottom: 1px solid #e2e2e2; margin-bottom: 8px; }
+.sidebar-logo-name { font-size: 13px; font-weight: 700; color: #111; letter-spacing: -0.3px; }
+.sidebar-company { font-size: 10px; color: #999; margin-top: 2px; }
+.nav-item { display: flex; align-items: center; gap: 7px; padding: 7px 14px; font-size: 12px; color: #888; cursor: pointer; user-select: none; transition: background 0.1s; }
+.nav-item:hover { background: #f0f0f0; color: #555; }
+.nav-item.active { background: #fff; color: #111; font-weight: 600; border-right: 2px solid #111; }
+.nav-item i { font-size: 14px; }
+.nav-item.disabled { opacity: 0.4; cursor: default; }
+.nav-item.disabled:hover { background: none; color: #888; }
+
+/* Main area */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+/* Topbar */
+.topbar { padding: 12px 18px 10px; border-bottom: 1px solid #e2e2e2; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; background: #fff; }
+.topbar-left { display: flex; flex-direction: column; gap: 1px; }
+.topbar-title { font-size: 14px; font-weight: 700; color: #111; }
+.topbar-meta { font-size: 11px; color: #999; }
+.topbar-actions { display: flex; gap: 8px; align-items: center; }
+.btn { font-size: 11px; padding: 6px 11px; border-radius: 7px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: background 0.1s, box-shadow 0.1s; font-family: inherit; font-weight: 500; }
+.btn:hover { opacity: 0.85; }
+.btn-outline { background: #fff; border: 1px solid #ddd; color: #333; }
+.btn-outline:hover { background: #f9f9f9; border-color: #bbb; }
+.btn-filled { background: #111; border: 1px solid #111; color: #fff; }
+.btn-filled:hover { background: #333; }
+
+/* Filters */
+.filters-row { padding: 9px 18px; border-bottom: 1px solid #e2e2e2; display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+.filter-chip { font-size: 11px; padding: 4px 10px; border: 1px solid #e2e2e2; border-radius: 20px; color: #666; background: #fff; cursor: pointer; user-select: none; transition: all 0.1s; }
+.filter-chip:hover { border-color: #bbb; color: #333; }
+.filter-chip.active { border-color: #111; color: #111; background: #f5f5f5; font-weight: 600; }
+
+/* Content layout */
+.content-area { flex: 1; display: flex; overflow: hidden; }
+
+/* List column */
+.list-col { width: 268px; min-width: 160px; max-width: 520px; display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; }
+
+/* Resizer */
+.resizer { width: 5px; background: #e2e2e2; cursor: col-resize; flex-shrink: 0; position: relative; transition: background 0.15s; }
+.resizer:hover, .resizer.dragging { background: #1D9E75; }
+.resizer::after { content: ''; position: absolute; inset: 0 -4px; }
+.list-wrap { flex: 1; overflow-y: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+thead th { padding: 7px 10px; text-align: left; font-size: 10px; font-weight: 600; color: #999; border-bottom: 1px solid #e2e2e2; background: #fafafa; position: sticky; top: 0; z-index: 1; text-transform: uppercase; letter-spacing: 0.4px; }
+tbody tr { border-bottom: 1px solid #f2f2f2; cursor: pointer; transition: background 0.1s; }
+tbody tr:hover { background: #fafafa; }
+tbody tr.selected { background: #fafafa; border-right: 2px solid #1D9E75; }
+tbody tr.hidden { display: none; }
+tbody td { padding: 9px 10px; color: #111; vertical-align: middle; }
+.col-date { width: 24%; }
+.col-forum { width: 50%; }
+.col-health { width: 20%; }
+.col-chevron { width: 6%; text-align: right; }
+
+/* Badges */
+.badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
+.badge-poor { background: #FCEBEB; color: #A32D2D; }
+.badge-fair { background: #FEF3DA; color: #854F0B; }
+.badge-good { background: #EAF3DE; color: #3B6D11; }
+.badge-excellent { background: #E1F5EE; color: #0F6E56; }
+.badge-strategic { background: #EEEDFE; color: #534AB7; }
+.badge-tactical { background: #E1F5EE; color: #0F6E56; }
+.badge-high { background: #FCEBEB; color: #A32D2D; }
+.badge-medium { background: #FEF3DA; color: #854F0B; }
+.badge-low { background: #EAF3DE; color: #3B6D11; }
+
+.forum-name { font-size: 12px; color: #111; line-height: 1.3; font-weight: 500; }
+.forum-iter { font-size: 10px; color: #aaa; margin-top: 1px; }
+.date-text { font-size: 11px; color: #999; }
+.chevron-icon { font-size: 13px; color: #ccc; }
+tbody tr.selected .chevron-icon { color: #888; }
+
+/* Deep dive */
+.deep-dive { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #fff; }
+.dd-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ccc; gap: 10px; }
+.dd-empty i { font-size: 32px; }
+.dd-empty-text { font-size: 13px; }
+.dd-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.dd-header { padding: 12px 18px 11px; border-bottom: 1px solid #e2e2e2; display: flex; align-items: flex-start; justify-content: space-between; flex-shrink: 0; }
+.dd-meeting-title { font-size: 14px; font-weight: 700; color: #111; }
+.dd-meeting-meta { font-size: 11px; color: #999; margin-top: 3px; display: flex; align-items: center; gap: 10px; }
+.dd-meta-item { display: flex; align-items: center; gap: 4px; }
+.dd-body { flex: 1; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 16px; }
+.dd-section { display: flex; flex-direction: column; gap: 8px; }
+.dd-section-title { font-size: 10px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; }
+
+/* Scorecard */
+.scorecard-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.score-tile { background: #fafafa; border: 1px solid #f0f0f0; border-radius: 9px; padding: 9px 11px; position: relative; cursor: default; transition: border-color 0.15s; }
+.score-tile:hover { border-color: #ddd; }
+.score-tile-label { font-size: 10px; color: #999; margin-bottom: 4px; }
+.score-tile-value { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+.score-poor { color: #A32D2D; }
+.score-fair { color: #854F0B; }
+.score-good { color: #3B6D11; }
+.score-excellent { color: #0F6E56; }
+.score-na { color: #bbb; }
+.score-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.dot-poor { background: #A32D2D; }
+.dot-fair { background: #854F0B; }
+.dot-good { background: #3B6D11; }
+.dot-excellent { background: #0F6E56; }
+.dot-na { background: #ccc; }
+
+/* Tooltip */
+.tooltip-wrap { position: relative; }
+.tooltip-content { display: none; position: absolute; bottom: calc(100% + 8px); left: 0; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px 11px; font-size: 11px; color: #555; line-height: 1.6; z-index: 20; min-width: 200px; max-width: 260px; box-shadow: 0 4px 16px rgba(0,0,0,0.10); pointer-events: none; }
+.tooltip-wrap:hover .tooltip-content { display: block; }
+
+/* Participation tiles */
+.participation-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.participation-tile { background: #fafafa; border: 1px solid #f0f0f0; border-radius: 9px; padding: 9px 11px; position: relative; cursor: default; transition: border-color 0.15s; }
+.participation-tile:hover { border-color: #ddd; }
+.participation-tile-title { font-size: 11px; font-weight: 600; color: #333; display: flex; align-items: center; justify-content: space-between; }
+.participation-tile-sub { font-size: 10px; color: #bbb; margin-top: 2px; }
+.participation-tip { display: none; position: absolute; bottom: calc(100% + 8px); left: 0; right: 0; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 9px 12px; font-size: 11px; color: #555; line-height: 1.7; z-index: 20; box-shadow: 0 4px 16px rgba(0,0,0,0.10); pointer-events: none; min-width: 220px; }
+.participation-tile:hover .participation-tip { display: block; }
+
+/* Speaking bars */
+.speak-bar-row { display: flex; align-items: center; gap: 7px; margin-bottom: 3px; }
+.speak-bar-name { font-size: 10px; color: #555; width: 46px; flex-shrink: 0; }
+.speak-bar-track { flex: 1; height: 5px; background: #eee; border-radius: 3px; overflow: hidden; }
+.speak-bar-fill { height: 100%; border-radius: 3px; background: #1D9E75; }
+.speak-bar-fill.amber { background: #E8971A; }
+.speak-bar-pct { font-size: 10px; color: #999; width: 28px; flex-shrink: 0; text-align: right; }
+
+/* Topics */
+.topic-list { display: flex; flex-direction: column; gap: 5px; }
+.topic-row { border: 1px solid #ebebeb; border-radius: 9px; overflow: hidden; }
+.topic-row-header { display: flex; align-items: center; gap: 8px; padding: 8px 11px; cursor: pointer; background: #fff; user-select: none; transition: background 0.1s; }
+.topic-row-header:hover { background: #fafafa; }
+.topic-check { width: 14px; height: 14px; cursor: pointer; accent-color: #1D9E75; flex-shrink: 0; }
+.topic-label { flex: 1; font-size: 11px; color: #111; line-height: 1.4; }
+.topic-badges { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+.topic-chevron { font-size: 12px; color: #ccc; flex-shrink: 0; transition: transform 0.2s; }
+.topic-detail { padding: 9px 11px 9px 33px; border-top: 1px solid #f0f0f0; background: #fafafa; display: none; }
+.topic-detail.open { display: block; }
+.topic-detail-row { display: flex; gap: 8px; margin-bottom: 4px; font-size: 11px; }
+.topic-detail-label { color: #aaa; width: 58px; flex-shrink: 0; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; padding-top: 1px; }
+.topic-detail-value { color: #333; flex: 1; line-height: 1.5; }
+.topic-count-badge { font-size: 11px; color: #888; font-weight: 400; }
+
+/* Decision quality */
+.dq-list { display: flex; flex-direction: column; gap: 6px; }
+.dq-card { padding: 9px 12px; border-radius: 9px; border: 1px solid #ebebeb; background: #fff; }
+.dq-card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.dq-flag { font-size: 10px; padding: 2px 7px; border-radius: 6px; font-weight: 600; white-space: nowrap; }
+.dq-flag-red { background: #FCEBEB; color: #A32D2D; }
+.dq-flag-amber { background: #FEF3DA; color: #854F0B; }
+.dq-topic { font-size: 12px; font-weight: 600; color: #111; flex: 1; }
+.dq-remediation { font-size: 11px; color: #666; line-height: 1.6; margin-bottom: 6px; }
+.dq-link { font-size: 11px; color: #185FA5; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight: 500; }
+.dq-link:hover { text-decoration: underline; }
+
+/* Notes */
+.notes-box { width: 100%; font-size: 11px; color: #333; background: #fafafa; border: 1px solid #ebebeb; border-radius: 9px; padding: 10px 12px; resize: none; font-family: inherit; line-height: 1.6; height: 110px; outline: none; }
+
+/* Actions */
+.dd-actions { padding: 11px 18px; border-top: 1px solid #e2e2e2; display: flex; gap: 7px; flex-wrap: wrap; flex-shrink: 0; background: #fafafa; }
+.action-btn { font-size: 11px; padding: 6px 11px; background: #fff; border: 1px solid #ddd; border-radius: 8px; color: #111; cursor: pointer; display: flex; align-items: center; gap: 7px; font-family: inherit; transition: background 0.1s, border-color 0.1s; }
+.action-btn:hover { background: #f5f5f5; border-color: #bbb; }
+.action-btn i { font-size: 14px; color: #888; flex-shrink: 0; }
+.action-btn-label { display: flex; flex-direction: column; gap: 1px; }
+.action-btn-sub { font-size: 10px; color: #aaa; }
+.action-btn-expert { border-color: #534AB7; }
+.action-btn-expert i { color: #534AB7; }
+.action-btn-expert:hover { background: #f5f4ff; border-color: #7b74d6; }
+
+/* Modal */
+.modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.35); display: none; align-items: center; justify-content: center; z-index: 100; }
+.modal-overlay.open { display: flex; }
+.modal { background: #fff; border-radius: 12px; border: 1px solid #ddd; width: 460px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 12px 48px rgba(0,0,0,0.16); }
+.modal-header { padding: 15px 18px 13px; border-bottom: 1px solid #ebebeb; display: flex; align-items: center; justify-content: space-between; }
+.modal-title { font-size: 14px; font-weight: 700; color: #111; }
+.modal-close { font-size: 18px; color: #aaa; cursor: pointer; background: none; border: none; display: flex; align-items: center; padding: 2px; transition: color 0.1s; }
+.modal-close:hover { color: #333; }
+.modal-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 13px; overflow-y: auto; max-height: 480px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field-label { font-size: 11px; font-weight: 600; color: #888; }
+.field-input { font-size: 12px; padding: 7px 10px; border: 1px solid #ddd; border-radius: 7px; color: #111; background: #fff; font-family: inherit; outline: none; transition: border-color 0.15s; }
+.field-input:focus { border-color: #999; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field-textarea { font-size: 11px; padding: 9px 10px; border: 1px solid #ddd; border-radius: 7px; color: #111; background: #fff; font-family: inherit; line-height: 1.6; resize: none; height: 120px; width: 100%; outline: none; transition: border-color 0.15s; }
+.field-textarea:focus { border-color: #999; }
+.field-hint { font-size: 10px; color: #bbb; }
+.modal-footer { padding: 12px 18px; border-top: 1px solid #ebebeb; display: flex; justify-content: flex-end; gap: 8px; background: #fafafa; }
+
+/* Inform AI modal */
+.inform-modal { width: 420px; }
+.inform-textarea { height: 100px; }
+.inform-char-count { font-size: 10px; color: #bbb; text-align: right; }
+
+/* Stats modal */
+.stats-modal { width: 520px; }
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stat-card { background: #fafafa; border: 1px solid #ebebeb; border-radius: 9px; padding: 12px 14px; }
+.stat-card-title { font-size: 11px; font-weight: 600; color: #888; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px; }
+.stat-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 3px 0; border-bottom: 1px solid #f0f0f0; }
+.stat-row:last-child { border-bottom: none; }
+.stat-label { color: #666; }
+.stat-value { font-weight: 600; color: #111; }
+
+/* Notification toast */
+.toast { position: absolute; bottom: 20px; right: 20px; background: #111; color: #fff; font-size: 12px; padding: 10px 16px; border-radius: 8px; display: none; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 200; animation: slideUp 0.2s ease; }
+.toast.show { display: flex; }
+@keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* Inform AI context notes indicator */
+.context-indicator { display: none; font-size: 10px; color: #1D9E75; background: #E1F5EE; padding: 2px 8px; border-radius: 10px; font-weight: 600; align-items: center; gap: 4px; }
+.context-indicator.visible { display: inline-flex; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+
+/* Transition for deep dive */
+.dd-content { animation: fadeIn 0.15s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* New meeting animation */
+@keyframes highlight { 0% { background: #E1F5EE; } 100% { background: transparent; } }
+.new-row td { animation: highlight 2s ease forwards; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-name">Catalyze</div>
+      <div class="sidebar-company">Meriaux &amp; Fils</div>
+    </div>
+    <div class="nav-item active"><i class="ti ti-clipboard-list"></i> Meeting capture</div>
+    <div class="nav-item disabled"><i class="ti ti-stack-2"></i> Topic backlog</div>
+    <div class="nav-item disabled"><i class="ti ti-calendar-event"></i> Meeting prep</div>
+    <div class="nav-item disabled"><i class="ti ti-target"></i> Goal setting</div>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-title">Meeting capture</div>
+        <div class="topbar-meta" id="topbar-meta">9 meetings · last 30 days</div>
+      </div>
+      <div class="topbar-actions">
+        <span class="context-indicator" id="context-indicator"><i class="ti ti-brain"></i> <span id="context-count">0</span> context note(s)</span>
+        <button class="btn btn-outline" id="btn-stats"><i class="ti ti-chart-bar"></i> Stats by forum</button>
+        <button class="btn btn-outline" id="btn-add-meeting"><i class="ti ti-plus"></i> Add meeting</button>
+        <button class="btn btn-filled" id="btn-inform-ai-top"><i class="ti ti-message-bolt"></i> Inform AI</button>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-row">
+      <span class="filter-chip active" data-filter="all">All</span>
+      <span class="filter-chip" data-filter="Weekly ELT">Weekly ELT</span>
+      <span class="filter-chip" data-filter="Weekly Sales Review">Sales review</span>
+      <span class="filter-chip" data-filter="Monthly Business Review">MBR</span>
+      <span class="filter-chip" data-filter="poor">Poor only</span>
+    </div>
+
+    <!-- Content -->
+    <div class="content-area">
+
+      <!-- List -->
+      <div class="list-col">
+        <div class="list-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="col-date">Date</th>
+                <th class="col-forum">Forum</th>
+                <th class="col-health">Health</th>
+                <th class="col-chevron"></th>
+              </tr>
+            </thead>
+            <tbody id="meeting-list-body">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Resizer -->
+      <div class="resizer" id="resizer"></div>
+
+      <!-- Deep dive -->
+      <div class="deep-dive" id="deep-dive">
+        <div class="dd-empty" id="dd-empty">
+          <i class="ti ti-clipboard-text"></i>
+          <div class="dd-empty-text">Select a meeting to view details</div>
+        </div>
+        <div class="dd-content" id="dd-content" style="display:none; flex: 1; flex-direction: column; overflow: hidden;">
+          <!-- Filled dynamically -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Add Meeting Modal -->
+  <div class="modal-overlay" id="modal-add">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Add meeting notes</div>
+        <button class="modal-close" id="modal-add-close"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="field-row">
+          <div class="field">
+            <div class="field-label">Forum</div>
+            <select class="field-input" id="add-forum">
+              <option>Weekly ELT</option>
+              <option>Weekly Sales Review</option>
+              <option>Monthly Business Review</option>
+              <option>Quarterly Strategy</option>
+              <option>Board Meeting</option>
+            </select>
+          </div>
+          <div class="field">
+            <div class="field-label">Date</div>
+            <input type="date" class="field-input" id="add-date" value="2026-05-26">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <div class="field-label">Duration (min)</div>
+            <input type="number" class="field-input" id="add-duration" value="90" min="15" max="480">
+          </div>
+          <div class="field">
+            <div class="field-label">Actual duration (min)</div>
+            <input type="number" class="field-input" id="add-actual" value="90" min="15" max="480">
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">Attendees</div>
+          <input type="text" class="field-input" id="add-attendees" placeholder="Thomas, Sarah, Marc…">
+        </div>
+        <div class="field">
+          <div class="field-label">Meeting notes</div>
+          <textarea class="field-textarea" id="add-notes" placeholder="Paste or type your meeting notes here. Topics will be extracted and the meeting will be scored automatically."></textarea>
+          <div class="field-hint">The AI will process these notes automatically once saved.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="modal-add-cancel">Cancel</button>
+        <button class="btn btn-filled" id="modal-add-save"><i class="ti ti-sparkles"></i> Save &amp; analyse</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inform AI Modal -->
+  <div class="modal-overlay" id="modal-inform">
+    <div class="modal inform-modal">
+      <div class="modal-header">
+        <div class="modal-title">Inform AI</div>
+        <button class="modal-close" id="modal-inform-close"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <div class="field-label">Share context the AI doesn't have</div>
+          <textarea class="field-textarea inform-textarea" id="inform-text" placeholder="A decision made verbally, something that happened outside the meeting, a constraint to factor in…"></textarea>
+          <div class="inform-char-count"><span id="inform-char">0</span> / 500</div>
+        </div>
+        <div style="font-size: 11px; color: #999; line-height: 1.6;">This context will be retained for the session and used by the AI when it next analyses a meeting or topic.</div>
+        <div id="existing-notes-section" style="display:none;">
+          <div class="field-label" style="margin-bottom:6px;">Previous notes this session</div>
+          <div id="existing-notes-list" style="display:flex;flex-direction:column;gap:5px;"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="modal-inform-cancel">Cancel</button>
+        <button class="btn btn-filled" id="modal-inform-save"><i class="ti ti-check"></i> Save context</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Modal -->
+  <div class="modal-overlay" id="modal-stats">
+    <div class="modal stats-modal">
+      <div class="modal-header">
+        <div class="modal-title">Stats by forum</div>
+        <button class="modal-close" id="modal-stats-close"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-title">Weekly ELT (last 4)</div>
+            <div class="stat-row"><span class="stat-label">Avg health</span><span class="stat-value" style="color:#854F0B">Fair</span></div>
+            <div class="stat-row"><span class="stat-label">Avg duration vs target</span><span class="stat-value">+7 min</span></div>
+            <div class="stat-row"><span class="stat-label">Poor meetings</span><span class="stat-value" style="color:#A32D2D">2 / 4</span></div>
+            <div class="stat-row"><span class="stat-label">Decisions with owner+deadline</span><span class="stat-value" style="color:#A32D2D">12%</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">Weekly Sales Review (last 3)</div>
+            <div class="stat-row"><span class="stat-label">Avg health</span><span class="stat-value" style="color:#3B6D11">Good</span></div>
+            <div class="stat-row"><span class="stat-label">Avg duration vs target</span><span class="stat-value" style="color:#3B6D11">-1 min</span></div>
+            <div class="stat-row"><span class="stat-label">Poor meetings</span><span class="stat-value">0 / 3</span></div>
+            <div class="stat-row"><span class="stat-label">Decisions with owner+deadline</span><span class="stat-value" style="color:#3B6D11">68%</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">Monthly Business Review (last 1)</div>
+            <div class="stat-row"><span class="stat-label">Avg health</span><span class="stat-value" style="color:#854F0B">Fair</span></div>
+            <div class="stat-row"><span class="stat-label">Avg duration vs target</span><span class="stat-value" style="color:#3B6D11">-2 min</span></div>
+            <div class="stat-row"><span class="stat-label">Poor meetings</span><span class="stat-value">0 / 1</span></div>
+            <div class="stat-row"><span class="stat-label">Decisions with owner+deadline</span><span class="stat-value" style="color:#854F0B">40%</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">Overall trend</div>
+            <div class="stat-row"><span class="stat-label">Total meetings</span><span class="stat-value">9</span></div>
+            <div class="stat-row"><span class="stat-label">% rated Poor</span><span class="stat-value" style="color:#A32D2D">33%</span></div>
+            <div class="stat-row"><span class="stat-label">% rated Good+</span><span class="stat-value" style="color:#3B6D11">33%</span></div>
+            <div class="stat-row"><span class="stat-label">CEO avg talk share</span><span class="stat-value" style="color:#854F0B">38%</span></div>
+          </div>
+        </div>
+        <div style="font-size: 11px; color: #999; margin-top: 4px; padding: 10px 12px; background: #fafafa; border-radius: 8px; line-height: 1.7;">
+          <strong style="color:#555">Pattern:</strong> Weekly ELT consistently underperforms. Two root causes: zero decisions are getting owners and deadlines, and Thomas is speaking above the 35% threshold in 3 of 4 sessions. Fix the decision hygiene first.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-filled" id="modal-stats-close2">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action modals -->
+  <div class="modal-overlay" id="modal-action">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="action-modal-title">Action</div>
+        <button class="modal-close" id="modal-action-close"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body" id="action-modal-body"></div>
+      <div class="modal-footer" id="action-modal-footer"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"><i class="ti ti-check"></i> <span id="toast-text"></span></div>
+
+</div>
+
+<script>
+// ─── Data ─────────────────────────────────────────────────────────────────────
+const meetings = [
+  {
+    id: 1, forum: "Weekly ELT", iteration: 25, date: "2026-05-19",
+    duration: 90, actual: 97, health: "Poor",
+    attendees: ["Thomas","Sarah","Marc","Julie","Pierre"],
+    scorecard: {
+      overall: { rating: "Poor", tooltip: "No decisions with owners or deadlines. CEO spoke 39% of the time. Three agenda items overran." },
+      structure: { rating: "Fair", tooltip: "Meeting ran 7 min over 90 min target. 3 of 5 agenda items exceeded allocated time." },
+      output: { rating: "Poor", tooltip: "0 of 5 decisions had an owner AND deadline. 2 of 5 issues converted to a concrete next step." },
+      dynamics: { rating: "Fair", tooltip: "CEO spoke 39% of total time (threshold: 35%). Interruption rate 12% (threshold: 10%)." }
+    },
+    participation: [
+      { name: "Thomas", pct: 39, turns: 18, interruptions: 2, interrupted: 1, amber: true },
+      { name: "Marc",   pct: 26, turns: 14, interruptions: 3, interrupted: 4 },
+      { name: "Julie",  pct: 18, turns: 9,  interruptions: 1, interrupted: 2 },
+      { name: "Sarah",  pct: 11, turns: 6,  interruptions: 0, interrupted: 1 },
+      { name: "Pierre", pct: 6,  turns: 4,  interruptions: 0, interrupted: 0 }
+    ],
+    topics: [
+      { checked: true,  title: "Sales pipeline Q2 below target by €700k", category: "Strategic", priority: "High", owner: "Marc", forum: "Weekly ELT", rationale: "Pipeline €700k short vs €2.8M target. Cash target at risk in June if unresolved." },
+      { checked: true,  title: "CRM not configured for new sales reps", category: "Tactical", priority: "High", owner: "Sarah", forum: "Weekly ELT", rationale: "Two new reps using spreadsheets since April. Slows onboarding and pipeline visibility." },
+      { checked: true,  title: "Technic Pro margin at 4% vs 12% target", category: "Strategic", priority: "High", owner: "Marc", forum: "Weekly ELT", rationale: "Contract renews July. Decision on renegotiate-or-exit needed before renewal." },
+      { checked: true,  title: "Q2 EBITDA forecast 6.2% vs 7% board target", category: "Strategic", priority: "High", owner: "Julie", forum: "Monthly Business Review", rationale: "0.8pt gap vs board expectation with no recovery levers identified." },
+      { checked: false, title: "Company day logistics", category: "Tactical", priority: "Low", owner: "Sarah", forum: "Weekly ELT", rationale: "Administrative task. Excluded from backlog by default." }
+    ],
+    decisions: [
+      { flag: "No decision", flagType: "red", topic: "Sales pipeline Q2 shortfall", remediation: "Thomas to assign a recovery plan owner (Marc recommended) with a deadline before next Weekly ELT." },
+      { flag: "No owner", flagType: "red", topic: "CRM access for new sales reps", remediation: "Sarah owns this — IT reports to her. Assign deadline: CRM access live by 23 May." },
+      { flag: "No deadline", flagType: "amber", topic: "Technic Pro margin proposal", remediation: "Marc to submit margin proposal by 23 May — before next Weekly ELT." },
+      { flag: "No decision", flagType: "red", topic: "Q2 forecast levers", remediation: "Julie to present at least two cost levers at next MBR on 5 June." }
+    ],
+    notes: `Weekly ELT — Monday 19 May 2026 — 90 min (ran 97 min)
+Attendees: Thomas (CEO), Sarah (COO), Marc (Sales), Julie (Finance), Pierre (Ops)
+
+1. Sales pipeline review
+Marc presented the pipeline. Q2 is looking soft — €2.1M in pipeline vs €2.8M target.
+Three key accounts (Durand SA, Technic Pro, Lefebvre Industries) have pushed decisions to Q3 without clear reasons. Thomas said we need to understand why. Marc said he'd follow up but no deadline was set. Julie flagged that if Q2 closes below target, we'll miss the cash target for June. No decision was made on what to do.
+
+2. New sales rep onboarding
+Pierre raised that the two new sales reps hired in April still don't have CRM access properly configured. They're using spreadsheets. Marc said it was IT's responsibility. Sarah said IT reports to her and she wasn't aware of the issue. They agreed to fix it but didn't say by when or who would own it.
+
+3. Margin on Technic Pro account
+Julie raised that the Technic Pro contract renews in July and current margin is 4% vs our 12% target. She recommends renegotiating or exiting. Marc pushed back — Technic Pro is a reference client. Thomas said we need a proposal before next week's meeting. Marc agreed to prepare it but no format or deadline was confirmed.
+
+4. Q2 forecast
+Julie presented updated Q2 forecast: €17.8M revenue, EBITDA 6.2%. Board expects 7%. Thomas asked if there are any levers. Discussion was inconclusive. No actions taken.
+
+5. Any other business
+Thomas reminded the team that the annual company day is in June. Sarah to organise.`
+  },
+  {
+    id: 2, forum: "Weekly Sales Review", iteration: 24, date: "2026-05-14",
+    duration: 45, actual: 43, health: "Fair",
+    attendees: ["Thomas","Marc"],
+    scorecard: {
+      overall: { rating: "Fair", tooltip: "Meeting ended on time and decisions were made, but one action is missing a deadline." },
+      structure: { rating: "Good", tooltip: "Meeting ran 2 min under target. All agenda items completed within allocation." },
+      output: { rating: "Fair", tooltip: "2 of 3 decision moments had a clear owner and deadline. One action missing deadline." },
+      dynamics: { rating: "Good", tooltip: "Thomas spoke 41% of time (slightly above 35% threshold). No interruptions recorded." }
+    },
+    participation: [
+      { name: "Thomas", pct: 41, turns: 11, interruptions: 0, interrupted: 0, amber: true },
+      { name: "Marc",   pct: 59, turns: 13, interruptions: 0, interrupted: 0 }
+    ],
+    topics: [
+      { checked: true,  title: "Durand SA deal stalling — no response for 3 weeks", category: "Strategic", priority: "High", owner: "Marc", forum: "Weekly Sales Review", rationale: "Key account. Decision deferred to Q3 without explanation. Revenue at risk." },
+      { checked: true,  title: "New sales rep pipeline activation below target", category: "Tactical", priority: "Medium", owner: "Marc", forum: "Weekly ELT", rationale: "New reps contributing <20% expected pipeline. CRM issue likely contributing factor." },
+      { checked: false, title: "Client event planned for June", category: "Tactical", priority: "Low", owner: "Marc", forum: "Weekly Sales Review", rationale: "Logistical. Not a priority for backlog." }
+    ],
+    decisions: [
+      { flag: "No deadline", flagType: "amber", topic: "Durand SA re-engagement plan", remediation: "Marc to send re-engagement email to Durand SA by 16 May and report back at next Sales Review." }
+    ],
+    notes: `Weekly Sales Review — Wednesday 14 May 2026 — 45 min (ran 43 min)
+Attendees: Thomas (CEO), Marc (Sales Director)
+
+1. Pipeline review
+Q2 pipeline at €2.1M vs €2.8M target. Three accounts stalling: Durand SA (no contact in 3 weeks), Technic Pro (pushed to Q3), Lefebvre Industries (awaiting internal sign-off). Marc to re-engage Durand SA this week.
+
+2. New rep performance
+Two new reps have generated €180k combined pipeline vs €900k target. Marc attributed this partly to CRM access issues. Agreed to escalate to ELT.
+
+3. June client event
+Marc mentioned a client networking event in June. Thomas approved in principle. No budget or format discussed yet.`
+  },
+  {
+    id: 3, forum: "Weekly ELT", iteration: 24, date: "2026-05-12",
+    duration: 90, actual: 88, health: "Fair",
+    attendees: ["Thomas","Sarah","Marc","Julie","Pierre"],
+    scorecard: {
+      overall: { rating: "Fair", tooltip: "Meeting ran slightly under time. Some decisions had owners but few had deadlines." },
+      structure: { rating: "Good", tooltip: "Meeting ran 2 min under 90 min target. 2 of 4 agenda items kept to allocation." },
+      output: { rating: "Fair", tooltip: "3 of 5 decisions had an owner. 1 of 5 had both owner and deadline." },
+      dynamics: { rating: "Fair", tooltip: "Thomas spoke 37% of total time (just above 35% threshold). Interruption rate 8%." }
+    },
+    participation: [
+      { name: "Thomas", pct: 37, turns: 16, interruptions: 1, interrupted: 0, amber: true },
+      { name: "Marc",   pct: 28, turns: 13, interruptions: 2, interrupted: 3 },
+      { name: "Julie",  pct: 17, turns: 8,  interruptions: 0, interrupted: 1 },
+      { name: "Sarah",  pct: 12, turns: 7,  interruptions: 1, interrupted: 1 },
+      { name: "Pierre", pct: 6,  turns: 4,  interruptions: 0, interrupted: 0 }
+    ],
+    topics: [
+      { checked: true, title: "Sales pipeline Q2 below target by €700k", category: "Strategic", priority: "High", owner: "Marc", forum: "Weekly ELT", rationale: "Recurring issue. First flagged this session — context building for subsequent ELTs." },
+      { checked: true, title: "No structured account review for key accounts", category: "Strategic", priority: "Medium", owner: "Marc", forum: "Monthly Business Review", rationale: "Pattern of late-stage surprises across key accounts. Process fix needed." },
+      { checked: true, title: "New sales rep onboarding process undefined", category: "Tactical", priority: "Medium", owner: "Sarah", forum: "Weekly ELT", rationale: "Two new hires with no structured onboarding. Affects ramp time and pipeline quality." }
+    ],
+    decisions: [
+      { flag: "No deadline", flagType: "amber", topic: "Sales pipeline recovery plan", remediation: "Marc to present a recovery plan at next ELT on 19 May with at least three specific actions." },
+      { flag: "No owner", flagType: "red", topic: "Key account review process", remediation: "Thomas to assign ownership — Marc or Sarah — by end of week." }
+    ],
+    notes: `Weekly ELT — Monday 12 May 2026 — 90 min (ran 88 min)
+Attendees: Thomas (CEO), Sarah (COO), Marc (Sales), Julie (Finance), Pierre (Ops)
+
+Q2 pipeline first flagged as soft. Marc to present recovery plan next week. Key account review process raised as structural gap. New rep onboarding discussed — Sarah to define process.`
+  },
+  {
+    id: 4, forum: "Weekly Sales Review", iteration: 23, date: "2026-05-07",
+    duration: 45, actual: 44, health: "Good",
+    attendees: ["Thomas","Marc"],
+    scorecard: {
+      overall: { rating: "Good", tooltip: "Clean meeting. All decisions had owners. Most had deadlines. On time." },
+      structure: { rating: "Excellent", tooltip: "Meeting ended 1 min early. All items completed within allocation." },
+      output: { rating: "Good", tooltip: "4 of 5 decisions had both owner and deadline." },
+      dynamics: { rating: "Good", tooltip: "Thomas spoke 33% of time (below 35% threshold). No interruptions." }
+    },
+    participation: [
+      { name: "Thomas", pct: 33, turns: 9,  interruptions: 0, interrupted: 0 },
+      { name: "Marc",   pct: 67, turns: 14, interruptions: 0, interrupted: 0 }
+    ],
+    topics: [
+      { checked: true, title: "Lefebvre Industries awaiting internal sign-off", category: "Strategic", priority: "High", owner: "Marc", forum: "Weekly Sales Review", rationale: "€400k deal. Stuck in client procurement. Need to escalate contact." },
+      { checked: true, title: "Q1 sales team performance — strong quarter", category: "Tactical", priority: "Low", owner: "Marc", forum: "Weekly ELT", rationale: "Positive signal worth noting for team morale and board reporting." }
+    ],
+    decisions: [
+      { flag: "No deadline", flagType: "amber", topic: "Lefebvre escalation contact", remediation: "Marc to identify senior contact at Lefebvre and schedule call before 14 May." }
+    ],
+    notes: `Weekly Sales Review — Wednesday 7 May 2026 — 45 min (ran 44 min)
+Attendees: Thomas (CEO), Marc (Sales Director)
+
+Strong meeting. Q1 closed at €4.8M — above target. Lefebvre deal flagged as stuck in procurement. Marc to escalate. Clean decisions throughout.`
+  },
+  {
+    id: 5, forum: "Weekly ELT", iteration: 23, date: "2026-05-05",
+    duration: 90, actual: 102, health: "Poor",
+    attendees: ["Thomas","Sarah","Marc","Julie","Pierre"],
+    scorecard: {
+      overall: { rating: "Poor", tooltip: "Meeting ran 12 minutes over. Three agenda items significantly overran. Low decision quality." },
+      structure: { rating: "Poor", tooltip: "Meeting ran 12 min over 90 min target. 4 of 5 agenda items exceeded allocated time." },
+      output: { rating: "Poor", tooltip: "0 of 4 decisions had both owner and deadline. 1 of 5 issues had a next step." },
+      dynamics: { rating: "Fair", tooltip: "Thomas spoke 44% of total time. Highest this month. Interruption rate 9%." }
+    },
+    participation: [
+      { name: "Thomas", pct: 44, turns: 21, interruptions: 2, interrupted: 0, amber: true },
+      { name: "Marc",   pct: 23, turns: 12, interruptions: 2, interrupted: 3 },
+      { name: "Julie",  pct: 16, turns: 8,  interruptions: 1, interrupted: 2 },
+      { name: "Sarah",  pct: 11, turns: 6,  interruptions: 0, interrupted: 1 },
+      { name: "Pierre", pct: 6,  turns: 4,  interruptions: 0, interrupted: 0 }
+    ],
+    topics: [
+      { checked: true, title: "IT access management process missing", category: "Tactical", priority: "Low", owner: "Sarah", forum: "Weekly ELT", rationale: "Raised as recurring friction. CRM issue is a symptom." },
+      { checked: true, title: "Q1 sales team performance — strong quarter", category: "Tactical", priority: "Low", owner: "Marc", forum: "Weekly ELT", rationale: "Q1 closed above target. Worth tracking as positive signal." },
+      { checked: true, title: "New sales rep onboarding process undefined", category: "Tactical", priority: "Medium", owner: "Sarah", forum: "Weekly ELT", rationale: "Onboarding gap first raised. Two new hires with no structured process." }
+    ],
+    decisions: [
+      { flag: "No decision", flagType: "red", topic: "IT access management process", remediation: "Sarah to own IT access process definition. First draft by 19 May." },
+      { flag: "No owner", flagType: "red", topic: "New rep onboarding process", remediation: "Thomas to confirm Sarah as owner by EOD. Deadline: process defined by 31 May." }
+    ],
+    notes: `Weekly ELT — Monday 5 May 2026 — 90 min (ran 102 min)
+Attendees: Thomas (CEO), Sarah (COO), Marc (Sales), Julie (Finance), Pierre (Ops)
+
+Long meeting. Q1 results celebrated briefly. IT access issues raised by Pierre — no owner assigned. Sales rep onboarding first discussed. No decisions with owners or deadlines.`
+  },
+  {
+    id: 6, forum: "Monthly Business Review", iteration: 5, date: "2026-05-01",
+    duration: 120, actual: 118, health: "Fair",
+    attendees: ["Thomas","Sarah","Marc","Julie","Pierre"],
+    scorecard: {
+      overall: { rating: "Fair", tooltip: "Well-structured MBR but several strategic decisions lacked clear owners." },
+      structure: { rating: "Good", tooltip: "Meeting ran 2 min under 120 min target. Agenda followed as planned." },
+      output: { rating: "Fair", tooltip: "4 of 7 decisions had owners. 2 of 7 had both owner and deadline." },
+      dynamics: { rating: "Good", tooltip: "Thomas spoke 31% — below threshold. Good distribution. Interruption rate 6%." }
+    },
+    participation: [
+      { name: "Thomas", pct: 31, turns: 14, interruptions: 1, interrupted: 0 },
+      { name: "Marc",   pct: 24, turns: 12, interruptions: 1, interrupted: 2 },
+      { name: "Julie",  pct: 22, turns: 11, interruptions: 0, interrupted: 1 },
+      { name: "Sarah",  pct: 15, turns: 8,  interruptions: 0, interrupted: 0 },
+      { name: "Pierre", pct: 8,  turns: 5,  interruptions: 0, interrupted: 0 }
+    ],
+    topics: [
+      { checked: true, title: "April revenue at €1.4M — 7% below monthly target", category: "Strategic", priority: "High", owner: "Marc", forum: "Monthly Business Review", rationale: "Monthly revenue miss. Q2 trend starting to show." },
+      { checked: true, title: "EBITDA margin holding at 6.8% — below 7% target", category: "Strategic", priority: "High", owner: "Julie", forum: "Monthly Business Review", rationale: "Persistent margin gap. Cost review needed before Q2 close." },
+      { checked: true, title: "No structured account review process for key accounts", category: "Strategic", priority: "Medium", owner: "Marc", forum: "Monthly Business Review", rationale: "Board flagged absence of structured account reviews." }
+    ],
+    decisions: [
+      { flag: "No deadline", flagType: "amber", topic: "Revenue recovery actions for May", remediation: "Marc to define three specific actions to recover May revenue by 8 May." },
+      { flag: "No owner", flagType: "red", topic: "Cost review before Q2 close", remediation: "Julie to own cost review and present findings at next MBR on 5 June." }
+    ],
+    notes: `Monthly Business Review — Thursday 1 May 2026 — 120 min (ran 118 min)
+Attendees: Thomas, Sarah, Marc, Julie, Pierre
+
+April financials reviewed: revenue €1.4M vs €1.5M target. EBITDA 6.8% vs 7% board target. Key accounts review raised as structural gap. Board preparation discussed for Q2 reporting.`
+  },
+  {
+    id: 7, forum: "Weekly Sales Review", iteration: 22, date: "2026-04-30",
+    duration: 45, actual: 42, health: "Good",
+    attendees: ["Thomas","Marc"],
+    scorecard: {
+      overall: { rating: "Good", tooltip: "Efficient meeting. Decisions made with owners. Ended early." },
+      structure: { rating: "Good", tooltip: "Meeting ran 3 min under target. Focused." },
+      output: { rating: "Good", tooltip: "3 of 4 decisions had both owner and deadline." },
+      dynamics: { rating: "Good", tooltip: "Thomas spoke 28% of time. Marc led the conversation. No interruptions." }
+    },
+    participation: [
+      { name: "Thomas", pct: 28, turns: 7,  interruptions: 0, interrupted: 0 },
+      { name: "Marc",   pct: 72, turns: 15, interruptions: 0, interrupted: 0 }
+    ],
+    topics: [
+      { checked: true, title: "Q1 close — 3 deals signed in final week", category: "Tactical", priority: "Low", owner: "Marc", forum: "Weekly ELT", rationale: "Strong Q1 close. Good signal for team morale." }
+    ],
+    decisions: [],
+    notes: `Weekly Sales Review — Wednesday 30 April 2026 — 45 min (ran 42 min)
+Attendees: Thomas, Marc
+
+Q1 end review. Three deals signed in final week. Q1 closed at target. Q2 pipeline discussion started.`
+  },
+  {
+    id: 8, forum: "Weekly ELT", iteration: 22, date: "2026-04-28",
+    duration: 90, actual: 91, health: "Fair",
+    attendees: ["Thomas","Sarah","Marc","Julie","Pierre"],
+    scorecard: {
+      overall: { rating: "Fair", tooltip: "On time but decision quality remained inconsistent." },
+      structure: { rating: "Good", tooltip: "Meeting ran 1 min over. Mostly on schedule." },
+      output: { rating: "Fair", tooltip: "3 of 5 decisions had owners. 2 had deadlines." },
+      dynamics: { rating: "Good", tooltip: "Thomas spoke 34% — just under threshold. Interruption rate 7%." }
+    },
+    participation: [
+      { name: "Thomas", pct: 34, turns: 15, interruptions: 1, interrupted: 0 },
+      { name: "Marc",   pct: 27, turns: 12, interruptions: 2, interrupted: 2 },
+      { name: "Julie",  pct: 19, turns: 9,  interruptions: 0, interrupted: 1 },
+      { name: "Sarah",  pct: 13, turns: 7,  interruptions: 0, interrupted: 0 },
+      { name: "Pierre", pct: 7,  turns: 5,  interruptions: 0, interrupted: 0 }
+    ],
+    topics: [
+      { checked: true, title: "April pipeline softer than expected", category: "Strategic", priority: "High", owner: "Marc", forum: "Weekly Sales Review", rationale: "Early signal on Q2 weakness." }
+    ],
+    decisions: [
+      { flag: "No deadline", flagType: "amber", topic: "April pipeline review", remediation: "Marc to present detailed April pipeline at next Sales Review on 7 May." }
+    ],
+    notes: `Weekly ELT — Monday 28 April 2026 — 90 min (ran 91 min)
+Attendees: Thomas, Sarah, Marc, Julie, Pierre
+
+April pipeline first flagged as soft. Q1 results positive. Standard ELT — reasonable decision quality with some missing deadlines.`
+  },
+  {
+    id: 9, forum: "Weekly Sales Review", iteration: 21, date: "2026-04-23",
+    duration: 45, actual: 44, health: "Excellent",
+    attendees: ["Thomas","Marc"],
+    scorecard: {
+      overall: { rating: "Excellent", tooltip: "All decisions had owners and deadlines. Meeting ended on time. Good balance in talking time." },
+      structure: { rating: "Excellent", tooltip: "Meeting ran 1 min under target. All agenda items completed." },
+      output: { rating: "Excellent", tooltip: "5 of 5 decisions had both owner and deadline." },
+      dynamics: { rating: "Excellent", tooltip: "Thomas spoke 29% of time. Marc led as expected for a sales review. No interruptions." }
+    },
+    participation: [
+      { name: "Thomas", pct: 29, turns: 8,  interruptions: 0, interrupted: 0 },
+      { name: "Marc",   pct: 71, turns: 16, interruptions: 0, interrupted: 0 }
+    ],
+    topics: [
+      { checked: true, title: "Q1 final week sprint — 3 deals to close", category: "Strategic", priority: "High", owner: "Marc", forum: "Weekly Sales Review", rationale: "Q1 close critical. Clear plan with owners and dates." }
+    ],
+    decisions: [],
+    notes: `Weekly Sales Review — Thursday 23 April 2026 — 45 min (ran 44 min)
+Attendees: Thomas, Marc
+
+Model meeting. Q1 final sprint planned with clear owners and deadlines for each deal. All actions documented.`
+  }
+];
+
+// ─── localStorage persistence ─────────────────────────────────────────────────
+function saveMeetings() {
+  try {
+    const userAdded = meetings.filter(m => m._userAdded);
+    localStorage.setItem('catalyze_meetings', JSON.stringify(userAdded));
+  } catch(e) {}
+}
+
+function loadMeetings() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('catalyze_meetings') || '[]');
+    const existingIds = new Set(meetings.map(m => m.id));
+    stored.forEach(m => { if (!existingIds.has(m.id)) meetings.unshift(m); });
+  } catch(e) {}
+}
+
+function saveBacklogTopics(newMeeting) {
+  try {
+    const existing = JSON.parse(localStorage.getItem('catalyze_backlog_topics') || '[]');
+    const existingTitles = new Set(existing.map(t => t.title));
+    newMeeting.topics.forEach((t, i) => {
+      if (topicStates[newMeeting.id]?.[i] !== false && !existingTitles.has(t.title)) {
+        existing.push({
+          title: t.title,
+          category: t.category,
+          priority: t.priority,
+          owner: t.owner,
+          forum: t.forum,
+          rationale: t.rationale,
+          source: `${newMeeting.forum} #${newMeeting.iteration} — ${newMeeting.date}`,
+          status: 'Not started',
+          tags: [],
+          _new: true,
+        });
+      }
+    });
+    localStorage.setItem('catalyze_backlog_topics', JSON.stringify(existing));
+  } catch(e) {}
+}
+
+loadMeetings();
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let selectedMeetingId = null;
+let activeFilter = "all";
+let contextNotes = [];
+let topicStates = {}; // { meetingId: { topicIndex: checked } }
+
+// ─── Init topic states ────────────────────────────────────────────────────────
+meetings.forEach(m => {
+  topicStates[m.id] = {};
+  m.topics.forEach((t, i) => { topicStates[m.id][i] = t.checked; });
+});
+
+// ─── Utilities ────────────────────────────────────────────────────────────────
+function fmt(dateStr) {
+  const [y, m, d] = dateStr.split('-');
+  return `${d}/${m}/${y.slice(2)}`;
+}
+
+function healthClass(h) {
+  return { Poor: 'poor', Fair: 'fair', Good: 'good', Excellent: 'excellent' }[h] || 'fair';
+}
+
+function scoreClass(r) {
+  return { Poor: 'poor', Fair: 'fair', Good: 'good', Excellent: 'excellent', 'n/a': 'na' }[r] || 'fair';
+}
+
+function showToast(msg, duration = 2200) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-text').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ─── Render list ──────────────────────────────────────────────────────────────
+function renderList() {
+  const tbody = document.getElementById('meeting-list-body');
+  tbody.innerHTML = '';
+  let shown = 0;
+  meetings.forEach(m => {
+    const visible = matchesFilter(m);
+    const tr = document.createElement('tr');
+    tr.dataset.id = m.id;
+    if (m.id === selectedMeetingId) tr.classList.add('selected');
+    if (!visible) tr.classList.add('hidden');
+    else shown++;
+    tr.innerHTML = `
+      <td><span class="date-text">${fmt(m.date)}</span></td>
+      <td>
+        <div class="forum-name">${m.forum}</div>
+        <div class="forum-iter">#${m.iteration}</div>
+      </td>
+      <td><span class="badge badge-${healthClass(m.health)}">${m.health}</span></td>
+      <td><i class="ti ti-chevron-right chevron-icon"></i></td>
+    `;
+    tr.addEventListener('click', () => selectMeeting(m.id));
+    tbody.appendChild(tr);
+  });
+  const meta = document.getElementById('topbar-meta');
+  const total = meetings.length;
+  meta.textContent = `${total} meeting${total !== 1 ? 's' : ''} · last 30 days`;
+}
+
+function matchesFilter(m) {
+  if (activeFilter === 'all') return true;
+  if (activeFilter === 'poor') return m.health === 'Poor';
+  return m.forum === activeFilter;
+}
+
+// ─── Select meeting ───────────────────────────────────────────────────────────
+function selectMeeting(id) {
+  selectedMeetingId = id;
+  renderList();
+  renderDeepDive();
+}
+
+// ─── Render deep dive ─────────────────────────────────────────────────────────
+function renderDeepDive() {
+  const m = meetings.find(x => x.id === selectedMeetingId);
+  const empty = document.getElementById('dd-empty');
+  const content = document.getElementById('dd-content');
+
+  if (!m) {
+    empty.style.display = 'flex';
+    content.style.display = 'none';
+    return;
+  }
+
+  empty.style.display = 'none';
+  content.style.display = 'flex';
+
+  const checkedCount = Object.values(topicStates[m.id]).filter(Boolean).length;
+
+  content.innerHTML = `
+    <div class="dd-header">
+      <div>
+        <div class="dd-meeting-title">${m.forum} #${m.iteration} — ${fmtFull(m.date)}</div>
+        <div class="dd-meeting-meta">
+          <span class="dd-meta-item"><i class="ti ti-clock"></i> ${m.duration} min planned · ${m.actual} min actual${m.actual > m.duration ? ` <span style="color:#854F0B">(+${m.actual - m.duration} min)</span>` : ` <span style="color:#3B6D11">(-${m.duration - m.actual} min)</span>`}</span>
+          <span class="dd-meta-item"><i class="ti ti-users"></i> ${m.attendees.length} attendees: ${m.attendees.join(', ')}</span>
+        </div>
+      </div>
+      <button class="btn btn-filled" id="dd-inform-btn" style="flex-shrink:0"><i class="ti ti-message-bolt"></i> Inform AI</button>
+    </div>
+    <div class="dd-body" id="dd-body">
+      <!-- Section 1: Scorecard -->
+      <div class="dd-section">
+        <div class="dd-section-title"><i class="ti ti-chart-pie"></i> Meeting health scorecard</div>
+        <div class="scorecard-grid">
+          ${[['meetingHealth','overall'],['structure','structure'],['outputQuality','output'],['dynamics','dynamics']].map(([newKey, legacyKey], i) => {
+            const labels = ['Meeting health','Structure','Output quality','Dynamics'];
+            const sc = m.scorecard[newKey] || m.scorecard[legacyKey];
+            const cls = scoreClass(sc.rating);
+            return `
+              <div class="score-tile tooltip-wrap">
+                <div class="tooltip-content">${sc.tooltip}</div>
+                <div class="score-tile-label">${labels[i]}</div>
+                <div class="score-tile-value score-${cls}">
+                  <span class="score-dot dot-${cls}"></span>
+                  ${sc.rating}
+                </div>
+              </div>`;
+          }).join('')}
+        </div>
+        <div class="participation-row">
+          <div class="participation-tile">
+            <div class="participation-tip">
+              ${m.participation.map(p => `
+                <div class="speak-bar-row">
+                  <span class="speak-bar-name">${p.name}</span>
+                  <div class="speak-bar-track"><div class="speak-bar-fill ${p.amber ? 'amber' : ''}" style="width:${p.pct}%"></div></div>
+                  <span class="speak-bar-pct">${p.pct}%</span>
+                </div>`).join('')}
+              ${m.participation.some(p => p.amber) ? `<div style="font-size:10px;color:#854F0B;margin-top:4px;">⚠ Thomas above 35% threshold</div>` : ''}
+            </div>
+            <div class="participation-tile-title"><i class="ti ti-chart-bar" style="color:#888;font-size:13px"></i> Speaking time share <i class="ti ti-info-circle" style="color:#ccc;font-size:12px"></i></div>
+            <div class="participation-tile-sub">Hover to see breakdown</div>
+          </div>
+          <div class="participation-tile">
+            <div class="participation-tip">
+              ${m.participation.map(p => `<div>${p.name}: <strong>${p.turns} turns</strong></div>`).join('')}
+              <div style="margin-top:4px;color:#A32D2D;font-size:10px;">Highest interruption rate: ${m.participation.sort((a,b)=>b.interruptions-a.interruptions)[0].name} (${m.participation.sort((a,b)=>b.interruptions-a.interruptions)[0].interruptions} in ${m.participation.sort((a,b)=>b.interruptions-a.interruptions)[0].turns} turns)</div>
+              <div style="color:#A32D2D;font-size:10px;">Most interrupted: ${m.participation.sort((a,b)=>b.interrupted-a.interrupted)[0].name} (${m.participation.sort((a,b)=>b.interrupted-a.interrupted)[0].interrupted}×)</div>
+            </div>
+            <div class="participation-tile-title"><i class="ti ti-repeat" style="color:#888;font-size:13px"></i> Speaking turns <i class="ti ti-info-circle" style="color:#ccc;font-size:12px"></i></div>
+            <div class="participation-tile-sub">Hover to see detail</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Topics -->
+      <div class="dd-section">
+        <div class="dd-section-title"><i class="ti ti-list-check"></i> Extracted topics <span class="topic-count-badge" id="topic-count-label">— ${m.topics.length} topics · ${checkedCount} sent to backlog</span></div>
+        <div class="topic-list" id="topic-list">
+          ${m.topics.map((t, i) => `
+            <div class="topic-row" id="topic-row-${i}">
+              <div class="topic-row-header" onclick="toggleTopic(${m.id}, ${i}, event)">
+                <input type="checkbox" class="topic-check" id="chk-${m.id}-${i}" ${topicStates[m.id][i] ? 'checked' : ''} onclick="event.stopPropagation(); toggleCheck(${m.id}, ${i})">
+                <span class="topic-label">${t.title}</span>
+                <div class="topic-badges">
+                  <span class="badge badge-${t.category.toLowerCase()}">${t.category}</span>
+                  <span class="badge badge-${t.priority.toLowerCase()}">${t.priority}</span>
+                </div>
+                <i class="ti ti-chevron-down topic-chevron" id="chev-${m.id}-${i}"></i>
+              </div>
+              <div class="topic-detail" id="detail-${m.id}-${i}">
+                <div class="topic-detail-row"><span class="topic-detail-label">Owner</span><span class="topic-detail-value">${t.owner}</span></div>
+                <div class="topic-detail-row"><span class="topic-detail-label">Forum</span><span class="topic-detail-value">${t.forum}</span></div>
+                <div class="topic-detail-row"><span class="topic-detail-label">Rationale</span><span class="topic-detail-value">${t.rationale}</span></div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <!-- Section 3: Decision quality -->
+      ${m.decisions.length > 0 ? `
+      <div class="dd-section">
+        <div class="dd-section-title"><i class="ti ti-alert-triangle"></i> Decision quality feedback</div>
+        <div class="dq-list">
+          ${m.decisions.map((d, i) => `
+            <div class="dq-card">
+              <div class="dq-card-top">
+                <span class="dq-flag dq-flag-${d.flagType}">${d.flag}</span>
+                <span class="dq-topic">${d.topic}</span>
+              </div>
+              <div class="dq-remediation">${d.remediation}</div>
+              <a class="dq-link" onclick="viewInBacklog('${d.topic}')"><i class="ti ti-arrow-right"></i> View in backlog</a>
+            </div>`).join('')}
+        </div>
+      </div>` : ''}
+
+      <!-- Section 4: Notes -->
+      <div class="dd-section">
+        <div class="dd-section-title"><i class="ti ti-notes"></i> Meeting notes</div>
+        <textarea class="notes-box" readonly>${m.notes}</textarea>
+      </div>
+    </div>
+    <div class="dd-actions">
+      <button class="action-btn" onclick="showActionModal('gather', ${m.id})">
+        <i class="ti ti-mail"></i>
+        <div class="action-btn-label"><span>Gather more information</span><span class="action-btn-sub">Validate questions · send via CEO email</span></div>
+      </button>
+      <button class="action-btn" onclick="showActionModal('agenda', ${m.id})">
+        <i class="ti ti-calendar-plus"></i>
+        <div class="action-btn-label"><span>Put on agenda</span><span class="action-btn-sub">Select forum · confirm slot</span></div>
+      </button>
+      <button class="action-btn action-btn-expert" onclick="showActionModal('expert', ${m.id})">
+        <i class="ti ti-user-star"></i>
+        <div class="action-btn-label"><span>Ask a Catalyze Expert</span><span class="action-btn-sub">AI drafts · you review &amp; send</span></div>
+      </button>
+    </div>
+  `;
+
+  document.getElementById('dd-inform-btn').addEventListener('click', () => openModal('modal-inform'));
+}
+
+function fmtFull(dateStr) {
+  const [y, m, d] = dateStr.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
+}
+
+// ─── Topic interactions ───────────────────────────────────────────────────────
+function toggleTopic(meetingId, topicIndex, event) {
+  if (event.target.type === 'checkbox') return;
+  const detail = document.getElementById(`detail-${meetingId}-${topicIndex}`);
+  const chev = document.getElementById(`chev-${meetingId}-${topicIndex}`);
+  const isOpen = detail.classList.contains('open');
+  detail.classList.toggle('open');
+  chev.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
+function toggleCheck(meetingId, topicIndex) {
+  const chk = document.getElementById(`chk-${meetingId}-${topicIndex}`);
+  topicStates[meetingId][topicIndex] = chk.checked;
+  const checkedCount = Object.values(topicStates[meetingId]).filter(Boolean).length;
+  const m = meetings.find(x => x.id === meetingId);
+  const label = document.getElementById('topic-count-label');
+  if (label) label.textContent = `— ${m.topics.length} topics · ${checkedCount} sent to backlog`;
+}
+
+// ─── View in backlog ──────────────────────────────────────────────────────────
+function viewInBacklog(topic) {
+  window.location.href = 'topic_backlog.html?highlight=' + encodeURIComponent(topic);
+}
+
+// ─── Filters ──────────────────────────────────────────────────────────────────
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    activeFilter = chip.dataset.filter;
+    selectedMeetingId = null;
+    renderList();
+    // Clear deep dive
+    document.getElementById('dd-empty').style.display = 'flex';
+    document.getElementById('dd-content').style.display = 'none';
+  });
+});
+
+// ─── Add meeting ──────────────────────────────────────────────────────────────
+document.getElementById('btn-add-meeting').addEventListener('click', () => openModal('modal-add'));
+document.getElementById('modal-add-close').addEventListener('click', () => closeModal('modal-add'));
+document.getElementById('modal-add-cancel').addEventListener('click', () => closeModal('modal-add'));
+
+document.getElementById('modal-add-save').addEventListener('click', async () => {
+  const forum = document.getElementById('add-forum').value;
+  const date = document.getElementById('add-date').value;
+  const duration = parseInt(document.getElementById('add-duration').value) || 90;
+  const actual = parseInt(document.getElementById('add-actual').value) || duration;
+  const attendeesRaw = document.getElementById('add-attendees').value;
+  const notes = document.getElementById('add-notes').value;
+
+  if (!date) { alert('Please select a date.'); return; }
+
+  // API key gate
+  let apiKey = sessionStorage.getItem('catalyze_api_key');
+  if (!apiKey) {
+    apiKey = prompt('Enter your Anthropic API key to enable AI analysis:');
+    if (!apiKey || !apiKey.trim()) { showToast('API key required — meeting not saved.'); return; }
+    sessionStorage.setItem('catalyze_api_key', apiKey.trim());
+    apiKey = apiKey.trim();
+  }
+
+  const saveBtn = document.getElementById('modal-add-save');
+  const originalLabel = saveBtn.textContent;
+  saveBtn.textContent = 'Analysing…';
+  saveBtn.disabled = true;
+
+  const attendeesFallback = attendeesRaw ? attendeesRaw.split(',').map(s => s.trim()).filter(Boolean) : ['Thomas'];
+  const existingIterations = meetings.filter(m => m.forum === forum).map(m => m.iteration);
+  const nextIter = existingIterations.length > 0 ? Math.max(...existingIterations) + 1 : 1;
+  const overrun = actual - duration;
+  const newId = Math.max(...meetings.map(m => m.id)) + 1;
+
+  const staticFallback = (health) => ({
+    id: newId,
+    forum, iteration: nextIter, date, duration, actual, health, attendees: attendeesFallback,
+    scorecard: {
+      meetingHealth: { rating: health, tooltip: 'Computed from meeting data.' },
+      structure: { rating: overrun > 5 ? 'Fair' : 'Good', tooltip: overrun > 0 ? `Meeting ran ${overrun} min over target.` : `Meeting ended ${-overrun} min early.` },
+      outputQuality: { rating: 'n/a', tooltip: 'Decision quality not yet assessed — add via AI analysis.' },
+      dynamics: { rating: 'n/a', tooltip: 'Participation data not available for manually-entered meetings.' }
+    },
+    participation: attendeesFallback.slice(0, 3).map((name, i) => ({
+      name, pct: i === 0 ? 40 : Math.floor(60 / (attendeesFallback.length - 1 || 1)),
+      turns: 10 - i * 2, interruptions: 0, interrupted: 0
+    })),
+    topics: notes ? [
+      { checked: true, title: `Key topics from ${forum} — to be extracted`, category: 'Strategic', priority: 'High', owner: attendeesFallback[0] || 'Thomas', forum, rationale: 'Manually entered meeting — topics pending AI extraction.' }
+    ] : [],
+    decisions: [],
+    notes: notes || `${forum} — ${date}\nAttendees: ${attendeesFallback.join(', ')}\n\nNo notes provided.`
+  });
+
+  let newMeeting;
+  try {
+    const systemPrompt = 'You are Catalyze, an AI consultant for SME executive teams. Company: Meriaux & Fils, B2B distribution, 85 employees. Leadership: Thomas (CEO), Sarah (COO), Marc (Sales Director), Julie (Finance Director), Pierre (Ops Director). Revenue ~€18M. Be direct, name specific people and deadlines.';
+    const userPrompt = `Analyse these meeting notes and respond with JSON only (no markdown fences).\n\nExtract:\n- forum: string (meeting forum name)\n- date: string (ISO date if found, else null)\n- attendees: string[] (list of attendee names)\n- topics: array of 3-5 objects each with { title, category ("Strategic"|"Tactical"), priority ("High"|"Medium"|"Low"), owner, forum, rationale }\n- decisionFlags: array of 2-3 objects each with { topic, flagType ("no-decision"|"no-owner"|"no-deadline"), remediation }\n- scorecard: object with four keys — meetingHealth, structure, outputQuality, dynamics — each with { rating ("Poor"|"Fair"|"Good"|"Excellent"), confidence (0-100, your certainty given available data), tooltip (1-2 sentence explanation) }. If confidence < 85 for a dimension, set rating to "n/a" and tooltip to "Insufficient data in transcript." For structure, only give a real rating if the transcript contains explicit timing data per agenda item. For dynamics, only give a real rating if the transcript contains explicit speaking time percentages or turn counts. Otherwise you MUST return rating: "n/a" and confidence below 85.\n\nMeeting notes:\n${notes || '(no notes provided)'}`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 2000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    if (!response.ok) throw new Error(`API ${response.status}`);
+
+    const data = await response.json();
+    let raw = data.content?.[0]?.text || '';
+    raw = raw.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (parseErr) {
+      // Attempt to recover truncated JSON by finding the last closing brace of the root object
+      const lastBrace = raw.lastIndexOf('}');
+      if (lastBrace !== -1) {
+        try {
+          parsed = JSON.parse(raw.slice(0, lastBrace + 1));
+        } catch (_) {
+          console.warn('JSON parse failed after truncation recovery. Raw response:', raw);
+          throw parseErr;
+        }
+      } else {
+        console.warn('JSON parse failed, no closing brace found. Raw response:', raw);
+        throw parseErr;
+      }
+    }
+
+    const aiAttendees = Array.isArray(parsed.attendees) && parsed.attendees.length ? parsed.attendees : attendeesFallback;
+    const aiTopics = Array.isArray(parsed.topics) ? parsed.topics.map(t => ({
+      checked: true,
+      title: t.title || 'Untitled topic',
+      category: t.category || 'Tactical',
+      priority: t.priority || 'Medium',
+      owner: t.owner || aiAttendees[0] || 'Thomas',
+      forum: t.forum || forum,
+      rationale: t.rationale || ''
+    })) : staticFallback('Fair').topics;
+
+    const flags = Array.isArray(parsed.decisionFlags) ? parsed.decisionFlags : [];
+    const health = flags.length === 0 ? 'Good' : flags.length <= 2 ? 'Fair' : 'Poor';
+
+    const aiScorecard = parsed.scorecard || {};
+    const scDim = (key, fallbackRating, fallbackTooltip) => {
+      const d = aiScorecard[key];
+      if (d && typeof d.rating === 'string') return { rating: d.rating, tooltip: d.tooltip || fallbackTooltip };
+      return { rating: fallbackRating, tooltip: fallbackTooltip };
+    };
+
+    newMeeting = {
+      id: newId,
+      forum: parsed.forum || forum,
+      iteration: nextIter,
+      date: parsed.date || date,
+      duration, actual, health,
+      attendees: aiAttendees,
+      scorecard: {
+        meetingHealth: scDim('meetingHealth', health, `AI analysis: ${flags.length} decision flag(s) found.`),
+        structure: scDim('structure', 'n/a', 'Insufficient data — full transcript with timestamps required.'),
+        outputQuality: scDim('outputQuality', health, flags.length ? flags.map(f => f.remediation).join(' | ') : 'No decision quality issues detected.'),
+        dynamics: scDim('dynamics', 'n/a', 'Participation data not available for manually-entered meetings.')
+      },
+      participation: aiAttendees.slice(0, 3).map((name, i) => ({
+        name, pct: i === 0 ? 40 : Math.floor(60 / (aiAttendees.length - 1 || 1)),
+        turns: 10 - i * 2, interruptions: 0, interrupted: 0
+      })),
+      topics: aiTopics,
+      decisions: flags.map(f => ({ topic: f.topic, flag: f.flagType, remediation: f.remediation })),
+      notes: notes || `${forum} — ${date}\nAttendees: ${aiAttendees.join(', ')}\n\nNo notes provided.`
+    };
+  } catch (err) {
+    console.warn('AI analysis failed, using static fallback:', err);
+    const overrunFallback = actual - duration;
+    let healthFallback = 'Fair';
+    if (overrunFallback <= 0) healthFallback = 'Good';
+    if (overrunFallback > 10) healthFallback = 'Poor';
+    if (overrunFallback <= -5 && notes.length > 200) healthFallback = 'Good';
+    newMeeting = staticFallback(healthFallback);
+    showToast('AI analysis unavailable — meeting saved with basic data.', 3500);
+  } finally {
+    saveBtn.textContent = originalLabel;
+    saveBtn.disabled = false;
+  }
+
+  newMeeting._userAdded = true;
+  meetings.unshift(newMeeting);
+  topicStates[newId] = {};
+  newMeeting.topics.forEach((_, i) => { topicStates[newId][i] = true; });
+
+  saveMeetings();
+  saveBacklogTopics(newMeeting);
+
+  closeModal('modal-add');
+  renderList();
+  selectMeeting(newId);
+
+  setTimeout(() => {
+    const rows = document.querySelectorAll('#meeting-list-body tr');
+    if (rows[0]) rows[0].classList.add('new-row');
+  }, 50);
+
+  showToast(`Meeting added: ${newMeeting.forum} #${nextIter}`);
+
+  document.getElementById('add-notes').value = '';
+  document.getElementById('add-attendees').value = '';
+});
+
+// ─── Inform AI ────────────────────────────────────────────────────────────────
+document.getElementById('btn-inform-ai-top').addEventListener('click', () => openInformModal());
+document.getElementById('modal-inform-close').addEventListener('click', () => closeModal('modal-inform'));
+document.getElementById('modal-inform-cancel').addEventListener('click', () => closeModal('modal-inform'));
+
+const informTextarea = document.getElementById('inform-text');
+informTextarea.addEventListener('input', () => {
+  const len = informTextarea.value.length;
+  document.getElementById('inform-char').textContent = len;
+  if (len > 500) informTextarea.value = informTextarea.value.slice(0, 500);
+});
+
+function openInformModal() {
+  document.getElementById('inform-text').value = '';
+  document.getElementById('inform-char').textContent = '0';
+  renderExistingNotes();
+  openModal('modal-inform');
+}
+
+function renderExistingNotes() {
+  const section = document.getElementById('existing-notes-section');
+  const list = document.getElementById('existing-notes-list');
+  if (contextNotes.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+  list.innerHTML = contextNotes.map((n, i) => `
+    <div style="font-size:11px;color:#555;background:#fafafa;border:1px solid #ebebeb;border-radius:7px;padding:7px 10px;line-height:1.5;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+      <span>${n}</span>
+      <span onclick="removeContextNote(${i})" style="color:#ccc;cursor:pointer;flex-shrink:0;font-size:13px;" title="Remove"><i class="ti ti-x"></i></span>
+    </div>`).join('');
+}
+
+function removeContextNote(index) {
+  contextNotes.splice(index, 1);
+  updateContextIndicator();
+  renderExistingNotes();
+}
+
+document.getElementById('modal-inform-save').addEventListener('click', () => {
+  const text = document.getElementById('inform-text').value.trim();
+  if (!text) { closeModal('modal-inform'); return; }
+  contextNotes.push(text);
+  updateContextIndicator();
+  closeModal('modal-inform');
+  showToast('Context saved — AI will use this in future analyses.');
+});
+
+function updateContextIndicator() {
+  const ind = document.getElementById('context-indicator');
+  document.getElementById('context-count').textContent = contextNotes.length;
+  ind.classList.toggle('visible', contextNotes.length > 0);
+}
+
+// ─── Stats ────────────────────────────────────────────────────────────────────
+document.getElementById('btn-stats').addEventListener('click', () => openModal('modal-stats'));
+document.getElementById('modal-stats-close').addEventListener('click', () => closeModal('modal-stats'));
+document.getElementById('modal-stats-close2').addEventListener('click', () => closeModal('modal-stats'));
+
+// ─── Action modals ────────────────────────────────────────────────────────────
+document.getElementById('modal-action-close').addEventListener('click', () => closeModal('modal-action'));
+
+function showActionModal(type, meetingId) {
+  const m = meetings.find(x => x.id === meetingId);
+  const titleEl = document.getElementById('action-modal-title');
+  const bodyEl = document.getElementById('action-modal-body');
+  const footerEl = document.getElementById('action-modal-footer');
+
+  if (type === 'gather') {
+    titleEl.textContent = 'Gather more information';
+    bodyEl.innerHTML = `
+      <div style="font-size:12px;color:#666;line-height:1.7;margin-bottom:12px;">The following questions would be drafted and sent via Thomas's email to gather missing context:</div>
+      ${m.decisions.slice(0, 3).map((d, i) => `
+        <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border:1px solid #ebebeb;border-radius:8px;background:#fafafa;margin-bottom:6px;">
+          <span style="font-size:11px;background:#EEEDFE;color:#534AB7;padding:1px 6px;border-radius:6px;font-weight:600;flex-shrink:0;margin-top:1px;">To ${d.topic.split(' ')[0]}</span>
+          <span style="font-size:12px;color:#333;line-height:1.5;">What specific steps are planned to resolve: "${d.topic}"? What is blocking a decision, and when can a proposal be ready?</span>
+        </div>`).join('')}
+      <div style="font-size:11px;color:#999;margin-top:8px;">In the full product, these emails would be sent automatically and replies would update the relevant topics in the backlog.</div>
+    `;
+    footerEl.innerHTML = `
+      <button class="btn btn-outline" onclick="closeModal('modal-action')">Cancel</button>
+      <button class="btn btn-filled" onclick="closeModal('modal-action');showToast('Emails simulated — context updated.')"><i class="ti ti-send"></i> Send (simulated)</button>
+    `;
+  } else if (type === 'agenda') {
+    titleEl.textContent = 'Put on agenda';
+    const forumOptions = ['Weekly ELT #26 — Mon 26 May', 'Weekly Sales Review #25 — Mon 26 May', 'Weekly ELT #27 — Mon 2 Jun', 'Monthly Business Review #6 — Fri 5 Jun'];
+    bodyEl.innerHTML = `
+      <div style="font-size:12px;color:#666;margin-bottom:12px;line-height:1.6;">Select which forum to route topics from this meeting to:</div>
+      <div class="field" style="margin-bottom:12px;">
+        <div class="field-label">Topic</div>
+        <select class="field-input" id="agenda-topic-sel">
+          ${m.topics.filter((_, i) => topicStates[m.id][i]).map(t => `<option>${t.title}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <div class="field-label">Target forum</div>
+        ${forumOptions.map((f, i) => `
+          <label style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid #ebebeb;border-radius:7px;margin-bottom:5px;cursor:pointer;font-size:12px;color:#333;">
+            <input type="radio" name="forum-sel" value="${f}" ${i === 0 ? 'checked' : ''}> ${f}
+          </label>`).join('')}
+      </div>
+    `;
+    footerEl.innerHTML = `
+      <button class="btn btn-outline" onclick="closeModal('modal-action')">Cancel</button>
+      <button class="btn btn-filled" onclick="closeModal('modal-action');showToast('Topic added to agenda — visible in Meeting prep.')"><i class="ti ti-calendar-plus"></i> Add to agenda</button>
+    `;
+  } else if (type === 'expert') {
+    titleEl.textContent = 'Ask a Catalyze Expert';
+    bodyEl.innerHTML = `
+      <div style="font-size:12px;color:#666;margin-bottom:12px;line-height:1.6;">The AI has drafted a briefing for a Catalyze Expert. Review and edit before sending:</div>
+      <textarea class="field-textarea" style="height:180px;font-size:11px;">${generateExpertBriefing(m)}</textarea>
+      <div style="font-size:11px;color:#999;margin-top:6px;">Sending this opens a consultation with a Catalyze Expert who will respond within 24 hours with a structured diagnosis and recommendation.</div>
+    `;
+    footerEl.innerHTML = `
+      <button class="btn btn-outline" onclick="closeModal('modal-action')">Cancel</button>
+      <button class="btn btn-filled" onclick="closeModal('modal-action');showToast('Briefing sent to Catalyze Expert.')"><i class="ti ti-send"></i> Send briefing</button>
+    `;
+  }
+
+  openModal('modal-action');
+}
+
+function generateExpertBriefing(m) {
+  return `CATALYZE EXPERT BRIEFING — ${m.forum} #${m.iteration}
+Date: ${fmtFull(m.date)} | Duration: ${m.actual}/${m.duration} min | Attendees: ${m.attendees.join(', ')}
+
+MEETING HEALTH: ${m.scorecard.overall.rating}
+• Structure: ${m.scorecard.structure.rating} — ${m.scorecard.structure.tooltip}
+• Output quality: ${m.scorecard.output.rating} — ${m.scorecard.output.tooltip}
+• Dynamics: ${m.scorecard.dynamics.rating} — ${m.scorecard.dynamics.tooltip}
+
+DECISION QUALITY FLAGS (${m.decisions.length} flags):
+${m.decisions.map(d => `• [${d.flag}] ${d.topic}: ${d.remediation}`).join('\n')}
+
+QUESTION FOR EXPERT:
+This is the ${m.health === 'Poor' ? 'second consecutive' : ''} ${m.health.toLowerCase()}-rated ${m.forum}. The pattern of zero decisions with owners and deadlines is recurring. We need a structured approach to fix decision hygiene in these meetings. What specific process change would have the most impact?`;
+}
+
+// ─── Close modals on overlay click ───────────────────────────────────────────
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+
+// ─── Initial render ───────────────────────────────────────────────────────────
+renderList();
+selectMeeting(1); // Open first meeting by default
+
+// ─── Resizable divider ────────────────────────────────────────────────────────
+(function () {
+  const resizer = document.getElementById('resizer');
+  const listCol = document.querySelector('.list-col');
+  let startX, startWidth;
+
+  resizer.addEventListener('mousedown', e => {
+    startX = e.clientX;
+    startWidth = listCol.offsetWidth;
+    resizer.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    function onMove(e) {
+      const delta = e.clientX - startX;
+      const newWidth = Math.min(520, Math.max(160, startWidth + delta));
+      listCol.style.width = newWidth + 'px';
+    }
+
+    function onUp() {
+      resizer.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+})();
+</script>
+</body>
+</html>
