@@ -241,6 +241,7 @@ tbody td { padding: 9px 10px; vertical-align: middle; }
     </div>
     <div class="topbar-right">
       <span class="ctx-pill" id="ctx-pill"><i class="ti ti-brain"></i> <span id="ctx-n">0</span> context note(s)</span>
+      <button class="btn" id="btn-api-key"><i class="ti ti-settings"></i></button>
       <button class="btn" id="btn-inform"><i class="ti ti-message-bolt"></i> Inform AI</button>
       <button class="btn" id="btn-analyse"><i class="ti ti-sparkles"></i> Analyse all</button>
       <button class="btn btn-filled" id="btn-add"><i class="ti ti-plus"></i> Add topic</button>
@@ -433,11 +434,37 @@ tbody td { padding: 9px 10px; vertical-align: middle; }
   </div>
 </div>
 
+<!-- API Key Modal -->
+<div class="overlay" id="ov-api-key">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title">API key settings</div>
+      <button class="modal-x" data-ov="ov-api-key"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <div class="fl">Current key</div>
+        <div id="api-key-display" style="font-size:12px;color:#555;background:#fafafa;border:1px solid #ebebeb;border-radius:7px;padding:7px 10px;font-family:monospace;letter-spacing:0.5px;">No key saved</div>
+      </div>
+      <div class="field">
+        <div class="fl">New API key</div>
+        <input type="text" class="fi" id="api-key-input" placeholder="sk-ant-…">
+        <div class="fhint">Stored in localStorage and used for all AI features across modules.</div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" data-ov="ov-api-key">Cancel</button>
+      <button class="btn btn-filled" id="api-key-save"><i class="ti ti-check"></i> Save key</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"><i class="ti ti-check"></i><span id="toast-msg"></span></div>
 
 </div><!-- /shell -->
 
+<script src="catalyze-config.js"></script>
 <script>
 // ─── Tag colours ──────────────────────────────────────────────────────────────
 const TAGS = {
@@ -981,21 +1008,121 @@ function updateCtxPill() {
 }
 
 // ─── Analyse all ──────────────────────────────────────────────────────────────
-$('btn-analyse').addEventListener('click', () => {
+$('btn-analyse').addEventListener('click', async () => {
   if (analyseState === 'done') { toast('All topics already have AI analysis.'); return; }
   if (analyseState === 'running') return;
+
+  let apiKey = getApiKey();
+  if (!apiKey) {
+    apiKey = prompt('Enter your Anthropic API key to enable AI analysis:');
+    if (!apiKey || !apiKey.trim()) { toast('API key required.'); return; }
+    setApiKey(apiKey);
+    apiKey = apiKey.trim();
+  }
+
   analyseState = 'running';
   const btn = $('btn-analyse');
-  btn.innerHTML = `<i class="ti ti-loader-2 spin"></i> Analysing…`;
   btn.disabled = true;
-  setTimeout(() => {
-    DATA.forEach(t => { t.analysed = true; });
-    analyseState = 'done';
-    btn.innerHTML = `<i class="ti ti-check"></i> All analysed`;
-    btn.disabled = false;
-    if (selId) renderDD();
-    toast(`All ${DATA.length} topics analysed.`);
-  }, 1800);
+
+  const SYSTEM = COMPANY_CONTEXT;
+
+  async function callAPI(userPrompt, maxTokens = 1000) {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: maxTokens,
+        system: SYSTEM,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const data = await res.json();
+    let raw = data.content?.[0]?.text || '';
+    raw = raw.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+    return JSON.parse(raw);
+  }
+
+  // ── Phase 1: analyse each unanalysed topic ────────────────────────────────
+  const pending = DATA.filter(t => !t.analysed);
+  const total = pending.length;
+  let done = 0;
+
+  for (const t of pending) {
+    btn.innerHTML = `<i class="ti ti-loader-2 spin"></i> Analysing ${done + 1}/${total}…`;
+    try {
+      const prompt = `Analyse this topic for the CEO of Meriaux & Fils and respond with JSON only (no markdown fences):
+{
+  "rootCause": "one sentence identifying the underlying cause",
+  "aiFlag": "one sentence describing what is missing or wrong, or null if no critical issue",
+  "aiRec": "2-3 sentence specific recommendation — name the person responsible, the action, and the deadline",
+  "aiRisk": "one sentence describing the consequence if nothing is done in the next 30 days, or null if low risk"
+}
+
+Topic: "${t.topic}"
+Category: ${t.category} | Priority: ${t.priority} | Owner: ${t.owner} | Status: ${t.status}
+Source: ${t.source}
+Description: ${t.desc}`;
+
+      const parsed = await callAPI(prompt, 1000);
+      t.rootCause = parsed.rootCause || t.rootCause;
+      t.aiFlag    = parsed.aiFlag    || null;
+      t.aiRec     = parsed.aiRec     || t.aiRec;
+      t.aiRisk    = parsed.aiRisk    || null;
+      t.analysed  = true;
+    } catch(err) {
+      console.warn(`Analysis failed for topic ${t.id}:`, err);
+      t.analysed = true; // mark done so we don't retry endlessly
+    }
+    done++;
+    if (selId === t.id) renderDD();
+  }
+
+  // ── Phase 2: find matches across all topics ───────────────────────────────
+  btn.innerHTML = `<i class="ti ti-loader-2 spin"></i> Finding matches…`;
+  try {
+    const topicList = DATA.map(t => `${t.id}: ${t.topic}`).join('\n');
+    const matchPrompt = `Here is a list of topics from a company's strategic backlog. Which pairs likely share the same root cause or describe the same underlying problem? Only return pairs where confidence is high.
+
+Topics:
+${topicList}
+
+Respond with JSON only (no markdown fences):
+{ "matches": [ { "id1": number, "id2": number, "reason": "one sentence explaining the shared root cause" } ] }`;
+
+    const parsed = await callAPI(matchPrompt, 600);
+    const pairs = Array.isArray(parsed.matches) ? parsed.matches : [];
+
+    pairs.forEach(({ id1, id2, reason }) => {
+      const t1 = DATA.find(t => t.id === id1);
+      const t2 = DATA.find(t => t.id === id2);
+      if (!t1 || !t2) return;
+
+      if (!t1.matches.length) {
+        t1.matches.push({ id: id2, title: t2.topic, open: t2.status !== 'Completed', reason });
+        t1.matchState = t1.matchState || {};
+      }
+      if (!t2.matches.length) {
+        t2.matches.push({ id: id1, title: t1.topic, open: t1.status !== 'Completed', reason });
+        t2.matchState = t2.matchState || {};
+      }
+    });
+  } catch(err) {
+    console.warn('Match analysis failed:', err);
+  }
+
+  analyseState = 'done';
+  btn.innerHTML = `<i class="ti ti-check"></i> All analysed`;
+  btn.disabled = false;
+  renderTable();
+  if (selId) renderDD();
+  toast(`${total} topic${total !== 1 ? 's' : ''} analysed.`);
 });
 
 // ─── Add topic ────────────────────────────────────────────────────────────────
@@ -1108,7 +1235,23 @@ function doAction(type, tid) {
     });
     $('act-ft').innerHTML = `
       <button class="btn" data-ov="ov-action">Cancel</button>
-      <button class="btn btn-filled" onclick="close('ov-action');toast('Topic added to agenda — visible in Meeting prep.')"><i class="ti ti-calendar-plus"></i> Add to agenda</button>`;
+      <button class="btn btn-filled" id="agenda-add-btn"><i class="ti ti-calendar-plus"></i> Add to agenda</button>`;
+    $('agenda-add-btn').addEventListener('click', () => {
+      const selected = $('act-body').querySelector('input[name="agenda-pick"]:checked');
+      if (!selected) return;
+      const forumLabel = selected.value; // e.g. "Weekly ELT #26 — Mon 26 May"
+      const forumName = forumLabel.split(' #')[0]; // e.g. "Weekly ELT"
+      try {
+        const existing = JSON.parse(localStorage.getItem('catalyze_agenda_topics') || '[]');
+        if (!existing.some(x => x.topicId === t.id)) {
+          existing.push({ topicId: t.id, title: t.topic, owner: t.owner, priority: t.priority, forum: forumName, sourceModule: 'backlog' });
+          localStorage.setItem('catalyze_agenda_topics', JSON.stringify(existing));
+        }
+      } catch(e) {}
+      close('ov-action');
+      toast('Topic added to agenda — visible in Meeting prep.');
+      window.parent.postMessage({ type: 'navigate', src: 'meeting_prep.html', forum: forumName }, '*');
+    });
 
   } else if (type === 'goal') {
     const isOKR = t.priority === 'High' && t.category === 'Strategic';
@@ -1119,34 +1262,41 @@ function doAction(type, tid) {
         <div class="fl">Goal type</div>
         <div style="display:flex;gap:8px">
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:7px 12px;border:1px solid #ebebeb;border-radius:7px;flex:1">
-            <input type="radio" name="goal-type" value="OKR" ${isOKR?'checked':''}> OKR (with key results)
+            <input type="radio" name="goal-type" id="goal-type-okr" value="OKR" ${isOKR?'checked':''}> OKR (with key results)
           </label>
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:7px 12px;border:1px solid #ebebeb;border-radius:7px;flex:1">
-            <input type="radio" name="goal-type" value="Simple" ${!isOKR?'checked':''}> Simple goal
+            <input type="radio" name="goal-type" id="goal-type-simple" value="Simple" ${!isOKR?'checked':''}> Simple goal
           </label>
         </div>
       </div>
       <div class="field" style="margin-bottom:13px">
         <div class="fl">Objective</div>
-        <textarea class="fta" style="height:60px">${goalObjective(t)}</textarea>
+        <textarea class="fta" id="goal-objective" style="height:60px">${goalObjective(t)}</textarea>
       </div>
-      ${isOKR ? `<div class="field" style="margin-bottom:13px">
+      <div class="field" style="margin-bottom:13px" id="goal-kr-field" ${!isOKR?'style="display:none;margin-bottom:13px"':''}>
         <div class="fl">Key results (one per line)</div>
-        <textarea class="fta" style="height:76px">${goalKRs(t)}</textarea>
-      </div>` : ''}
+        <textarea class="fta" id="goal-krs" style="height:76px">${goalKRs(t)}</textarea>
+      </div>
       <div class="frow">
         <div class="field">
           <div class="fl">Owner</div>
-          <select class="fi">${['Thomas','Sarah','Marc','Julie','Pierre'].map(n=>`<option ${n===t.owner?'selected':''}>${n}</option>`).join('')}</select>
+          <select class="fi" id="goal-owner">${['Thomas','Sarah','Marc','Julie','Pierre'].map(n=>`<option ${n===t.owner?'selected':''}>${n}</option>`).join('')}</select>
         </div>
         <div class="field">
           <div class="fl">Deadline</div>
-          <input type="date" class="fi" value="2026-06-30">
+          <input type="date" class="fi" id="goal-deadline" value="2026-06-30">
         </div>
       </div>`;
+    // Toggle KR field visibility when type changes
+    $('act-body').querySelectorAll('input[name="goal-type"]').forEach(r => {
+      r.addEventListener('change', () => {
+        $('goal-kr-field').style.display = r.value === 'OKR' ? '' : 'none';
+      });
+    });
     $('act-ft').innerHTML = `
       <button class="btn" data-ov="ov-action">Cancel</button>
-      <button class="btn btn-filled" onclick="close('ov-action');toast('Goal created — visible in Goal setting module.')"><i class="ti ti-target"></i> Create goal</button>`;
+      <button class="btn btn-filled" id="goal-create-btn"><i class="ti ti-target"></i> Create goal</button>`;
+    $('goal-create-btn').addEventListener('click', () => createGoalFromTopic(t));
 
   } else if (type === 'expert') {
     $('act-title').textContent = 'Ask a Catalyze Expert';
@@ -1301,6 +1451,79 @@ function highlightFromURL() {
     if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, 80);
   return true;
+}
+
+// ─── API key settings ─────────────────────────────────────────────────────────
+$('btn-api-key').addEventListener('click', () => {
+  $('api-key-display').textContent = maskApiKey(getApiKey());
+  $('api-key-input').value = '';
+  open('ov-api-key');
+});
+$('api-key-save').addEventListener('click', () => {
+  const val = $('api-key-input').value.trim();
+  if (!val) { toast('Please enter a key.'); return; }
+  setApiKey(val);
+  close('ov-api-key');
+  toast('API key saved.');
+});
+
+// ─── Create goal from topic ───────────────────────────────────────────────────
+function createGoalFromTopic(t) {
+  const type     = document.querySelector('input[name="goal-type"]:checked')?.value || 'Simple';
+  const objective = $('goal-objective')?.value.trim();
+  const owner    = $('goal-owner')?.value || t.owner;
+  const deadline = $('goal-deadline')?.value || '2026-06-30';
+  const krsRaw   = $('goal-krs')?.value.trim() || '';
+
+  if (!objective) { toast('Please enter an objective.'); return; }
+
+  const keyResults = type === 'OKR' && krsRaw
+    ? krsRaw.split('\n').filter(Boolean).map((line, i) => {
+        const match = line.match(/(.+?)\s*—\s*by\s*(.+)/i);
+        return {
+          id: i + 1,
+          text: match ? match[1].trim() : line.trim(),
+          progress: 0,
+          deadline: match ? match[2].trim() : '',
+          lastUpdated: null,
+          stale: false,
+        };
+      })
+    : [];
+
+  // Format deadline for display (YYYY-MM-DD → "30 June 2026")
+  function fmtDeadline(iso) {
+    if (!iso) return 'TBD';
+    const [y, m, d] = iso.split('-');
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
+  }
+
+  let existing = [];
+  try { existing = JSON.parse(localStorage.getItem('catalyze_goals') || '[]'); } catch(e) {}
+  const newId = existing.length ? Math.max(...existing.map(g => g.id || 0)) + 1 : 100;
+
+  const newGoal = {
+    id: newId,
+    title: t.topic.length > 60 ? t.topic.slice(0, 60) + '…' : t.topic,
+    type,
+    owner,
+    deadline: fmtDeadline(deadline),
+    objective,
+    alignment: 'Aligned',
+    status: 'Not started',
+    progress: 0,
+    sourceTopicId: t.id,
+    sourceTopic: t.topic,
+    keyResults,
+  };
+
+  existing.push(newGoal);
+  try { localStorage.setItem('catalyze_goals', JSON.stringify(existing)); } catch(e) {}
+
+  close('ov-action');
+  toast('Goal created — visible in Goal setting.');
+  window.parent.postMessage({ type: 'navigate', src: 'goal_setting.html' }, '*');
 }
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────

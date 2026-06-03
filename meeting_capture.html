@@ -263,6 +263,7 @@ tbody tr.selected .chevron-icon { color: #888; }
       </div>
       <div class="topbar-actions">
         <span class="context-indicator" id="context-indicator"><i class="ti ti-brain"></i> <span id="context-count">0</span> context note(s)</span>
+        <button class="btn btn-outline" id="btn-api-key"><i class="ti ti-settings"></i></button>
         <button class="btn btn-outline" id="btn-stats"><i class="ti ti-chart-bar"></i> Stats by forum</button>
         <button class="btn btn-outline" id="btn-add-meeting"><i class="ti ti-plus"></i> Add meeting</button>
         <button class="btn btn-filled" id="btn-inform-ai-top"><i class="ti ti-message-bolt"></i> Inform AI</button>
@@ -454,11 +455,37 @@ tbody tr.selected .chevron-icon { color: #888; }
     </div>
   </div>
 
+  <!-- API Key Modal -->
+  <div class="modal-overlay" id="modal-api-key">
+    <div class="modal inform-modal">
+      <div class="modal-header">
+        <div class="modal-title">API key settings</div>
+        <button class="modal-close" id="modal-api-key-close"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <div class="field-label">Current key</div>
+          <div id="api-key-display" style="font-size:12px;color:#555;background:#fafafa;border:1px solid #ebebeb;border-radius:7px;padding:7px 10px;font-family:monospace;letter-spacing:0.5px;">No key saved</div>
+        </div>
+        <div class="field">
+          <div class="field-label">New API key</div>
+          <input type="text" class="field-input" id="api-key-input" placeholder="sk-ant-…">
+          <div class="field-hint">Stored in localStorage and used for all AI features across modules.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="modal-api-key-cancel">Cancel</button>
+        <button class="btn btn-filled" id="modal-api-key-save"><i class="ti ti-check"></i> Save key</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div class="toast" id="toast"><i class="ti ti-check"></i> <span id="toast-text"></span></div>
 
 </div>
 
+<script src="catalyze-config.js"></script>
 <script>
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const meetings = [
@@ -1027,7 +1054,7 @@ function toggleCheck(meetingId, topicIndex) {
 
 // ─── View in backlog ──────────────────────────────────────────────────────────
 function viewInBacklog(topic) {
-  window.location.href = 'topic_backlog.html?highlight=' + encodeURIComponent(topic);
+  window.parent.postMessage({ type: 'navigate', src: 'topic_backlog.html', highlight: topic }, '*');
 }
 
 // ─── Filters ──────────────────────────────────────────────────────────────────
@@ -1060,11 +1087,11 @@ document.getElementById('modal-add-save').addEventListener('click', async () => 
   if (!date) { alert('Please select a date.'); return; }
 
   // API key gate
-  let apiKey = sessionStorage.getItem('catalyze_api_key');
+  let apiKey = getApiKey();
   if (!apiKey) {
     apiKey = prompt('Enter your Anthropic API key to enable AI analysis:');
     if (!apiKey || !apiKey.trim()) { showToast('API key required — meeting not saved.'); return; }
-    sessionStorage.setItem('catalyze_api_key', apiKey.trim());
+    setApiKey(apiKey);
     apiKey = apiKey.trim();
   }
 
@@ -1101,7 +1128,7 @@ document.getElementById('modal-add-save').addEventListener('click', async () => 
 
   let newMeeting;
   try {
-    const systemPrompt = 'You are Catalyze, an AI consultant for SME executive teams. Company: Meriaux & Fils, B2B distribution, 85 employees. Leadership: Thomas (CEO), Sarah (COO), Marc (Sales Director), Julie (Finance Director), Pierre (Ops Director). Revenue ~€18M. Be direct, name specific people and deadlines.';
+    const systemPrompt = COMPANY_CONTEXT;
     const userPrompt = `Analyse these meeting notes and respond with JSON only (no markdown fences).\n\nExtract:\n- forum: string (meeting forum name)\n- date: string (ISO date if found, else null)\n- attendees: string[] (list of attendee names)\n- topics: array of 3-5 objects each with { title, category ("Strategic"|"Tactical"), priority ("High"|"Medium"|"Low"), owner, forum, rationale }\n- decisionFlags: array of 2-3 objects each with { topic, flagType ("no-decision"|"no-owner"|"no-deadline"), remediation }\n- scorecard: object with four keys — meetingHealth, structure, outputQuality, dynamics — each with { rating ("Poor"|"Fair"|"Good"|"Excellent"), confidence (0-100, your certainty given available data), tooltip (1-2 sentence explanation) }. If confidence < 85 for a dimension, set rating to "n/a" and tooltip to "Insufficient data in transcript." For structure, only give a real rating if the transcript contains explicit timing data per agenda item. For dynamics, only give a real rating if the transcript contains explicit speaking time percentages or turn counts. Otherwise you MUST return rating: "n/a" and confidence below 85.\n\nMeeting notes:\n${notes || '(no notes provided)'}`;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1368,6 +1395,22 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
   overlay.addEventListener('click', e => {
     if (e.target === overlay) overlay.classList.remove('open');
   });
+});
+
+// ─── API key settings ─────────────────────────────────────────────────────────
+document.getElementById('btn-api-key').addEventListener('click', () => {
+  document.getElementById('api-key-display').textContent = maskApiKey(getApiKey());
+  document.getElementById('api-key-input').value = '';
+  openModal('modal-api-key');
+});
+document.getElementById('modal-api-key-close').addEventListener('click', () => closeModal('modal-api-key'));
+document.getElementById('modal-api-key-cancel').addEventListener('click', () => closeModal('modal-api-key'));
+document.getElementById('modal-api-key-save').addEventListener('click', () => {
+  const val = document.getElementById('api-key-input').value.trim();
+  if (!val) { showToast('Please enter a key.'); return; }
+  setApiKey(val);
+  closeModal('modal-api-key');
+  showToast('API key saved.');
 });
 
 // ─── Initial render ───────────────────────────────────────────────────────────

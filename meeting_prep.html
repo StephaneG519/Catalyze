@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catalyze — Meeting Preparation</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f0f0; display: flex; align-items: flex-start; justify-content: center; min-height: 100vh; padding: 24px; }
+
+/* Shell */
+.shell { display: flex; height: 780px; width: 100%; max-width: 1280px; border: 1px solid #e2e2e2; border-radius: 12px; overflow: hidden; background: #fff; box-shadow: 0 4px 32px rgba(0,0,0,0.10); position: relative; }
+
+/* Sidebar */
+.sidebar { width: 148px; min-width: 148px; background: #f9f9f9; border-right: 1px solid #e2e2e2; padding: 16px 0; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+.sidebar-logo { padding: 0 14px 14px; border-bottom: 1px solid #e2e2e2; margin-bottom: 8px; }
+.sidebar-logo-name { font-size: 13px; font-weight: 700; color: #111; letter-spacing: -0.3px; }
+.sidebar-company { font-size: 10px; color: #999; margin-top: 2px; }
+.nav-item { display: flex; align-items: center; gap: 7px; padding: 7px 14px; font-size: 12px; color: #888; cursor: pointer; user-select: none; transition: background 0.1s; }
+.nav-item:hover { background: #f0f0f0; color: #555; }
+.nav-item.active { background: #fff; color: #111; font-weight: 600; border-right: 2px solid #111; }
+.nav-item.dim { opacity: 0.4; pointer-events: none; }
+.nav-item i { font-size: 14px; }
+
+/* Main */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+/* Topbar */
+.topbar { padding: 12px 18px 10px; border-bottom: 1px solid #e2e2e2; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; background: #fff; }
+.topbar-left { display: flex; flex-direction: column; gap: 1px; }
+.topbar-title { font-size: 14px; font-weight: 700; color: #111; }
+.topbar-meta { font-size: 11px; color: #999; }
+.topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+/* Buttons */
+.btn { font-size: 11px; padding: 6px 11px; border-radius: 7px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; font-weight: 500; border: 1px solid #ddd; background: #fff; color: #333; transition: background 0.1s, border-color 0.1s; }
+.btn:hover { background: #f5f5f5; border-color: #bbb; }
+.btn-outline { background: #fff; border: 1px solid #ddd; color: #333; }
+.btn-outline:hover { background: #f9f9f9; border-color: #bbb; }
+.btn-filled { background: #111; border: 1px solid #111; color: #fff; }
+.btn-filled:hover { background: #333; }
+
+/* Filters */
+.filters-row { padding: 9px 18px; border-bottom: 1px solid #e2e2e2; display: flex; gap: 6px; flex-shrink: 0; align-items: center; flex-wrap: wrap; }
+.filter-label { font-size: 11px; color: #ccc; margin-right: 2px; }
+.filter-chip { font-size: 11px; padding: 4px 10px; border: 1px solid #e2e2e2; border-radius: 20px; color: #666; background: #fff; cursor: pointer; user-select: none; transition: all 0.1s; }
+.filter-chip:hover { border-color: #bbb; color: #333; }
+.filter-chip.active { border-color: #111; color: #111; background: #f5f5f5; font-weight: 600; }
+
+/* Content */
+.content-area { flex: 1; display: flex; overflow: hidden; }
+
+/* Meeting list column */
+.list-col { width: 260px; min-width: 180px; max-width: 400px; display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; border-right: 1px solid #e2e2e2; }
+.list-wrap { flex: 1; overflow-y: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+thead th { padding: 7px 10px; text-align: left; font-size: 10px; font-weight: 600; color: #999; border-bottom: 1px solid #e2e2e2; background: #fafafa; position: sticky; top: 0; z-index: 1; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
+tbody tr { border-bottom: 1px solid #f2f2f2; cursor: pointer; transition: background 0.08s; }
+tbody tr:hover { background: #fafafa; }
+tbody tr.selected { background: #f5faf8; border-right: 2px solid #1D9E75; }
+tbody tr.hide { display: none; }
+tbody td { padding: 8px 10px; color: #111; vertical-align: middle; }
+.col-date    { width: 28%; }
+.col-forum   { width: 52%; }
+.col-topics  { width: 14%; text-align: center; }
+.col-chev    { width: 6%;  text-align: right; }
+
+/* Badges */
+.badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
+.badge-today    { background: #FCEBEB; color: #A32D2D; }
+.badge-tomorrow { background: #FEF3DA; color: #854F0B; }
+.badge-high     { background: #FCEBEB; color: #A32D2D; }
+.badge-medium   { background: #FEF3DA; color: #854F0B; }
+.badge-low      { background: #EAF3DE; color: #3B6D11; }
+
+.date-text    { font-size: 11px; color: #999; display: block; }
+.date-urgent  { font-size: 11px; color: #A32D2D; font-weight: 600; display: block; }
+.forum-name   { font-size: 12px; color: #111; line-height: 1.3; font-weight: 500; }
+.forum-time   { font-size: 10px; color: #aaa; margin-top: 1px; }
+.topic-count  { font-size: 11px; color: #aaa; }
+.topic-count-hi { font-size: 11px; color: #A32D2D; font-weight: 600; }
+.chev-icon    { font-size: 13px; color: #ccc; }
+tbody tr.selected .chev-icon { color: #888; }
+
+/* Resizer */
+.resizer { width: 5px; background: #e2e2e2; cursor: col-resize; flex-shrink: 0; position: relative; transition: background 0.15s; }
+.resizer:hover, .resizer.dragging { background: #1D9E75; }
+.resizer::after { content: ''; position: absolute; inset: 0 -4px; }
+
+/* Deep dive */
+.dd-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.dd-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ccc; gap: 10px; }
+.dd-empty i { font-size: 32px; }
+.dd-empty-text { font-size: 13px; }
+.dd-inner { flex: 1; display: flex; flex-direction: column; overflow: hidden; animation: fadein 0.12s ease; }
+@keyframes fadein { from { opacity: 0 } to { opacity: 1 } }
+
+/* Deep dive header */
+.dd-hd { padding: 13px 18px 11px; border-bottom: 1px solid #e2e2e2; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-shrink: 0; }
+.dd-hd-left { display: flex; flex-direction: column; gap: 3px; }
+.dd-meeting-title { font-size: 14px; font-weight: 700; color: #111; }
+.dd-meeting-meta { font-size: 11px; color: #999; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dd-meta-item { display: flex; align-items: center; gap: 4px; }
+
+/* Deep dive body */
+.dd-body { flex: 1; overflow-y: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 16px; }
+.dd-sec-title { font-size: 10px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+
+/* Agenda */
+.agenda-list { display: flex; flex-direction: column; gap: 3px; }
+.agenda-item { display: flex; gap: 8px; padding: 7px 11px; border: 1px solid #ebebeb; border-radius: 8px; align-items: center; background: #fafafa; }
+.agenda-dur { font-size: 10px; color: #aaa; min-width: 34px; flex-shrink: 0; }
+.agenda-content { flex: 1; }
+.agenda-name { font-size: 11px; font-weight: 600; color: #333; }
+.agenda-sub  { font-size: 10px; color: #aaa; margin-top: 1px; }
+.fixed-label { font-size: 9px; padding: 2px 6px; border-radius: 5px; background: #fff; border: 1px solid #e0e0e0; color: #aaa; flex-shrink: 0; white-space: nowrap; }
+
+/* Topic section within agenda */
+.topic-section { border: 1px solid #ebebeb; border-radius: 8px; overflow: hidden; }
+.topic-sec-hd { display: flex; align-items: center; gap: 8px; padding: 7px 11px; background: #fafafa; border-bottom: 1px solid #ebebeb; }
+.topic-sec-dur { font-size: 10px; color: #aaa; min-width: 34px; flex-shrink: 0; }
+.topic-sec-title { font-size: 11px; font-weight: 600; color: #333; flex: 1; }
+.ai-note { display: flex; align-items: flex-start; gap: 6px; padding: 6px 11px; background: #f9f9f9; border-bottom: 1px solid #ebebeb; }
+.ai-note-dot { width: 5px; height: 5px; border-radius: 50%; background: #1D9E75; flex-shrink: 0; margin-top: 4px; }
+.ai-note-text { font-size: 10px; color: #999; line-height: 1.5; font-style: italic; }
+.topic-row { display: flex; align-items: flex-start; gap: 8px; padding: 8px 11px; border-bottom: 1px solid #f2f2f2; }
+.topic-row:last-child { border-bottom: none; }
+.topic-row-content { flex: 1; min-width: 0; }
+.topic-row-title { font-size: 11px; color: #111; line-height: 1.4; margin-bottom: 3px; }
+.topic-row-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.topic-owner { font-size: 10px; color: #aaa; }
+.topic-backlog-link { font-size: 10px; color: #185FA5; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; }
+.topic-backlog-link:hover { text-decoration: underline; }
+.may-not-fit { font-size: 10px; color: #854F0B; display: block; margin-top: 3px; }
+.badge-added { background: #1D9E75; color: #fff; font-size: 9px; padding: 1px 5px; border-radius: 8px; font-weight: 700; margin-left: 4px; vertical-align: middle; }
+.include-btn { font-size: 10px; padding: 3px 9px; border-radius: 6px; cursor: pointer; border: 1px solid #1D9E75; background: transparent; color: #1D9E75; white-space: nowrap; flex-shrink: 0; font-family: inherit; font-weight: 500; transition: background 0.1s, color 0.1s; }
+.include-btn:hover { background: rgba(29,158,117,0.08); }
+.include-btn.included { background: #1D9E75; color: #fff; }
+.include-btn.included:hover { background: #18886a; }
+
+/* Pre-read */
+.preread-intro { font-size: 11px; color: #aaa; line-height: 1.6; font-style: italic; }
+.prereads { display: flex; flex-direction: column; gap: 6px; }
+.preread-card { border: 1px solid #ebebeb; border-radius: 9px; overflow: hidden; }
+.preread-card-hd { display: flex; align-items: center; gap: 9px; padding: 9px 12px; cursor: pointer; background: #fafafa; user-select: none; }
+.preread-card-hd:hover { background: #f5f5f5; }
+.preread-avatar { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+.preread-name { font-size: 12px; font-weight: 600; color: #111; flex: 1; }
+.preread-role { font-size: 10px; color: #aaa; }
+.preread-chev { font-size: 12px; color: #ccc; transition: transform 0.2s; flex-shrink: 0; }
+.preread-body { padding: 10px 12px; border-top: 1px solid #ebebeb; display: none; }
+.preread-body.open { display: block; }
+.preread-loading { font-size: 11px; color: #aaa; font-style: italic; display: flex; align-items: center; gap: 6px; }
+.preread-text { font-size: 11px; color: #333; line-height: 1.7; margin-bottom: 8px; }
+.preread-items { display: flex; flex-direction: column; gap: 5px; }
+.preread-item { font-size: 11px; color: #555; line-height: 1.5; padding-left: 10px; border-left: 2px solid #e0e0e0; }
+
+/* Action buttons */
+.dd-actions { padding: 11px 18px; border-top: 1px solid #e2e2e2; display: flex; gap: 7px; flex-wrap: wrap; flex-shrink: 0; background: #fafafa; }
+.act-btn { font-size: 11px; padding: 7px 11px; background: #fff; border: 1px solid #ddd; border-radius: 8px; color: #111; cursor: pointer; display: flex; align-items: center; gap: 8px; font-family: inherit; transition: background 0.1s, border-color 0.1s; text-align: left; }
+.act-btn:hover { background: #f5f5f5; border-color: #bbb; }
+.act-btn i { font-size: 15px; color: #888; flex-shrink: 0; }
+.act-lbl { display: flex; flex-direction: column; gap: 1px; }
+.act-sub { font-size: 10px; color: #aaa; }
+.act-expert { border-color: #534AB7; }
+.act-expert i { color: #534AB7; }
+.act-expert:hover { background: #f5f4ff; border-color: #7b74d6; }
+
+/* Modals */
+.overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.35); display: none; align-items: center; justify-content: center; z-index: 100; }
+.overlay.open { display: flex; }
+.modal { background: #fff; border-radius: 12px; border: 1px solid #ddd; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 12px 48px rgba(0,0,0,0.16); width: 460px; }
+.modal.wide { width: 560px; }
+.modal-hd { padding: 15px 18px 13px; border-bottom: 1px solid #ebebeb; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.modal-title { font-size: 14px; font-weight: 700; color: #111; }
+.modal-x { font-size: 18px; color: #aaa; cursor: pointer; background: none; border: none; display: flex; align-items: center; padding: 2px; transition: color 0.1s; }
+.modal-x:hover { color: #333; }
+.modal-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 13px; overflow-y: auto; max-height: 520px; }
+.modal-ft { padding: 12px 18px; border-top: 1px solid #ebebeb; display: flex; justify-content: flex-end; gap: 8px; background: #fafafa; flex-shrink: 0; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.fl { font-size: 11px; font-weight: 600; color: #888; }
+.fi { font-size: 12px; padding: 7px 10px; border: 1px solid #ddd; border-radius: 7px; color: #111; background: #fff; font-family: inherit; outline: none; transition: border-color 0.15s; width: 100%; }
+.fi:focus { border-color: #999; }
+.fta { font-size: 11px; padding: 8px 10px; border: 1px solid #ddd; border-radius: 7px; color: #111; background: #fff; font-family: inherit; line-height: 1.6; resize: none; outline: none; transition: border-color 0.15s; width: 100%; }
+.fta:focus { border-color: #999; }
+.fhint { font-size: 10px; color: #bbb; }
+.radio-opt { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid #ebebeb; border-radius: 8px; cursor: pointer; font-size: 12px; color: #333; margin-bottom: 6px; transition: border-color 0.1s; }
+.radio-opt:last-child { margin-bottom: 0; }
+.radio-opt:hover { border-color: #bbb; }
+.radio-opt.picked { border-color: #1D9E75; background: #f5faf8; }
+
+/* Pre-read modal content */
+.preread-modal-section { border: 1px solid #ebebeb; border-radius: 9px; overflow: hidden; margin-bottom: 10px; }
+.preread-modal-section:last-child { margin-bottom: 0; }
+.preread-modal-sec-hd { display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: #fafafa; }
+.preread-modal-body { padding: 10px 12px; font-size: 11px; color: #333; line-height: 1.7; }
+.preread-modal-items { margin-top: 6px; display: flex; flex-direction: column; gap: 4px; }
+.preread-modal-item { font-size: 11px; color: #555; line-height: 1.5; padding-left: 10px; border-left: 2px solid #e0e0e0; }
+
+/* Spinner */
+@keyframes spin { to { transform: rotate(360deg) } }
+.spin { display: inline-block; animation: spin 0.7s linear infinite; }
+@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.3 } }
+
+/* Toast */
+.toast { position: absolute; bottom: 20px; right: 20px; background: #111; color: #fff; font-size: 12px; padding: 10px 16px; border-radius: 8px; display: none; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 200; }
+.toast.show { display: flex; animation: slideup 0.2s ease; }
+@keyframes slideup { from { transform: translateY(8px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-name">Catalyze</div>
+    <div class="sidebar-company">Meriaux &amp; Fils</div>
+  </div>
+  <div class="nav-item dim"><i class="ti ti-clipboard-list"></i> Meeting capture</div>
+  <div class="nav-item dim"><i class="ti ti-stack-2"></i> Topic backlog</div>
+  <div class="nav-item active"><i class="ti ti-calendar-event"></i> Meeting prep</div>
+  <div class="nav-item dim"><i class="ti ti-target"></i> Goal setting</div>
+</nav>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title">Meeting preparation</div>
+      <div class="topbar-meta" id="topbar-meta">5 upcoming meetings · next 14 days</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline" id="btn-api-key"><i class="ti ti-settings"></i></button>
+      <button class="btn btn-filled" id="btn-inform"><i class="ti ti-message-bolt"></i> Inform AI</button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-row">
+    <span class="filter-label">Filter:</span>
+    <span class="filter-chip active" data-filter="all">All</span>
+    <span class="filter-chip" data-filter="Weekly ELT">Weekly ELT</span>
+    <span class="filter-chip" data-filter="Sales review">Sales review</span>
+    <span class="filter-chip" data-filter="this-week">This week</span>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Meeting list -->
+    <div class="list-col" id="list-col">
+      <div class="list-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-date">Date</th>
+              <th class="col-forum">Forum</th>
+              <th class="col-topics">Topics</th>
+              <th class="col-chev"></th>
+            </tr>
+          </thead>
+          <tbody id="meeting-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Resizer -->
+    <div class="resizer" id="resizer"></div>
+
+    <!-- Deep dive -->
+    <div class="dd-panel" id="dd-panel">
+      <div class="dd-empty" id="dd-empty">
+        <i class="ti ti-calendar-event"></i>
+        <div class="dd-empty-text">Select a meeting to prepare</div>
+      </div>
+      <div class="dd-inner" id="dd-inner" style="display:none;flex-direction:column;overflow:hidden;flex:1;"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── MODALS ── -->
+
+<!-- Inform AI -->
+<div class="overlay" id="ov-inform">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title">Inform AI</div>
+      <button class="modal-x" data-ov="ov-inform"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <div class="fl">Share context the AI doesn't have</div>
+        <textarea class="fta" id="inform-ta" style="height:96px" placeholder="A constraint, a decision made verbally, a topic the AI should prioritise for this meeting…"></textarea>
+        <div style="display:flex;justify-content:space-between">
+          <span class="fhint">Used by the AI when generating agenda suggestions and pre-reads.</span>
+          <span class="fhint"><span id="inform-n">0</span>/500</span>
+        </div>
+      </div>
+      <div id="existing-notes" style="display:none">
+        <div class="fl" style="margin-bottom:6px">Saved this session</div>
+        <div id="notes-list" style="display:flex;flex-direction:column;gap:5px"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-outline" data-ov="ov-inform">Cancel</button>
+      <button class="btn btn-filled" id="inform-save"><i class="ti ti-check"></i> Save context</button>
+    </div>
+  </div>
+</div>
+
+<!-- API Key -->
+<div class="overlay" id="ov-api-key">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title">API key settings</div>
+      <button class="modal-x" data-ov="ov-api-key"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <div class="fl">Current key</div>
+        <div id="api-key-display" style="font-size:12px;color:#555;background:#fafafa;border:1px solid #ebebeb;border-radius:7px;padding:7px 10px;font-family:monospace;letter-spacing:0.5px;">No key saved</div>
+      </div>
+      <div class="field">
+        <div class="fl">New API key</div>
+        <input type="text" class="fi" id="api-key-input" placeholder="sk-ant-…">
+        <div class="fhint">Stored in localStorage and used for all AI features across modules.</div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-outline" data-ov="ov-api-key">Cancel</button>
+      <button class="btn btn-filled" id="api-key-save"><i class="ti ti-check"></i> Save key</button>
+    </div>
+  </div>
+</div>
+
+<!-- Send pre-read -->
+<div class="overlay" id="ov-preread">
+  <div class="modal wide">
+    <div class="modal-hd">
+      <div class="modal-title" id="preread-modal-title">Pre-read</div>
+      <button class="modal-x" data-ov="ov-preread"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body" id="preread-modal-body"></div>
+    <div class="modal-ft">
+      <button class="btn btn-outline" data-ov="ov-preread">Cancel</button>
+      <button class="btn btn-filled" id="preread-send-btn"><i class="ti ti-send"></i> Send to all attendees</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add topic from backlog -->
+<div class="overlay" id="ov-add-topic">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title">Add topic from backlog</div>
+      <button class="modal-x" data-ov="ov-add-topic"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body" id="add-topic-body"></div>
+    <div class="modal-ft">
+      <button class="btn btn-outline" data-ov="ov-add-topic">Cancel</button>
+      <button class="btn btn-filled" id="add-topic-save"><i class="ti ti-plus"></i> Add to agenda</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ask Expert (shared) -->
+<div class="overlay" id="ov-expert">
+  <div class="modal wide">
+    <div class="modal-hd">
+      <div class="modal-title">Ask a Catalyze Expert</div>
+      <button class="modal-x" data-ov="ov-expert"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body" id="expert-body"></div>
+    <div class="modal-ft">
+      <button class="btn btn-outline" data-ov="ov-expert">Cancel</button>
+      <button class="btn btn-filled" onclick="closeOv('ov-expert');toast('Briefing sent to Catalyze Expert.')"><i class="ti ti-send"></i> Send briefing</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"><i class="ti ti-check"></i><span id="toast-msg"></span></div>
+
+</div><!-- /shell -->
+
+<script src="catalyze-config.js"></script>
+<script>
+// ─── Data ─────────────────────────────────────────────────────────────────────
+// Today is anchored to 2026-05-26 to match the prototype's meeting dates
+const TODAY = new Date('2026-05-26');
+
+const MEETINGS = [
+  {
+    id: 1,
+    forum: 'Weekly ELT',
+    iteration: 26,
+    date: '2026-05-26',
+    time: '9:00',
+    duration: 90,
+    attendees: ['Thomas', 'Sarah', 'Marc', 'Julie', 'Pierre'],
+    forumType: 'Weekly ELT',
+    topicBudgetMin: 50,
+  },
+  {
+    id: 2,
+    forum: 'Weekly Sales Review',
+    iteration: 25,
+    date: '2026-05-26',
+    time: '14:00',
+    duration: 45,
+    attendees: ['Thomas', 'Marc'],
+    forumType: 'Weekly Sales Review',
+    topicBudgetMin: 30,
+  },
+  {
+    id: 3,
+    forum: '1-1 Thomas / Marc',
+    iteration: 12,
+    date: '2026-05-27',
+    time: '14:00',
+    duration: 30,
+    attendees: ['Thomas', 'Marc'],
+    forumType: '1-1',
+    topicBudgetMin: 20,
+  },
+  {
+    id: 4,
+    forum: 'Weekly ELT',
+    iteration: 27,
+    date: '2026-06-02',
+    time: '9:00',
+    duration: 90,
+    attendees: ['Thomas', 'Sarah', 'Marc', 'Julie', 'Pierre'],
+    forumType: 'Weekly ELT',
+    topicBudgetMin: 50,
+  },
+  {
+    id: 5,
+    forum: 'Monthly Business Review',
+    iteration: 6,
+    date: '2026-06-05',
+    time: '9:00',
+    duration: 120,
+    attendees: ['Thomas', 'Sarah', 'Marc', 'Julie', 'Pierre'],
+    forumType: 'Monthly Business Review',
+    topicBudgetMin: 70,
+  },
+];
+
+// Fixed agenda structure per forum type
+const AGENDA_FIXED = {
+  'Weekly ELT': [
+    { dur: '5 min',  name: 'Check-in',        sub: 'Round-table — what\'s top of mind' },
+    { dur: '5 min',  name: 'Scorecard review', sub: 'KPIs vs targets — flag variances only' },
+    { dur: '5 min',  name: 'OKR / goal update',sub: 'Progress on active goals — flag at-risk items' },
+    { dur: '10 min', name: 'News sharing',     sub: 'Market, competitor, client signals worth the team knowing' },
+  ],
+  'Weekly ELT-tail': [
+    { dur: '5 min', name: 'Decisions log', sub: 'Confirm decisions made, owners, and deadlines' },
+    { dur: '5 min', name: 'Close',         sub: 'Next meeting prep — what each person commits to before then' },
+  ],
+  'Weekly Sales Review': [
+    { dur: '5 min',  name: 'Pipeline review', sub: 'Account-by-account status update' },
+    { dur: '5 min',  name: 'Scorecard',       sub: 'Sales KPIs vs weekly target' },
+  ],
+  'Weekly Sales Review-tail': [
+    { dur: '5 min', name: 'Actions log', sub: 'Confirm next steps, owners, and deadlines' },
+  ],
+  '1-1': [
+    { dur: '5 min', name: 'Check-in', sub: 'What\'s top of mind' },
+  ],
+  '1-1-tail': [
+    { dur: '5 min', name: 'Actions', sub: 'Confirm commitments before next 1-1' },
+  ],
+  'Monthly Business Review': [
+    { dur: '10 min', name: 'Financial review',   sub: 'P&L, cash, variances vs board targets' },
+    { dur: '10 min', name: 'Commercial review',  sub: 'Pipeline, key accounts, forecast' },
+    { dur: '10 min', name: 'OKR / goals update', sub: 'Progress on all active goals — flags only' },
+    { dur: '5 min',  name: 'News & signals',     sub: 'Market and competitor updates' },
+  ],
+  'Monthly Business Review-tail': [
+    { dur: '10 min', name: 'Decisions log', sub: 'Confirm all decisions, owners, and deadlines' },
+    { dur: '5 min',  name: 'Close',         sub: 'Commitments before next MBR' },
+  ],
+};
+
+// Hardcoded backlog topics (mirrors topic_backlog.html DATA)
+const BACKLOG_TOPICS = [
+  { id:1, topic:'Sales pipeline Q2 below target by €700k',         category:'Strategic', priority:'High',   owner:'Marc',  forum:'Weekly ELT',            status:'Not started' },
+  { id:2, topic:'CRM not configured for new sales reps',           category:'Tactical',  priority:'High',   owner:'Sarah', forum:'Weekly ELT',            status:'In progress' },
+  { id:3, topic:'Technic Pro margin at 4% vs 12% target',          category:'Strategic', priority:'High',   owner:'Marc',  forum:'Weekly ELT',            status:'Not started' },
+  { id:4, topic:'Q2 EBITDA forecast 6.2% vs 7% board target',      category:'Strategic', priority:'High',   owner:'Julie', forum:'Monthly Business Review',status:'Not started' },
+  { id:5, topic:'New sales rep onboarding process undefined',       category:'Tactical',  priority:'Medium', owner:'Sarah', forum:'Weekly ELT',            status:'In progress' },
+  { id:6, topic:'No structured account review process for key accounts', category:'Strategic', priority:'Medium', owner:'Marc', forum:'Monthly Business Review', status:'Not started' },
+  { id:7, topic:'Q1 sales team performance — strong quarter',      category:'Tactical',  priority:'Low',    owner:'Marc',  forum:'Weekly ELT',            status:'Completed'  },
+  { id:8, topic:'IT access management process missing',            category:'Tactical',  priority:'Low',    owner:'Sarah', forum:'Weekly ELT',            status:'Not started' },
+  { id:9, topic:'Durand SA deal stalling — no response for 3 weeks', category:'Strategic', priority:'High', owner:'Marc',  forum:'Weekly Sales Review',   status:'Not started' },
+  { id:10,topic:'Q2 pipeline recovery — new rep activation below target', category:'Tactical', priority:'Medium', owner:'Marc', forum:'Weekly Sales Review', status:'Not started' },
+];
+
+// Avatar colours per person — sourced from catalyze-config.js AVATAR_COLORS
+const AVATAR_STYLE = AVATAR_COLORS;
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let selectedId   = null;
+let activeFilter = 'all';
+let ctxNotes     = [];
+// prereadCache[meetingId] = { status: 'loading'|'done'|'error', data: {personName: {text, items[]}} }
+const prereadCache = {};
+// topicState[meetingId][topicId] = true (included) | false (excluded)
+let topicState = {};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const $       = id => document.getElementById(id);
+const openOv  = id => $(id).classList.add('open');
+const closeOv = id => $(id).classList.remove('open');
+
+function toast(msg, ms = 2400) {
+  $('toast-msg').textContent = msg;
+  const el = $('toast');
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), ms);
+}
+
+
+function fmtDate(iso) {
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}`;
+}
+
+function fmtDateFull(iso) {
+  const [y, m, d] = iso.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
+}
+
+function dayDiff(iso) {
+  const d = new Date(iso);
+  d.setHours(0,0,0,0);
+  const t = new Date(TODAY);
+  t.setHours(0,0,0,0);
+  return Math.round((d - t) / 86400000);
+}
+
+// ─── localStorage ─────────────────────────────────────────────────────────────
+function saveTopicState() {
+  try { localStorage.setItem('catalyze_meeting_prep', JSON.stringify(topicState)); } catch(e) {}
+}
+
+function loadTopicState() {
+  try {
+    const s = JSON.parse(localStorage.getItem('catalyze_meeting_prep') || '{}');
+    if (s && typeof s === 'object') topicState = s;
+  } catch(e) {}
+}
+
+// ─── Get topics for a meeting ─────────────────────────────────────────────────
+function getTopicsForMeeting(meeting) {
+  // Start from hardcoded backlog
+  let all = [...BACKLOG_TOPICS];
+
+  // Merge topics pushed from meeting capture
+  try {
+    const stored = JSON.parse(localStorage.getItem('catalyze_backlog_topics') || '[]');
+    const existingTitles = new Set(all.map(t => t.topic));
+    stored.forEach(s => {
+      const title = s.title || s.topic;
+      if (!existingTitles.has(title)) {
+        all.push({ id: s.id || ('bt-' + title), topic: title, category: s.category || 'Tactical',
+          priority: s.priority || 'Medium', owner: s.owner || 'Thomas', forum: s.forum || '', status: s.status || 'Not started' });
+        existingTitles.add(title);
+      }
+    });
+  } catch(e) {}
+
+  // Merge topics explicitly routed here via catalyze_agenda_topics
+  try {
+    const agenda = JSON.parse(localStorage.getItem('catalyze_agenda_topics') || '[]');
+    const existingTitles = new Set(all.map(t => t.topic));
+    agenda.forEach(a => {
+      if (a.forum && a.forum !== meeting.forumType && a.forum !== meeting.forum) return;
+      if (!existingTitles.has(a.title)) {
+        all.push({ id: a.topicId || a.goalId || ('ag-' + a.title), topic: a.title,
+          category: 'Strategic', priority: a.priority || 'High', owner: a.owner || 'Thomas',
+          forum: a.forum || meeting.forum, status: 'Not started', _added: true });
+        existingTitles.add(a.title);
+      } else {
+        // Mark existing matching topic as _added so badge shows
+        const existing = all.find(t => t.topic === a.title);
+        if (existing) existing._added = true;
+      }
+    });
+  } catch(e) {}
+
+  // Filter to topics whose forum matches this meeting
+  const matched = all.filter(t =>
+    (meeting.forumType === 'Weekly ELT' && (t.forum === 'Weekly ELT' || !t.forum)) ||
+    (meeting.forumType === 'Weekly Sales Review' && t.forum === 'Weekly Sales Review') ||
+    (meeting.forumType === 'Monthly Business Review' && (t.forum === 'Monthly Business Review' || t.forum === 'Weekly ELT')) ||
+    (meeting.forumType === '1-1' && t.owner === 'Marc') ||
+    t._added  // always include explicitly added topics for this meeting
+  );
+
+  // Deduplicate by topic title
+  const seen = new Set();
+  return matched.filter(t => { if (seen.has(t.topic)) return false; seen.add(t.topic); return true; })
+    .filter(t => t.status !== 'Completed')
+    .sort((a, b) => { const r = {High:0,Medium:1,Low:2}; return (r[a.priority]??9)-(r[b.priority]??9); });
+}
+
+// ─── Init topic states for a meeting ─────────────────────────────────────────
+function ensureTopicState(meeting) {
+  if (topicState[meeting.id]) return;
+  topicState[meeting.id] = {};
+  const topics = getTopicsForMeeting(meeting);
+  topics.forEach((t, i) => {
+    topicState[meeting.id][t.id] = t.priority === 'High'; // High = included by default
+  });
+  saveTopicState();
+}
+
+// ─── Filter logic ─────────────────────────────────────────────────────────────
+function matchesFilter(m) {
+  if (activeFilter === 'all') return true;
+  if (activeFilter === 'this-week') {
+    const diff = dayDiff(m.date);
+    return diff >= 0 && diff <= 6;
+  }
+  if (activeFilter === 'Weekly ELT') return m.forumType === 'Weekly ELT';
+  if (activeFilter === 'Sales review') return m.forumType === 'Weekly Sales Review';
+  return true;
+}
+
+// ─── Count high-priority topics for a meeting ─────────────────────────────────
+function countTopics(meeting) {
+  const topics = getTopicsForMeeting(meeting);
+  const highCount = topics.filter(t => t.priority === 'High').length;
+  return { total: topics.length, high: highCount };
+}
+
+// ─── Render meeting list ──────────────────────────────────────────────────────
+function renderList() {
+  const tbody = $('meeting-tbody');
+  tbody.innerHTML = '';
+  let shown = 0;
+
+  MEETINGS.forEach(m => {
+    const visible = matchesFilter(m);
+    if (!visible) return;
+    shown++;
+    const diff = dayDiff(m.date);
+    const { total, high } = countTopics(m);
+    const isUrgent = diff <= 1;
+
+    const tr = document.createElement('tr');
+    tr.dataset.id = m.id;
+    if (m.id === selectedId) tr.classList.add('selected');
+
+    const dateBadge = diff === 0 ? `<span class="badge badge-today" style="margin-top:3px;display:block">Today</span>`
+                    : diff === 1 ? `<span class="badge badge-tomorrow" style="margin-top:3px;display:block">Tomorrow</span>` : '';
+    const dateSpan = isUrgent
+      ? `<span class="date-urgent">${fmtDate(m.date)}</span>`
+      : `<span class="date-text">${fmtDate(m.date)}</span>`;
+
+    tr.innerHTML = `
+      <td>${dateSpan}${dateBadge}</td>
+      <td>
+        <div class="forum-name">${m.forum}</div>
+        <div class="forum-time">${m.time} · ${m.duration} min</div>
+      </td>
+      <td><span class="${high > 0 ? 'topic-count-hi' : 'topic-count'}">${total}</span></td>
+      <td><i class="ti ti-chevron-right chev-icon"></i></td>
+    `;
+    tr.addEventListener('click', () => selectMeeting(m.id));
+    tbody.appendChild(tr);
+  });
+
+  const total = MEETINGS.filter(matchesFilter).length;
+  $('topbar-meta').textContent = `${total} upcoming meeting${total !== 1 ? 's' : ''} · next 14 days`;
+}
+
+// ─── Select meeting ────────────────────────────────────────────────────────────
+function selectMeeting(id) {
+  selectedId = id;
+  renderList();
+  renderDD();
+}
+
+// ─── Render deep dive ─────────────────────────────────────────────────────────
+function renderDD() {
+  const m = MEETINGS.find(x => x.id === selectedId);
+  $('dd-empty').style.display = m ? 'none' : 'flex';
+  const inner = $('dd-inner');
+  if (!m) { inner.style.display = 'none'; return; }
+  inner.style.display = 'flex';
+
+  ensureTopicState(m);
+  const topics = getTopicsForMeeting(m);
+  const included = topics.filter(t => topicState[m.id][t.id] !== false);
+  const estTopicMin = included.length > 0 ? Math.min(m.topicBudgetMin, included.length * 12) : 0;
+
+  const fixedHead = AGENDA_FIXED[m.forumType] || AGENDA_FIXED['Weekly ELT'];
+  const fixedTail = AGENDA_FIXED[m.forumType + '-tail'] || AGENDA_FIXED['Weekly ELT-tail'];
+  const topicDur = `${m.topicBudgetMin} min`;
+
+  const fixedRowsHTML = items => items.map(a => `
+    <div class="agenda-item">
+      <div class="agenda-dur">${a.dur}</div>
+      <div class="agenda-content">
+        <div class="agenda-name">${a.name}</div>
+        <div class="agenda-sub">${a.sub}</div>
+      </div>
+      <span class="fixed-label">Fixed</span>
+    </div>`).join('');
+
+  // Topic rows HTML
+  const topicRowsHTML = topics.map((t, i) => {
+    const isIncluded = topicState[m.id][t.id] !== false;
+    const priClass = t.priority === 'High' ? 'badge-high' : t.priority === 'Medium' ? 'badge-medium' : 'badge-low';
+    const mayNotFit = i === topics.length - 1 && topics.length > 4 && !isIncluded
+      ? `<span class="may-not-fit">May not fit — consider deferring</span>` : '';
+    const lastAndTight = i >= 4 && isIncluded
+      ? `<span class="may-not-fit">May not fit within ${m.topicBudgetMin} min</span>` : '';
+    return `
+      <div class="topic-row" id="topic-row-${m.id}-${t.id}">
+        <div class="topic-row-content">
+          <div class="topic-row-title">${t.topic}${t._added ? '<span class="badge-added">Added</span>' : ''}</div>
+          <div class="topic-row-meta">
+            <span class="badge ${priClass}">${t.priority}</span>
+            <span class="topic-owner">${t.owner}</span>
+            <a class="topic-backlog-link" onclick="viewInBacklog('${t.topic.replace(/'/g,"\\'")}')"><i class="ti ti-stack-2"></i> Backlog</a>
+          </div>
+          ${lastAndTight}${mayNotFit}
+        </div>
+        <button class="include-btn ${isIncluded ? 'included' : ''}"
+          onclick="toggleTopic(${m.id},${t.id},this)">${isIncluded ? '✓ Included' : '+ Include'}</button>
+      </div>`;
+  }).join('');
+
+  const topicSectionHTML = `
+    <div class="topic-section">
+      <div class="topic-sec-hd">
+        <div class="topic-sec-dur">${topicDur}</div>
+        <div class="topic-sec-title">Topics</div>
+        <span class="fixed-label">AI suggests · CEO decides</span>
+      </div>
+      <div class="ai-note">
+        <span class="ai-note-dot"></span>
+        <span class="ai-note-text">Suggestions from the backlog, ranked by priority. You decide what gets discussed — include or exclude any item. Topics can also be added live during the meeting.</span>
+      </div>
+      ${topics.length ? topicRowsHTML : '<div style="padding:10px 11px;font-size:11px;color:#aaa;font-style:italic">No open topics assigned to this forum.</div>'}
+    </div>`;
+
+  // Pre-read section
+  const prereadId = `preread-${m.id}`;
+  const prereadHTML = buildPrereadHTML(m);
+
+  inner.innerHTML = `
+    <div class="dd-hd">
+      <div class="dd-hd-left">
+        <div class="dd-meeting-title">${m.forum} #${m.iteration} — ${fmtDateFull(m.date)}</div>
+        <div class="dd-meeting-meta">
+          <span class="dd-meta-item"><i class="ti ti-clock" style="font-size:12px;color:#ccc"></i> ${m.time} · ${m.duration} min</span>
+          <span class="dd-meta-item"><i class="ti ti-users" style="font-size:12px;color:#ccc"></i> ${m.attendees.join(', ')}</span>
+        </div>
+      </div>
+      <button class="btn btn-outline" id="send-preread-btn"><i class="ti ti-mail"></i> Send pre-read</button>
+    </div>
+    <div class="dd-body">
+      <div>
+        <div class="dd-sec-title">Agenda · ${m.duration} min</div>
+        <div class="agenda-list">
+          ${fixedRowsHTML(fixedHead)}
+          ${topicSectionHTML}
+          ${fixedRowsHTML(fixedTail)}
+        </div>
+      </div>
+      <div>
+        <div class="dd-sec-title">Pre-read</div>
+        <div class="preread-intro">AI-generated briefing covering what each attendee needs to know and prepare. Sendable by email from the header above.</div>
+        <div class="prereads" id="${prereadId}">${prereadHTML}</div>
+      </div>
+    </div>
+    <div class="dd-actions">
+      <button class="act-btn" id="btn-add-backlog"><i class="ti ti-stack-2"></i><div class="act-lbl"><span>Add topic from backlog</span><span class="act-sub">Pick a topic · add to agenda</span></div></button>
+      <button class="act-btn act-expert" id="btn-expert"><i class="ti ti-user-star"></i><div class="act-lbl"><span>Ask a Catalyze Expert</span><span class="act-sub">AI drafts · you review &amp; send</span></div></button>
+    </div>
+  `;
+
+  $('send-preread-btn').addEventListener('click', () => openSendPreread(m));
+  $('btn-add-backlog').addEventListener('click', () => openAddTopic(m));
+  $('btn-expert').addEventListener('click', () => openExpert(m));
+
+  // Trigger AI pre-read generation if not cached
+  if (!prereadCache[m.id]) triggerPreread(m);
+}
+
+// ─── Pre-read HTML builder ─────────────────────────────────────────────────────
+function buildPrereadHTML(m) {
+  const cache = prereadCache[m.id];
+
+  return m.attendees.map((name, i) => {
+    const style = AVATAR_STYLE[name] || { bg: '#f0f0f0', color: '#555' };
+    const isCEO = name === 'Thomas';
+    let bodyHTML = '';
+
+    if (!cache || cache.status === 'loading') {
+      bodyHTML = `<div class="preread-loading"><i class="ti ti-loader-2 spin" style="color:#ccc"></i> Generating…</div>`;
+    } else if (cache.status === 'error') {
+      bodyHTML = `<div class="preread-loading" style="color:#aaa">Add your Anthropic API key to generate pre-reads.</div>`;
+    } else {
+      const p = cache.data[name];
+      if (p) {
+        bodyHTML = `
+          <div class="preread-text">${p.text}</div>
+          ${p.items && p.items.length ? `<div class="preread-items">${p.items.map(it => `<div class="preread-item">${it}</div>`).join('')}</div>` : ''}
+        `;
+      } else {
+        bodyHTML = `<div class="preread-loading" style="color:#aaa">No specific preparation required.</div>`;
+      }
+    }
+
+    const isOpen = isCEO && cache && cache.status === 'done';
+    return `
+      <div class="preread-card">
+        <div class="preread-card-hd" onclick="togglePrereadCard(this)">
+          <div class="preread-avatar" style="background:${style.bg};color:${style.color}">${name[0]}</div>
+          <div class="preread-name">${name}</div>
+          <div class="preread-role">${personRole(name, m)}</div>
+          <i class="ti ti-chevron-down preread-chev" style="transform:${isOpen?'rotate(180deg)':''}"></i>
+        </div>
+        <div class="preread-body ${isOpen ? 'open' : ''}">${bodyHTML}</div>
+      </div>`;
+  }).join('');
+}
+
+function personRole(name, m) {
+  if (name === 'Thomas') return 'CEO · facilitator';
+  const topics = getTopicsForMeeting(m);
+  const owns = topics.filter(t => t.owner === name && topicState[m.id]?.[t.id] !== false);
+  if (owns.length) return `${personTitle(name)} · presenter`;
+  return personTitle(name);
+}
+
+function personTitle(name) {
+  return { Thomas:'CEO', Sarah:'COO', Marc:'Sales Director', Julie:'Finance Director', Pierre:'Ops Director' }[name] || name;
+}
+
+function togglePrereadCard(hd) {
+  const body = hd.nextElementSibling;
+  const chev = hd.querySelector('.preread-chev');
+  body.classList.toggle('open');
+  chev.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : '';
+}
+
+// ─── AI pre-read generation ────────────────────────────────────────────────────
+async function triggerPreread(meeting) {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    prereadCache[meeting.id] = { status: 'error' };
+    refreshPrereadSection(meeting);
+    return;
+  }
+
+  prereadCache[meeting.id] = { status: 'loading' };
+  refreshPrereadSection(meeting);
+
+  const topics = getTopicsForMeeting(meeting).filter(t => topicState[meeting.id]?.[t.id] !== false);
+  const topicLines = topics.map(t => `- ${t.topic} (owner: ${t.owner}, priority: ${t.priority})`).join('\n');
+  const attendeeLines = meeting.attendees.join(', ');
+  const ctxLine = ctxNotes.length ? `\nCEO context: ${ctxNotes.join(' | ')}` : '';
+
+  const prompt = `You are Catalyze, preparing a meeting pre-read for the CEO of Meriaux & Fils (B2B distribution, ~€18M revenue, 85 employees).
+${ctxLine}
+
+Meeting: ${meeting.forum} #${meeting.iteration} — ${fmtDateFull(meeting.date)} at ${meeting.time}, ${meeting.duration} min
+Attendees: ${attendeeLines}
+
+Agenda topics for this meeting:
+${topicLines || '(no specific topics assigned)'}
+
+Generate a tailored pre-read section for EACH attendee. For each person, provide:
+- text: 1-2 sentence paragraph explaining their role in this meeting and what is at stake for them personally
+- items: 2-4 bullet points of specific things they need to prepare or be ready to answer (empty array if no owned topics)
+
+Tailor to each person's topics and role. Thomas (CEO) gets a facilitation brief — what decisions need to be made and where to push hard. Owners of high-priority topics get specific preparation instructions. Attendees with no owned topics get a brief noting this and asking them to come prepared to contribute.
+
+Respond with JSON only (no markdown fences):
+{
+  ${meeting.attendees.map(n => `"${n}": { "text": "...", "items": ["...", "..."] }`).join(',\n  ')}
+}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1200,
+        system: COMPANY_CONTEXT,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const data = await res.json();
+    let raw = data.content?.[0]?.text || '';
+    raw = raw.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+    const parsed = JSON.parse(raw);
+    prereadCache[meeting.id] = { status: 'done', data: parsed };
+  } catch(err) {
+    console.warn('Pre-read generation failed:', err);
+    prereadCache[meeting.id] = { status: 'error' };
+  }
+
+  refreshPrereadSection(meeting);
+}
+
+function refreshPrereadSection(meeting) {
+  if (selectedId !== meeting.id) return;
+  const container = document.getElementById(`preread-${meeting.id}`);
+  if (!container) return;
+  container.innerHTML = buildPrereadHTML(meeting);
+}
+
+// ─── Toggle topic include/exclude ─────────────────────────────────────────────
+function toggleTopic(meetingId, topicId, btn) {
+  const current = topicState[meetingId][topicId] !== false;
+  topicState[meetingId][topicId] = !current;
+  saveTopicState();
+  if (!current) {
+    btn.classList.add('included');
+    btn.textContent = '✓ Included';
+  } else {
+    btn.classList.remove('included');
+    btn.textContent = '+ Include';
+  }
+}
+
+// ─── View in backlog (postMessage) ────────────────────────────────────────────
+function viewInBacklog(topicTitle) {
+  window.parent.postMessage({ type: 'navigate', src: 'topic_backlog.html', highlight: topicTitle }, '*');
+  toast('Opening topic in backlog…');
+}
+
+// ─── Send pre-read modal ──────────────────────────────────────────────────────
+function openSendPreread(m) {
+  $('preread-modal-title').textContent = `Pre-read — ${m.forum} #${m.iteration}`;
+  const cache = prereadCache[m.id];
+  const body = $('preread-modal-body');
+
+  if (!cache || cache.status === 'loading') {
+    body.innerHTML = `<div style="font-size:12px;color:#aaa;font-style:italic;text-align:center;padding:20px 0"><i class="ti ti-loader-2 spin"></i> Generating pre-read…</div>`;
+  } else if (cache.status === 'error') {
+    body.innerHTML = `<div style="font-size:12px;color:#aaa;font-style:italic">Pre-read generation requires an Anthropic API key. Set it via the settings gear in the topbar.</div>`;
+  } else {
+    body.innerHTML = m.attendees.map(name => {
+      const p = cache.data[name] || { text: 'No specific preparation required.', items: [] };
+      const style = AVATAR_STYLE[name] || { bg:'#f0f0f0', color:'#555' };
+      return `
+        <div class="preread-modal-section">
+          <div class="preread-modal-sec-hd">
+            <div class="preread-avatar" style="background:${style.bg};color:${style.color}">${name[0]}</div>
+            <div style="font-size:12px;font-weight:600;color:#111">${name}</div>
+            <div style="font-size:11px;color:#aaa;margin-left:4px">— ${personRole(name, m)}</div>
+          </div>
+          <div class="preread-modal-body">
+            <div>${p.text}</div>
+            ${p.items && p.items.length ? `<div class="preread-modal-items">${p.items.map(it=>`<div class="preread-modal-item">${it}</div>`).join('')}</div>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  $('preread-send-btn').onclick = () => {
+    closeOv('ov-preread');
+    toast(`Pre-read sent to ${m.attendees.join(', ')}.`);
+  };
+  openOv('ov-preread');
+}
+
+// ─── Add topic from backlog modal ─────────────────────────────────────────────
+function openAddTopic(m) {
+  const existingIds = new Set(getTopicsForMeeting(m).map(t => t.id));
+  let all = [...BACKLOG_TOPICS];
+  try {
+    const stored = JSON.parse(localStorage.getItem('catalyze_backlog_topics') || '[]');
+    stored.forEach(s => { if (!existingIds.has(s.id)) all.push({ id:s.id, topic:s.title||s.topic, priority:s.priority||'Medium', owner:s.owner||'Thomas', status:s.status||'Not started' }); });
+  } catch(e) {}
+
+  const available = all.filter(t => !existingIds.has(t.id) && t.status !== 'Completed');
+
+  if (!available.length) {
+    $('add-topic-body').innerHTML = `<div style="font-size:12px;color:#aaa;font-style:italic">All open backlog topics are already in this agenda.</div>`;
+    $('add-topic-save').style.display = 'none';
+  } else {
+    $('add-topic-save').style.display = '';
+    $('add-topic-body').innerHTML = `
+      <p style="font-size:12px;color:#666;margin-bottom:8px">Select a topic to add to this agenda:</p>
+      ${available.map((t, i) => `
+        <label class="radio-opt ${i===0?'picked':''}">
+          <input type="radio" name="add-topic-pick" value="${t.id}" ${i===0?'checked':''}>
+          <div>
+            <div style="font-size:12px;color:#111">${t.topic}</div>
+            <div style="display:flex;gap:6px;margin-top:3px">
+              <span class="badge badge-${t.priority.toLowerCase()}">${t.priority}</span>
+              <span style="font-size:10px;color:#aaa">${t.owner}</span>
+            </div>
+          </div>
+        </label>`).join('')}
+    `;
+    $('add-topic-body').querySelectorAll('input').forEach(r => {
+      r.addEventListener('change', () => {
+        $('add-topic-body').querySelectorAll('.radio-opt').forEach(o =>
+          o.classList.toggle('picked', o.querySelector('input').value === r.value)
+        );
+      });
+    });
+    $('add-topic-save').onclick = () => {
+      const val = document.querySelector('input[name="add-topic-pick"]:checked')?.value;
+      if (!val) return;
+      const topicId = parseInt(val);
+      if (!topicState[m.id]) topicState[m.id] = {};
+      topicState[m.id][topicId] = true;
+      // Also add to BACKLOG_TOPICS if not already there
+      if (!BACKLOG_TOPICS.find(t => t.id === topicId)) {
+        const found = available.find(t => t.id === topicId);
+        if (found) BACKLOG_TOPICS.push({ ...found, forum: m.forum });
+      }
+      saveTopicState();
+      closeOv('ov-add-topic');
+      renderDD();
+      toast('Topic added to agenda.');
+    };
+  }
+  openOv('ov-add-topic');
+}
+
+// ─── Expert modal ─────────────────────────────────────────────────────────────
+function openExpert(m) {
+  const topics = getTopicsForMeeting(m).filter(t => topicState[m.id]?.[t.id] !== false);
+  $('expert-body').innerHTML = `
+    <p style="font-size:12px;color:#666;margin-bottom:12px;line-height:1.6">The AI has drafted a briefing for a Catalyze Expert. Edit before sending:</p>
+    <textarea class="fta" style="height:240px">${expertBriefing(m, topics)}</textarea>
+    <p style="font-size:11px;color:#bbb;margin-top:6px;line-height:1.6">A Catalyze Expert will review your agenda and pre-read and respond within 24 hours.</p>`;
+  openOv('ov-expert');
+}
+
+function expertBriefing(m, topics) {
+  return `CATALYZE EXPERT BRIEFING — ${m.forum} #${m.iteration}
+Date: ${fmtDateFull(m.date)} at ${m.time} | Duration: ${m.duration} min
+Attendees: ${m.attendees.join(', ')}
+
+AGENDA TOPICS (${topics.length}):
+${topics.map(t => `- [${t.priority}] ${t.topic} — owner: ${t.owner}`).join('\n') || '(none assigned)'}
+
+QUESTION FOR EXPERT:
+This meeting has ${topics.filter(t=>t.priority==='High').length} high-priority topic(s) requiring decisions. Please review the agenda structure and pre-read content, and flag any preparation gaps or sequencing issues before I send it to the team.`;
+}
+
+// ─── Inform AI ────────────────────────────────────────────────────────────────
+$('btn-inform').addEventListener('click', () => {
+  $('inform-ta').value = '';
+  $('inform-n').textContent = '0';
+  renderNotesList();
+  openOv('ov-inform');
+});
+$('inform-ta').addEventListener('input', function() {
+  this.value = this.value.slice(0, 500);
+  $('inform-n').textContent = this.value.length;
+});
+$('inform-save').addEventListener('click', () => {
+  const txt = $('inform-ta').value.trim();
+  if (!txt) { closeOv('ov-inform'); return; }
+  ctxNotes.push(txt);
+  closeOv('ov-inform');
+  toast('Context saved — AI will factor this into pre-reads.');
+});
+function renderNotesList() {
+  const wrap = $('existing-notes');
+  const list = $('notes-list');
+  wrap.style.display = ctxNotes.length ? 'block' : 'none';
+  list.innerHTML = ctxNotes.map((n,i) => `
+    <div style="font-size:11px;color:#555;background:#fafafa;border:1px solid #ebebeb;border-radius:7px;padding:7px 10px;display:flex;justify-content:space-between;gap:8px;line-height:1.5">
+      <span>${n}</span>
+      <span onclick="removeNote(${i})" style="color:#ccc;cursor:pointer;font-size:14px;flex-shrink:0"><i class="ti ti-x"></i></span>
+    </div>`).join('');
+}
+function removeNote(i) { ctxNotes.splice(i,1); renderNotesList(); }
+
+// ─── API key settings ─────────────────────────────────────────────────────────
+$('btn-api-key').addEventListener('click', () => {
+  $('api-key-display').textContent = maskApiKey(getApiKey());
+  $('api-key-input').value = '';
+  openOv('ov-api-key');
+});
+$('api-key-save').addEventListener('click', () => {
+  const val = $('api-key-input').value.trim();
+  if (!val) { toast('Please enter a key.'); return; }
+  setApiKey(val);
+  closeOv('ov-api-key');
+  toast('API key saved.');
+});
+
+// ─── Filters ──────────────────────────────────────────────────────────────────
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    activeFilter = chip.dataset.filter;
+    renderList();
+  });
+});
+
+// ─── Close modals ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.modal-x, [data-ov]').forEach(el => {
+  const target = el.dataset.ov;
+  if (target) el.addEventListener('click', () => closeOv(target));
+});
+document.querySelectorAll('.overlay').forEach(ov => {
+  ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('open'); });
+});
+
+// ─── Resizer ──────────────────────────────────────────────────────────────────
+(function() {
+  const resizer = $('resizer');
+  const listCol = $('list-col');
+  let startX, startW;
+  resizer.addEventListener('mousedown', e => {
+    startX = e.clientX;
+    startW = listCol.offsetWidth;
+    resizer.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    const onMove = e => {
+      const w = Math.min(400, Math.max(180, startW + (e.clientX - startX)));
+      listCol.style.width = w + 'px';
+    };
+    const onUp = () => {
+      resizer.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+})();
+
+// ─── Forum auto-select (from URL param or postMessage) ────────────────────────
+function selectMeetingByForum(forumName) {
+  if (!forumName) return false;
+  const match = MEETINGS.find(m => m.forum === forumName || m.forumType === forumName);
+  if (match) { selectMeeting(match.id); return true; }
+  return false;
+}
+
+function applyForumParam() {
+  const param = new URLSearchParams(window.location.search).get('forum');
+  if (param) return selectMeetingByForum(decodeURIComponent(param));
+  return false;
+}
+
+// ─── Incoming postMessage navigation ─────────────────────────────────────────
+window.addEventListener('message', e => {
+  if (e.data?.type === 'navigate' && e.data?.src === 'meeting_prep.html') {
+    if (e.data.forum) selectMeetingByForum(e.data.forum);
+  }
+});
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+loadTopicState();
+renderList();
+if (!applyForumParam()) selectMeeting(1);
+</script>
+</body>
+</html>

@@ -48,13 +48,11 @@ iframe { flex: 1; border: none; width: 100%; height: 100%; display: block; }
     <div class="nav-item" data-src="topic_backlog.html">
       <i class="ti ti-stack-2"></i> Topic backlog
     </div>
-    <div class="nav-item dim">
+    <div class="nav-item" data-src="meeting_prep.html">
       <i class="ti ti-calendar-event"></i> Meeting prep
-      <span class="coming-soon">Coming soon</span>
     </div>
-    <div class="nav-item dim">
+    <div class="nav-item" data-src="goal_setting.html">
       <i class="ti ti-target"></i> Goal setting
-      <span class="coming-soon">Coming soon</span>
     </div>
   </nav>
 
@@ -66,13 +64,39 @@ iframe { flex: 1; border: none; width: 100%; height: 100%; display: block; }
 
 <script>
 const frame = document.getElementById('main-frame');
+let pendingHighlight = null;
+
+let pendingForum = null;
+
+function navigateTo(src, highlight, forum) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const target = document.querySelector(`.nav-item[data-src="${src}"]`);
+  if (target) target.classList.add('active');
+  if (highlight) {
+    frame.src = `${src}?highlight=${encodeURIComponent(highlight)}`;
+  } else if (forum) {
+    frame.src = `${src}?forum=${encodeURIComponent(forum)}`;
+  } else {
+    frame.src = src;
+  }
+}
 
 document.querySelectorAll('.nav-item[data-src]').forEach(item => {
   item.addEventListener('click', () => {
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    item.classList.add('active');
-    frame.src = item.dataset.src;
+    const highlight = item.dataset.src === 'topic_backlog.html' ? pendingHighlight : null;
+    const forum = item.dataset.src === 'meeting_prep.html' ? pendingForum : null;
+    pendingHighlight = null;
+    pendingForum = null;
+    navigateTo(item.dataset.src, highlight, forum);
   });
+});
+
+window.addEventListener('message', e => {
+  if (e.data?.type === 'navigate') {
+    pendingHighlight = null;
+    pendingForum = null;
+    navigateTo(e.data.src, e.data.highlight, e.data.forum);
+  }
 });
 </script>
 </body>

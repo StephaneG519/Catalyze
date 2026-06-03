@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catalyze — Goal Setting</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f0f0; display: flex; align-items: flex-start; justify-content: center; min-height: 100vh; padding: 24px; }
+
+/* Shell */
+.shell { display: flex; height: 780px; width: 100%; max-width: 1280px; border: 1px solid #e2e2e2; border-radius: 12px; overflow: hidden; background: #fff; box-shadow: 0 4px 32px rgba(0,0,0,0.10); position: relative; }
+
+/* Sidebar */
+.sidebar { width: 148px; min-width: 148px; background: #f9f9f9; border-right: 1px solid #e2e2e2; padding: 16px 0; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+.sidebar-logo { padding: 0 14px 14px; border-bottom: 1px solid #e2e2e2; margin-bottom: 8px; }
+.sidebar-logo-name { font-size: 13px; font-weight: 700; color: #111; letter-spacing: -0.3px; }
+.sidebar-company { font-size: 10px; color: #999; margin-top: 2px; }
+.nav-item { display: flex; align-items: center; gap: 7px; padding: 7px 14px; font-size: 12px; color: #888; cursor: pointer; user-select: none; transition: background 0.1s; }
+.nav-item:hover { background: #f0f0f0; color: #555; }
+.nav-item.active { background: #fff; color: #111; font-weight: 600; border-right: 2px solid #111; }
+.nav-item.dim { opacity: 0.4; pointer-events: none; }
+.nav-item i { font-size: 14px; }
+
+/* Main */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+/* Topbar */
+.topbar { padding: 12px 18px 10px; border-bottom: 1px solid #e2e2e2; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; background: #fff; }
+.topbar-left { display: flex; flex-direction: column; gap: 1px; }
+.topbar-title { font-size: 14px; font-weight: 700; color: #111; }
+.topbar-meta { font-size: 11px; color: #999; }
+.topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+/* Buttons */
+.btn { font-size: 11px; padding: 6px 11px; border-radius: 7px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: background 0.1s, box-shadow 0.1s; font-family: inherit; font-weight: 500; border: 1px solid #ddd; background: #fff; color: #333; }
+.btn:hover { opacity: 0.85; }
+.btn-outline { background: #fff; border: 1px solid #ddd; color: #333; }
+.btn-outline:hover { background: #f9f9f9; border-color: #bbb; }
+.btn-filled { background: #111; border: 1px solid #111; color: #fff; }
+.btn-filled:hover { background: #333; }
+
+/* Filters */
+.filters-row { padding: 9px 18px; border-bottom: 1px solid #e2e2e2; display: flex; gap: 6px; flex-shrink: 0; align-items: center; flex-wrap: wrap; }
+.filter-label { font-size: 11px; color: #ccc; margin-right: 2px; }
+.filter-chip { font-size: 11px; padding: 4px 10px; border: 1px solid #e2e2e2; border-radius: 20px; color: #666; background: #fff; cursor: pointer; user-select: none; transition: all 0.1s; }
+.filter-chip:hover { border-color: #bbb; color: #333; }
+.filter-chip.active { border-color: #111; color: #111; background: #f5f5f5; font-weight: 600; }
+
+/* Content layout */
+.content-area { flex: 1; display: flex; overflow: hidden; }
+
+/* List column */
+.list-col { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+
+/* Suggestion banner */
+.suggest-banner { margin: 10px 16px 0; padding: 10px 12px; background: #F0FBF7; border: 1px solid #1D9E75; border-radius: 9px; display: flex; flex-direction: column; gap: 7px; flex-shrink: 0; }
+.suggest-top { display: flex; align-items: flex-start; gap: 8px; }
+.suggest-icon { color: #1D9E75; font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+.suggest-content { flex: 1; }
+.suggest-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
+.suggest-title { font-size: 11px; font-weight: 700; color: #0F6E56; }
+.suggest-counter { font-size: 10px; color: #0F6E56; opacity: 0.7; }
+.suggest-body { font-size: 11px; color: #0F6E56; line-height: 1.5; }
+.suggest-footer { display: flex; align-items: center; justify-content: space-between; }
+.suggest-actions { display: flex; gap: 6px; }
+.suggest-btn { font-size: 10px; padding: 3px 10px; border-radius: 10px; cursor: pointer; border: 1px solid #1D9E75; font-family: inherit; font-weight: 500; }
+.suggest-btn-accept { background: #1D9E75; color: #fff; }
+.suggest-btn-accept:hover { background: #18886a; }
+.suggest-btn-dismiss { background: transparent; color: #1D9E75; }
+.suggest-btn-dismiss:hover { background: rgba(29,158,117,0.08); }
+.suggest-nav { display: flex; align-items: center; gap: 4px; }
+.suggest-nav-btn { width: 22px; height: 22px; border: 1px solid #1D9E75; border-radius: 50%; background: transparent; color: #1D9E75; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 11px; transition: background 0.1s; }
+.suggest-nav-btn:hover { background: rgba(29,158,117,0.1); }
+
+/* Table wrap */
+.list-wrap { flex: 1; overflow-y: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+thead th { padding: 7px 10px; text-align: left; font-size: 10px; font-weight: 600; color: #999; border-bottom: 1px solid #e2e2e2; background: #fafafa; position: sticky; top: 0; z-index: 1; text-transform: uppercase; letter-spacing: 0.4px; cursor: pointer; user-select: none; white-space: nowrap; }
+thead th:hover { color: #555; }
+thead th .si { font-size: 10px; color: #ccc; margin-left: 2px; vertical-align: middle; }
+thead th.sorted .si { color: #555; }
+tbody tr { border-bottom: 1px solid #f2f2f2; cursor: pointer; transition: background 0.08s; }
+tbody tr:hover { background: #fafafa; }
+tbody tr.selected { background: #f5faf8; border-right: 2px solid #1D9E75; }
+tbody tr.hide { display: none; }
+tbody td { padding: 9px 10px; color: #111; vertical-align: middle; }
+.col-goal     { width: 38%; }
+.col-owner    { width: 10%; }
+.col-progress { width: 22%; }
+.col-align    { width: 15%; }
+.col-status   { width: 15%; }
+
+/* Badges */
+.badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
+.badge-ontrack    { background: #EAF3DE; color: #3B6D11; }
+.badge-atrisk     { background: #FEF3DA; color: #854F0B; }
+.badge-offtrack   { background: #FCEBEB; color: #A32D2D; }
+.badge-notstarted { background: #f5f5f5; color: #888; border: 1px solid #e8e8e8; }
+.badge-completed  { background: #EAF3DE; color: #3B6D11; }
+.badge-aligned    { background: #EAF3DE; color: #3B6D11; }
+.badge-partial    { background: #FEF3DA; color: #854F0B; }
+.badge-noalign    { background: #f5f5f5; color: #888; border: 1px solid #e8e8e8; }
+.badge-okr        { background: #EEEDFE; color: #534AB7; }
+.badge-simple     { background: #E1F5EE; color: #0F6E56; }
+
+/* Goal text */
+.goal-text { font-size: 12px; color: #111; line-height: 1.4; }
+
+/* Progress bar */
+.progress-wrap { display: flex; align-items: center; gap: 6px; }
+.progress-bar-bg { flex: 1; height: 5px; background: #e2e2e2; border-radius: 3px; overflow: hidden; }
+.progress-bar-fill { height: 100%; border-radius: 3px; }
+.progress-pct { font-size: 10px; color: #888; min-width: 28px; }
+
+/* Resizer */
+.resizer { width: 5px; background: #e2e2e2; cursor: col-resize; flex-shrink: 0; position: relative; transition: background 0.15s; }
+.resizer:hover, .resizer.dragging { background: #1D9E75; }
+.resizer::after { content: ''; position: absolute; inset: 0 -4px; }
+
+/* Deep dive */
+.dd-panel { width: 320px; min-width: 220px; max-width: 560px; display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; }
+.dd-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ccc; gap: 10px; }
+.dd-empty i { font-size: 32px; }
+.dd-empty-text { font-size: 13px; }
+.dd-inner { flex: 1; display: flex; flex-direction: column; overflow: hidden; animation: fadein 0.12s ease; }
+@keyframes fadein { from { opacity: 0 } to { opacity: 1 } }
+
+.dd-hd { padding: 13px 16px 11px; border-bottom: 1px solid #e2e2e2; flex-shrink: 0; }
+.dd-title { font-size: 13px; font-weight: 700; color: #111; line-height: 1.4; margin-bottom: 8px; }
+.dd-meta-row { display: flex; gap: 4px; flex-wrap: wrap; }
+
+.dd-body { flex: 1; overflow-y: auto; padding: 13px 16px; display: flex; flex-direction: column; gap: 13px; }
+.dd-sec { display: flex; flex-direction: column; gap: 5px; }
+.dd-lbl { font-size: 10px; font-weight: 700; color: #bbb; text-transform: uppercase; letter-spacing: 0.5px; }
+.dd-val { font-size: 12px; color: #333; line-height: 1.6; }
+
+/* KR list */
+.kr-list { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
+.kr-item { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; background: #fafafa; border-radius: 8px; border: 1px solid #f0f0f0; }
+.kr-text { font-size: 11px; color: #111; line-height: 1.4; }
+.kr-progress-row { display: flex; align-items: center; gap: 6px; }
+.kr-bar-bg { flex: 1; height: 4px; background: #e2e2e2; border-radius: 3px; overflow: hidden; }
+.kr-bar-fill { height: 100%; border-radius: 3px; }
+.kr-pct { font-size: 10px; color: #888; min-width: 26px; }
+.kr-footer { display: flex; align-items: center; justify-content: space-between; }
+.kr-deadline { font-size: 10px; color: #bbb; }
+.kr-updated { font-size: 10px; color: #bbb; font-style: italic; }
+.kr-updated-stale { color: #A32D2D; }
+
+/* AI opinion box */
+.ai-box { background: #fafafa; border: 1px solid #ebebeb; border-radius: 9px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.ai-hd { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; }
+.ai-dot { width: 6px; height: 6px; border-radius: 50%; background: #1D9E75; flex-shrink: 0; }
+.ai-dot-spin { width: 6px; height: 6px; border-radius: 50%; background: #1D9E75; flex-shrink: 0; animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.3 } }
+.ai-flag { display: flex; align-items: flex-start; gap: 6px; font-size: 11px; color: #A32D2D; background: #FCEBEB; padding: 6px 8px; border-radius: 7px; line-height: 1.5; }
+.ai-flag i { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+.ai-ok { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #3B6D11; background: #EAF3DE; padding: 6px 8px; border-radius: 7px; }
+.ai-ok i { font-size: 13px; flex-shrink: 0; }
+.ai-rec { font-size: 12px; color: #333; line-height: 1.6; }
+.ai-loading { font-size: 11px; color: #aaa; font-style: italic; }
+
+/* Source link */
+.source-link { font-size: 11px; color: #185FA5; text-decoration: underline; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.source-link:hover { opacity: 0.8; }
+
+/* Action buttons */
+.dd-actions { padding: 11px 16px; border-top: 1px solid #e2e2e2; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; background: #fafafa; }
+.act-btn { font-size: 11px; padding: 7px 11px; background: #fff; border: 1px solid #ddd; border-radius: 8px; color: #111; cursor: pointer; display: flex; align-items: center; gap: 8px; font-family: inherit; transition: background 0.1s, border-color 0.1s; text-align: left; width: 100%; }
+.act-btn:hover { background: #f5f5f5; border-color: #bbb; }
+.act-btn i { font-size: 15px; color: #888; flex-shrink: 0; }
+.act-lbl { display: flex; flex-direction: column; gap: 1px; }
+.act-sub { font-size: 10px; color: #aaa; }
+.act-btn-progress { border-color: #185FA5; }
+.act-btn-progress i { color: #185FA5; }
+.act-btn-progress:hover { background: #f0f5fb; border-color: #3a7bc8; }
+.act-expert { border-color: #534AB7; }
+.act-expert i { color: #534AB7; }
+.act-expert .act-sub { color: #534AB7; opacity: 0.7; }
+.act-expert:hover { background: #f5f4ff; border-color: #7b74d6; }
+
+/* Modals */
+.overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.35); display: none; align-items: center; justify-content: center; z-index: 100; }
+.overlay.open { display: flex; }
+.modal { background: #fff; border-radius: 12px; border: 1px solid #ddd; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 12px 48px rgba(0,0,0,0.16); width: 460px; }
+.modal.wide { width: 520px; }
+.modal.narrow { width: 340px; }
+.modal-hd { padding: 15px 18px 13px; border-bottom: 1px solid #ebebeb; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.modal-title { font-size: 14px; font-weight: 700; color: #111; }
+.modal-x { font-size: 18px; color: #aaa; cursor: pointer; background: none; border: none; display: flex; align-items: center; padding: 2px; transition: color 0.1s; }
+.modal-x:hover { color: #333; }
+.modal-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 13px; overflow-y: auto; max-height: 500px; }
+.modal-ft { padding: 12px 18px; border-top: 1px solid #ebebeb; display: flex; justify-content: flex-end; gap: 8px; background: #fafafa; flex-shrink: 0; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.fl { font-size: 11px; font-weight: 600; color: #888; }
+.fi { font-size: 12px; padding: 7px 10px; border: 1px solid #ddd; border-radius: 7px; color: #111; background: #fff; font-family: inherit; outline: none; transition: border-color 0.15s; width: 100%; }
+.fi:focus { border-color: #999; }
+.frow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fta { font-size: 11px; padding: 8px 10px; border: 1px solid #ddd; border-radius: 7px; color: #111; background: #fff; font-family: inherit; line-height: 1.6; resize: none; outline: none; transition: border-color 0.15s; width: 100%; }
+.fta:focus { border-color: #999; }
+.fhint { font-size: 10px; color: #bbb; }
+.radio-opt { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid #ebebeb; border-radius: 8px; cursor: pointer; font-size: 12px; color: #333; margin-bottom: 6px; transition: border-color 0.1s; }
+.radio-opt:last-child { margin-bottom: 0; }
+.radio-opt:hover { border-color: #bbb; }
+.radio-opt.picked { border-color: #1D9E75; background: #f5faf8; }
+
+/* KR update fields in modal */
+.kr-update-item { background: #fafafa; border: 1px solid #ebebeb; border-radius: 9px; padding: 10px 12px; display: flex; flex-direction: column; gap: 7px; }
+.kr-update-title { font-size: 11px; color: #111; line-height: 1.4; font-weight: 500; }
+.kr-update-row { display: flex; align-items: center; gap: 8px; }
+.kr-update-row label { font-size: 11px; color: #888; flex-shrink: 0; }
+.kr-update-pct { width: 64px; font-size: 12px; padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; color: #111; background: #fff; font-family: inherit; outline: none; }
+.kr-update-pct:focus { border-color: #999; }
+.kr-update-current { font-size: 11px; color: #bbb; flex: 1; }
+
+/* Toast */
+.toast { position: absolute; bottom: 20px; right: 20px; background: #111; color: #fff; font-size: 12px; padding: 10px 16px; border-radius: 8px; display: none; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 200; }
+.toast.show { display: flex; animation: slideup 0.2s ease; }
+@keyframes slideup { from { transform: translateY(8px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-name">Catalyze</div>
+    <div class="sidebar-company">Meriaux &amp; Fils</div>
+  </div>
+  <div class="nav-item dim"><i class="ti ti-clipboard-list"></i> Meeting capture</div>
+  <div class="nav-item dim"><i class="ti ti-stack-2"></i> Topic backlog</div>
+  <div class="nav-item dim"><i class="ti ti-calendar-event"></i> Meeting prep</div>
+  <div class="nav-item active"><i class="ti ti-target"></i> Goal setting</div>
+</nav>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title">Goal setting</div>
+      <div class="topbar-meta" id="topbar-meta">6 active goals · 2 at risk</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline" id="btn-api-key"><i class="ti ti-settings"></i></button>
+      <button class="btn btn-outline" id="btn-inform"><i class="ti ti-message-bolt"></i> Inform AI</button>
+      <button class="btn btn-filled" id="btn-add-goal"><i class="ti ti-plus"></i> Add goal</button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-row">
+    <span class="filter-label">Filter:</span>
+    <span class="filter-chip active" data-filter="all">All</span>
+    <span class="filter-chip" data-filter="At risk">At risk</span>
+    <span class="filter-chip" data-filter="Off track">Off track</span>
+    <span class="filter-chip" data-filter="Marc">Marc</span>
+    <span class="filter-chip" data-filter="Sarah">Sarah</span>
+    <span class="filter-chip" data-filter="Q2 2026">Q2 2026</span>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- List -->
+    <div class="list-col">
+      <div class="suggest-banner" id="suggest-banner">
+        <div class="suggest-top">
+          <i class="ti ti-bulb suggest-icon"></i>
+          <div class="suggest-content">
+            <div class="suggest-header">
+              <div class="suggest-title">AI suggestion</div>
+              <span class="suggest-counter" id="suggest-counter">1 / 3</span>
+            </div>
+            <div class="suggest-body" id="suggest-body">Loading…</div>
+          </div>
+        </div>
+        <div class="suggest-footer">
+          <div class="suggest-actions">
+            <button class="suggest-btn suggest-btn-accept" id="suggest-create">Create goal</button>
+            <button class="suggest-btn suggest-btn-dismiss" id="suggest-dismiss">Dismiss</button>
+          </div>
+          <div class="suggest-nav">
+            <button class="suggest-nav-btn" id="suggest-prev"><i class="ti ti-chevron-left"></i></button>
+            <button class="suggest-nav-btn" id="suggest-next"><i class="ti ti-chevron-right"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="list-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-goal"     data-sort="title">Goal <i class="ti ti-selector si"></i></th>
+              <th class="col-owner"    data-sort="owner">Owner <i class="ti ti-selector si"></i></th>
+              <th class="col-progress" data-sort="progress">Progress <i class="ti ti-selector si"></i></th>
+              <th class="col-align"    data-sort="alignment">Alignment <i class="ti ti-selector si"></i></th>
+              <th class="col-status"   data-sort="status">Status <i class="ti ti-selector si"></i></th>
+            </tr>
+          </thead>
+          <tbody id="goal-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Resizer -->
+    <div class="resizer" id="resizer"></div>
+
+    <!-- Deep dive -->
+    <div class="dd-panel" id="dd-panel">
+      <div class="dd-empty" id="dd-empty">
+        <i class="ti ti-target"></i>
+        <div class="dd-empty-text">Select a goal to view details</div>
+      </div>
+      <div class="dd-inner" id="dd-inner" style="display:none;flex-direction:column;overflow:hidden;flex:1;"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── MODALS ── -->
+
+<!-- Inform AI -->
+<div class="overlay" id="ov-inform">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title">Inform AI</div>
+      <button class="modal-x" data-ov="ov-inform"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <div class="fl">Share context the AI doesn't have</div>
+        <textarea class="fta" id="inform-ta" style="height:96px" placeholder="A decision made verbally, a goal target that changed, a constraint the AI should factor in…"></textarea>
+        <div style="display:flex;justify-content:space-between">
+          <span class="fhint">Injected into every subsequent AI analysis this session.</span>
+          <span class="fhint"><span id="inform-n">0</span>/500</span>
+        </div>
+      </div>
+      <div id="existing-notes" style="display:none">
+        <div class="fl" style="margin-bottom:6px">Saved this session</div>
+        <div id="notes-list" style="display:flex;flex-direction:column;gap:5px"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-outline" data-ov="ov-inform">Cancel</button>
+      <button class="btn btn-filled" id="inform-save"><i class="ti ti-check"></i> Save context</button>
+    </div>
+  </div>
+</div>
+
+<!-- Update progress -->
+<div class="overlay" id="ov-progress">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title">Update progress</div>
+      <button class="modal-x" data-ov="ov-progress"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body" id="progress-body"></div>
+    <div class="modal-ft">
+      <button class="btn btn-outline" data-ov="ov-progress">Cancel</button>
+      <button class="btn btn-filled" id="progress-save"><i class="ti ti-check"></i> Save updates</button>
+    </div>
+  </div>
+</div>
+
+<!-- Action modal (shared) -->
+<div class="overlay" id="ov-action">
+  <div class="modal wide">
+    <div class="modal-hd">
+      <div class="modal-title" id="act-title">Action</div>
+      <button class="modal-x" data-ov="ov-action"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body" id="act-body"></div>
+    <div class="modal-ft" id="act-ft"></div>
+  </div>
+</div>
+
+<!-- Add goal modal -->
+<div class="overlay" id="ov-add">
+  <div class="modal wide">
+    <div class="modal-hd">
+      <div class="modal-title">Add goal</div>
+      <button class="modal-x" data-ov="ov-add"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <div class="fl">Objective</div>
+        <textarea class="fta" id="add-objective" style="height:64px" placeholder="What needs to be achieved?"></textarea>
+      </div>
+      <div class="frow">
+        <div class="field">
+          <div class="fl">Owner</div>
+          <select class="fi" id="add-owner">
+            <option>Thomas</option><option>Sarah</option><option>Marc</option><option>Julie</option><option>Pierre</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="fl">Deadline</div>
+          <input type="date" class="fi" id="add-deadline" value="2026-06-30">
+        </div>
+      </div>
+      <div class="frow">
+        <div class="field">
+          <div class="fl">Type</div>
+          <select class="fi" id="add-type">
+            <option>OKR</option><option>Simple</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="fl">Source topic (optional)</div>
+          <input type="text" class="fi" id="add-source" placeholder="e.g. Sales pipeline Q2">
+        </div>
+      </div>
+      <div class="field">
+        <div class="fl">Key results <span style="font-weight:400;color:#bbb">(one per line, OKR only)</span></div>
+        <textarea class="fta" id="add-krs" style="height:72px" placeholder="KR 1 — by [date]&#10;KR 2 — by [date]"></textarea>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-outline" data-ov="ov-add">Cancel</button>
+      <button class="btn btn-filled" id="add-save"><i class="ti ti-target"></i> Create goal</button>
+    </div>
+  </div>
+</div>
+
+<!-- API Key Modal -->
+<div class="overlay" id="ov-api-key">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title">API key settings</div>
+      <button class="modal-x" data-ov="ov-api-key"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <div class="fl">Current key</div>
+        <div id="api-key-display" style="font-size:12px;color:#555;background:#fafafa;border:1px solid #ebebeb;border-radius:7px;padding:7px 10px;font-family:monospace;letter-spacing:0.5px;">No key saved</div>
+      </div>
+      <div class="field">
+        <div class="fl">New API key</div>
+        <input type="text" class="fi" id="api-key-input" placeholder="sk-ant-…">
+        <div class="fhint">Stored in localStorage and used for all AI features across modules.</div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-outline" data-ov="ov-api-key">Cancel</button>
+      <button class="btn btn-filled" id="api-key-save"><i class="ti ti-check"></i> Save key</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"><i class="ti ti-check"></i><span id="toast-msg"></span></div>
+
+</div><!-- /shell -->
+
+<script src="catalyze-config.js"></script>
+<script>
+// ─── Goal data ────────────────────────────────────────────────────────────────
+const DEFAULT_GOALS = [
+  {
+    id: 1,
+    title: 'Recover Q2 commercial momentum',
+    owner: 'Marc',
+    status: 'At risk',
+    alignment: 'Aligned',
+    type: 'OKR',
+    sourceTopicId: 1,
+    sourceTopic: 'Sales pipeline Q2 below target by €700k',
+    deadline: '30 June 2026',
+    objective: 'Close Q2 at or above the €2.8M pipeline target by re-engaging stalled key accounts before 30 June.',
+    keyResults: [
+      { text: 'Durand SA deal signed or formally deferred', progress: 20, deadline: '31 May', lastUpdated: '3 days ago', stale: false },
+      { text: 'Technic Pro renewal proposal submitted', progress: 40, deadline: '26 May', lastUpdated: '1 day ago', stale: false },
+      { text: 'Lefebvre Industries meeting rescheduled', progress: 0, deadline: '23 May', lastUpdated: '8 days ago', stale: true },
+    ],
+  },
+  {
+    id: 2,
+    title: 'Fix CRM access for new sales reps',
+    owner: 'Sarah',
+    status: 'On track',
+    alignment: 'Partial',
+    type: 'Simple',
+    sourceTopicId: 2,
+    sourceTopic: 'CRM not configured for new sales reps',
+    deadline: '23 May 2026',
+    objective: 'Ensure both new sales reps have full CRM access and are no longer using spreadsheets by end of May.',
+    keyResults: [],
+    progress: 60,
+  },
+  {
+    id: 3,
+    title: 'Improve EBITDA margin to 7% by end of Q2',
+    owner: 'Julie',
+    status: 'Off track',
+    alignment: 'Aligned',
+    type: 'OKR',
+    sourceTopicId: 4,
+    sourceTopic: 'Q2 EBITDA forecast 6.2% vs 7% board target',
+    deadline: '30 June 2026',
+    objective: 'Close Q2 at or above 7% EBITDA by identifying and executing cost and revenue levers before 30 June.',
+    keyResults: [
+      { text: 'Two cost levers (≥€150k) identified and presented', progress: 10, deadline: '30 May', lastUpdated: '5 days ago', stale: true },
+      { text: 'Margin improvement plan presented to board', progress: 0, deadline: '15 Jun', lastUpdated: 'Not started', stale: false },
+      { text: 'Q2 EBITDA closes ≥6.8%', progress: 0, deadline: '30 Jun', lastUpdated: 'Not started', stale: false },
+    ],
+  },
+  {
+    id: 4,
+    title: 'Define onboarding process for new sales reps',
+    owner: 'Sarah',
+    status: 'On track',
+    alignment: 'Partial',
+    type: 'Simple',
+    sourceTopicId: 5,
+    sourceTopic: 'New sales rep onboarding process undefined',
+    deadline: '31 May 2026',
+    objective: 'Define and implement a structured onboarding process for all new sales hires by end of May.',
+    keyResults: [],
+    progress: 45,
+  },
+  {
+    id: 5,
+    title: 'Build structured key account review process',
+    owner: 'Marc',
+    status: 'Not started',
+    alignment: 'Aligned',
+    type: 'OKR',
+    sourceTopicId: 6,
+    sourceTopic: 'No structured account review process for key accounts',
+    deadline: '2 June 2026',
+    objective: 'Build a key account review process that surfaces pipeline risks at least 6 weeks before quarter end.',
+    keyResults: [
+      { text: 'Weekly 30-min key account review cadence running', progress: 0, deadline: '2 Jun', lastUpdated: 'Not started', stale: false },
+      { text: 'Account health template defined and shared', progress: 0, deadline: '27 May', lastUpdated: 'Not started', stale: false },
+    ],
+  },
+  {
+    id: 6,
+    title: 'Reduce exec meeting time by 20%',
+    owner: 'Thomas',
+    status: 'On track',
+    alignment: 'Aligned',
+    type: 'Simple',
+    sourceTopicId: null,
+    sourceTopic: null,
+    deadline: '30 June 2026',
+    objective: 'Cut total executive meeting hours by 20% vs Q1 baseline through agenda discipline and meeting removal.',
+    keyResults: [],
+    progress: 75,
+  },
+];
+
+const SUGGESTIONS = [
+  'No goal covers the Technic Pro margin issue. Consider creating one before the July contract renewal.',
+  'The IT access management gap (Topic #8) has no corresponding goal. With two new hires expected in Q3, this is an increasing risk.',
+  'Q1 sales team performance has no retrospective goal to lock in what enabled the strong quarter. Worth capturing before the context is lost.',
+];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const openOv  = id => $(id).classList.add('open');
+const closeOv = id => $(id).classList.remove('open');
+
+function toast(msg, ms = 2400) {
+  $('toast-msg').textContent = msg;
+  const el = $('toast');
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), ms);
+}
+
+// ─── localStorage ────────────────────────────────────────────────────────────
+function saveGoals() {
+  try { localStorage.setItem('catalyze_goals', JSON.stringify(goals)); } catch(e) {}
+}
+
+function loadGoals() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('catalyze_goals') || 'null');
+    if (stored && Array.isArray(stored) && stored.length) return stored;
+  } catch(e) {}
+  return DEFAULT_GOALS.map(g => JSON.parse(JSON.stringify(g)));
+}
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let goals = loadGoals();
+let selectedId = null;
+let activeFilter = 'all';
+let sortCol = null;
+let sortDir = 1;
+let ctxNotes = [];
+let suggestIdx = 0;
+let suggestList = [...SUGGESTIONS];
+
+// ─── Progress calculation ─────────────────────────────────────────────────────
+function goalProgress(g) {
+  if (g.type === 'OKR' && g.keyResults.length > 0) {
+    return Math.round(g.keyResults.reduce((s, kr) => s + kr.progress, 0) / g.keyResults.length);
+  }
+  return g.progress ?? 0;
+}
+
+function progressColor(g) {
+  const s = g.status;
+  if (s === 'Off track') return '#A32D2D';
+  if (s === 'At risk')   return '#854F0B';
+  if (s === 'On track')  return '#3B6D11';
+  if (s === 'Completed') return '#3B6D11';
+  return '#bbb';
+}
+
+function statusBadgeClass(s) {
+  return { 'On track':'ontrack', 'At risk':'atrisk', 'Off track':'offtrack', 'Not started':'notstarted', 'Completed':'completed' }[s] || 'notstarted';
+}
+
+function alignBadgeClass(a) {
+  return { 'Aligned':'aligned', 'Partial':'partial', 'No alignment':'noalign' }[a] || 'noalign';
+}
+
+function statusRank(s) {
+  return { 'Off track':0, 'At risk':1, 'Not started':2, 'On track':3, 'Completed':4 }[s] ?? 9;
+}
+
+// ─── Suggestion banner ────────────────────────────────────────────────────────
+function renderSuggest() {
+  if (!suggestList.length) {
+    $('suggest-banner').style.display = 'none';
+    return;
+  }
+  $('suggest-banner').style.display = 'flex';
+  $('suggest-counter').textContent = `${suggestIdx + 1} / ${suggestList.length}`;
+  $('suggest-body').textContent = suggestList[suggestIdx];
+}
+
+$('suggest-prev').addEventListener('click', () => {
+  suggestIdx = (suggestIdx - 1 + suggestList.length) % suggestList.length;
+  renderSuggest();
+});
+$('suggest-next').addEventListener('click', () => {
+  suggestIdx = (suggestIdx + 1) % suggestList.length;
+  renderSuggest();
+});
+$('suggest-dismiss').addEventListener('click', () => {
+  suggestList.splice(suggestIdx, 1);
+  if (!suggestList.length) { renderSuggest(); return; }
+  suggestIdx = Math.min(suggestIdx, suggestList.length - 1);
+  renderSuggest();
+  toast('Suggestion dismissed.');
+});
+$('suggest-create').addEventListener('click', () => {
+  openOv('ov-add');
+  $('add-objective').value = '';
+  toast('Draft goal ready — fill in the details and create.');
+});
+
+// ─── Filters ──────────────────────────────────────────────────────────────────
+function matchesFilter(g) {
+  if (activeFilter === 'all') return true;
+  if (activeFilter === 'At risk') return g.status === 'At risk';
+  if (activeFilter === 'Off track') return g.status === 'Off track';
+  if (activeFilter === 'Q2 2026') return g.deadline && g.deadline.includes('2026');
+  return g.owner === activeFilter;
+}
+
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    activeFilter = chip.dataset.filter;
+    selectedId = null;
+    renderTable();
+    $('dd-empty').style.display = 'flex';
+    $('dd-inner').style.display = 'none';
+  });
+});
+
+// ─── Topbar meta ──────────────────────────────────────────────────────────────
+function updateMeta() {
+  const active = goals.filter(g => g.status !== 'Completed').length;
+  const atRisk = goals.filter(g => g.status === 'At risk' || g.status === 'Off track').length;
+  $('topbar-meta').textContent = `${active} active goal${active !== 1 ? 's' : ''} · ${atRisk} at risk`;
+}
+
+// ─── Sort ─────────────────────────────────────────────────────────────────────
+document.querySelectorAll('thead th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.sort;
+    sortDir = sortCol === col ? sortDir * -1 : 1;
+    sortCol = col;
+    document.querySelectorAll('thead th').forEach(h => {
+      h.classList.remove('sorted');
+      const si = h.querySelector('.si');
+      if (si) si.className = 'ti ti-selector si';
+    });
+    th.classList.add('sorted');
+    th.querySelector('.si').className = `ti ${sortDir === 1 ? 'ti-sort-ascending' : 'ti-sort-descending'} si`;
+    renderTable();
+  });
+});
+
+// ─── Render table ─────────────────────────────────────────────────────────────
+function renderTable() {
+  let rows = [...goals];
+  if (sortCol) {
+    rows.sort((a, b) => {
+      if (sortCol === 'progress') return sortDir * (goalProgress(a) - goalProgress(b));
+      if (sortCol === 'status')   return sortDir * (statusRank(a.status) - statusRank(b.status));
+      return sortDir * String(a[sortCol] || '').localeCompare(String(b[sortCol] || ''));
+    });
+  }
+
+  const tbody = $('goal-tbody');
+  tbody.innerHTML = '';
+
+  rows.forEach(g => {
+    const hidden = !matchesFilter(g);
+    const pct = goalProgress(g);
+    const color = progressColor(g);
+    const tr = document.createElement('tr');
+    tr.dataset.id = g.id;
+    if (g.id === selectedId) tr.classList.add('selected');
+    if (hidden) tr.classList.add('hide');
+
+    tr.innerHTML = `
+      <td><span class="goal-text">${g.title}</span></td>
+      <td style="font-size:12px;color:#555">${g.owner}</td>
+      <td>
+        <div class="progress-wrap">
+          <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+          <span class="progress-pct">${pct}%</span>
+        </div>
+      </td>
+      <td><span class="badge badge-${alignBadgeClass(g.alignment)}">${g.alignment}</span></td>
+      <td><span class="badge badge-${statusBadgeClass(g.status)}">${g.status}</span></td>
+    `;
+    tr.addEventListener('click', () => selectGoal(g.id));
+    tbody.appendChild(tr);
+  });
+
+  updateMeta();
+}
+
+// ─── Select goal ──────────────────────────────────────────────────────────────
+function selectGoal(id) {
+  selectedId = id;
+  renderTable();
+  renderDD();
+  triggerAI(id);
+}
+
+// ─── Render deep dive ─────────────────────────────────────────────────────────
+function renderDD() {
+  const g = goals.find(x => x.id === selectedId);
+  $('dd-empty').style.display = g ? 'none' : 'flex';
+  const inner = $('dd-inner');
+  if (!g) { inner.style.display = 'none'; return; }
+  inner.style.display = 'flex';
+
+  const pct = goalProgress(g);
+  const color = progressColor(g);
+
+  const krsHTML = g.type === 'OKR' && g.keyResults.length ? `
+    <div class="dd-sec">
+      <div class="dd-lbl">Key results</div>
+      <div class="kr-list">
+        ${g.keyResults.map((kr, i) => `
+          <div class="kr-item">
+            <div class="kr-text">${kr.text}</div>
+            <div class="kr-progress-row">
+              <div class="kr-bar-bg"><div class="kr-bar-fill" style="width:${kr.progress}%;background:${kr.progress === 0 ? '#ccc' : kr.progress < 50 ? '#854F0B' : '#3B6D11'}"></div></div>
+              <span class="kr-pct">${kr.progress}%</span>
+            </div>
+            <div class="kr-footer">
+              <span class="kr-deadline">Due ${kr.deadline}</span>
+              <span class="kr-updated ${kr.stale ? 'kr-updated-stale' : ''}">${kr.stale ? `Not updated — ${kr.lastUpdated}` : `Updated ${kr.lastUpdated}`}</span>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>` : '';
+
+  const sourceHTML = g.sourceTopic ? `
+    <div class="dd-sec">
+      <div class="dd-lbl">Type · Source</div>
+      <div class="dd-val">${g.type} · <span class="source-link" onclick="viewSourceTopic(${g.id})"><i class="ti ti-stack-2" style="font-size:10px"></i> ${g.sourceTopic}</span></div>
+    </div>` : `
+    <div class="dd-sec">
+      <div class="dd-lbl">Type</div>
+      <div class="dd-val">${g.type} · Manual entry</div>
+    </div>`;
+
+  inner.innerHTML = `
+    <div class="dd-hd">
+      <div class="dd-title">${g.title}</div>
+      <div class="dd-meta-row">
+        <span class="badge badge-${g.type === 'OKR' ? 'okr' : 'simple'}">${g.type}</span>
+        <span class="badge badge-${statusBadgeClass(g.status)}">${g.status}</span>
+        <span class="badge badge-${alignBadgeClass(g.alignment)}">${g.alignment}</span>
+      </div>
+    </div>
+    <div class="dd-body" id="dd-body">
+      <div class="dd-sec">
+        <div class="dd-lbl">Objective</div>
+        <div class="dd-val">${g.objective}</div>
+      </div>
+      <div class="dd-sec">
+        <div class="dd-lbl">Owner · Deadline</div>
+        <div class="dd-val">${g.owner} · ${g.deadline}</div>
+      </div>
+      ${krsHTML}
+      <div class="ai-box" id="ai-box-${g.id}">
+        <div class="ai-hd"><span class="ai-dot-spin" id="ai-dot-${g.id}"></span> AI opinion</div>
+        <div class="ai-loading" id="ai-content-${g.id}">Analysing…</div>
+      </div>
+      ${sourceHTML}
+    </div>
+    <div class="dd-actions">
+      <button class="act-btn act-btn-progress" onclick="openUpdateProgress(${g.id})">
+        <i class="ti ti-refresh"></i>
+        <div class="act-lbl"><span>Update progress</span><span class="act-sub">Update KRs · add a comment</span></div>
+      </button>
+      ${g.sourceTopic ? `<button class="act-btn" onclick="viewSourceTopic(${g.id})">
+        <i class="ti ti-stack-2"></i>
+        <div class="act-lbl"><span>View source topic</span><span class="act-sub">Jump to topic backlog</span></div>
+      </button>` : ''}
+      <button class="act-btn" onclick="doAction('agenda',${g.id})">
+        <i class="ti ti-calendar-plus"></i>
+        <div class="act-lbl"><span>Add to meeting agenda</span><span class="act-sub">Select forum · confirm slot</span></div>
+      </button>
+      <button class="act-btn act-expert" onclick="doAction('expert',${g.id})">
+        <i class="ti ti-user-star"></i>
+        <div class="act-lbl"><span>Ask a Catalyze Expert</span><span class="act-sub">AI drafts your request · you review &amp; send</span></div>
+      </button>
+    </div>
+  `;
+}
+
+// ─── AI call on deep dive open ────────────────────────────────────────────────
+async function triggerAI(goalId) {
+  const g = goals.find(x => x.id === goalId);
+  if (!g) return;
+
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    setAIContent(goalId, null, null);
+    return;
+  }
+
+  const pct = goalProgress(g);
+  const staleKRs = g.keyResults ? g.keyResults.filter(kr => kr.stale) : [];
+  const prompt = `You are Catalyze, an AI advisor to the CEO of Meriaux & Fils (B2B distribution, ~€18M revenue, 85 employees).
+${ctxNotes.length ? `\nContext from CEO: ${ctxNotes.join(' | ')}\n` : ''}
+Analyse this goal and respond with JSON only (no markdown fences):
+{
+  "flag": "string or null — one specific red-flag sentence, or null if no critical issue",
+  "recommendation": "string — 2-3 sentence specific recommendation for the CEO"
+}
+
+Goal: "${g.title}"
+Type: ${g.type}
+Owner: ${g.owner}
+Status: ${g.status}
+Overall progress: ${pct}%
+Deadline: ${g.deadline}
+Objective: ${g.objective}
+${g.keyResults.length ? `Key results:\n${g.keyResults.map(kr => `- ${kr.text}: ${kr.progress}% (due ${kr.deadline}, last updated: ${kr.lastUpdated}${kr.stale ? ' — STALE' : ''})`).join('\n')}` : ''}
+${staleKRs.length ? `\nStale KRs (not updated relative to deadline): ${staleKRs.map(kr => kr.text).join(', ')}` : ''}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: DEFAULT_MAX_TOKENS,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const data = await res.json();
+    let raw = data.content?.[0]?.text || '';
+    raw = raw.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+    const parsed = JSON.parse(raw);
+    setAIContent(goalId, parsed.flag || null, parsed.recommendation || 'No specific recommendation at this time.');
+  } catch(err) {
+    console.warn('AI goal analysis failed:', err);
+    setAIContent(goalId, null, null);
+  }
+}
+
+function setAIContent(goalId, flag, recommendation) {
+  if (selectedId !== goalId) return;
+  const dot = $(`ai-dot-${goalId}`);
+  const content = $(`ai-content-${goalId}`);
+  if (!dot || !content) return;
+
+  dot.className = 'ai-dot';
+
+  if (!recommendation) {
+    content.outerHTML = `<div id="ai-content-${goalId}" class="ai-loading" style="color:#bbb">Add your Anthropic API key to enable AI analysis.</div>`;
+    return;
+  }
+
+  const flagHTML = flag
+    ? `<div class="ai-flag"><i class="ti ti-alert-triangle"></i>${flag}</div>`
+    : `<div class="ai-ok"><i class="ti ti-circle-check"></i>No critical flags for this goal.</div>`;
+
+  content.outerHTML = `<div id="ai-content-${goalId}">${flagHTML}<div class="ai-rec">${recommendation}</div></div>`;
+}
+
+// ─── Update progress modal ────────────────────────────────────────────────────
+function openUpdateProgress(goalId) {
+  const g = goals.find(x => x.id === goalId);
+  if (!g) return;
+
+  const body = $('progress-body');
+
+  if (g.type === 'OKR' && g.keyResults.length) {
+    body.innerHTML = `
+      <p style="font-size:12px;color:#666;line-height:1.6;margin-bottom:4px">Update progress for each key result:</p>
+      ${g.keyResults.map((kr, i) => `
+        <div class="kr-update-item">
+          <div class="kr-update-title">${kr.text}</div>
+          <div class="kr-update-row">
+            <label>Progress (%)</label>
+            <input type="number" class="kr-update-pct" id="kr-pct-${i}" value="${kr.progress}" min="0" max="100">
+            <span class="kr-update-current">Currently ${kr.progress}%</span>
+          </div>
+          <div class="field">
+            <div class="fl">Comment (optional)</div>
+            <input type="text" class="fi" id="kr-comment-${i}" placeholder="What changed?">
+          </div>
+        </div>`).join('')}
+    `;
+  } else {
+    const pct = g.progress ?? 0;
+    body.innerHTML = `
+      <p style="font-size:12px;color:#666;line-height:1.6;margin-bottom:4px">Update overall goal progress:</p>
+      <div class="kr-update-item">
+        <div class="kr-update-row">
+          <label>Progress (%)</label>
+          <input type="number" class="kr-update-pct" id="simple-pct" value="${pct}" min="0" max="100">
+          <span class="kr-update-current">Currently ${pct}%</span>
+        </div>
+        <div class="field">
+          <div class="fl">Comment (optional)</div>
+          <input type="text" class="fi" id="simple-comment" placeholder="What changed since last update?">
+        </div>
+      </div>
+    `;
+  }
+
+  $('progress-save').onclick = () => saveProgress(goalId);
+  openOv('ov-progress');
+}
+
+function saveProgress(goalId) {
+  const g = goals.find(x => x.id === goalId);
+  if (!g) return;
+
+  const now = 'just now';
+  if (g.type === 'OKR' && g.keyResults.length) {
+    g.keyResults.forEach((kr, i) => {
+      const inp = $(`kr-pct-${i}`);
+      if (inp) {
+        kr.progress = Math.min(100, Math.max(0, parseInt(inp.value) || 0));
+        kr.lastUpdated = now;
+        kr.stale = false;
+      }
+    });
+  } else {
+    const inp = $('simple-pct');
+    if (inp) g.progress = Math.min(100, Math.max(0, parseInt(inp.value) || 0));
+  }
+
+  // Auto-update status based on progress
+  const pct = goalProgress(g);
+  if (pct >= 100) g.status = 'Completed';
+  else if (pct >= 60 && g.status === 'Not started') g.status = 'On track';
+
+  saveGoals();
+  closeOv('ov-progress');
+  renderTable();
+  renderDD();
+  toast('Progress updated.');
+}
+
+// ─── View source topic ────────────────────────────────────────────────────────
+function viewSourceTopic(goalId) {
+  const g = goals.find(x => x.id === goalId);
+  if (!g || !g.sourceTopic) return;
+  window.parent.postMessage({ type: 'navigate', src: 'topic_backlog.html', highlight: g.sourceTopic }, '*');
+  toast('Opening topic in backlog…');
+}
+
+// ─── Action modal ─────────────────────────────────────────────────────────────
+const UPCOMING_FORUMS = [
+  'Weekly ELT #26 — Mon 26 May',
+  'Weekly Sales Review #25 — Wed 28 May',
+  'Weekly ELT #27 — Mon 2 Jun',
+  'Monthly Business Review #6 — Thu 5 Jun',
+];
+
+function doAction(type, goalId) {
+  const g = goals.find(x => x.id === goalId);
+  if (!g) return;
+
+  if (type === 'agenda') {
+    $('act-title').textContent = 'Add to meeting agenda';
+    $('act-body').innerHTML = `
+      <p style="font-size:12px;color:#666;margin-bottom:12px">Select the meeting forum to add this goal to:</p>
+      ${UPCOMING_FORUMS.map((f, i) => `
+        <label class="radio-opt ${i===0?'picked':''}">
+          <input type="radio" name="agenda-pick" value="${f}" ${i===0?'checked':''}>
+          ${f}
+        </label>`).join('')}
+      <p style="font-size:11px;color:#bbb;margin-top:8px">The goal will be added as an agenda item with current status and key results.</p>`;
+    $('act-body').querySelectorAll('input').forEach(r => {
+      r.addEventListener('change', () => {
+        $('act-body').querySelectorAll('.radio-opt').forEach(o =>
+          o.classList.toggle('picked', o.querySelector('input').value === r.value)
+        );
+      });
+    });
+    $('act-ft').innerHTML = `
+      <button class="btn btn-outline" data-ov="ov-action">Cancel</button>
+      <button class="btn btn-filled" id="agenda-add-btn"><i class="ti ti-calendar-plus"></i> Add to agenda</button>`;
+    $('agenda-add-btn').addEventListener('click', () => {
+      const selected = $('act-body').querySelector('input[name="agenda-pick"]:checked');
+      if (!selected) return;
+      const forumLabel = selected.value;
+      const forumName = forumLabel.split(' #')[0];
+      try {
+        const existing = JSON.parse(localStorage.getItem('catalyze_agenda_topics') || '[]');
+        if (!existing.some(x => x.goalId === g.id)) {
+          existing.push({ goalId: g.id, title: g.title, owner: g.owner, priority: 'High', forum: forumName, sourceModule: 'goals' });
+          localStorage.setItem('catalyze_agenda_topics', JSON.stringify(existing));
+        }
+      } catch(e) {}
+      closeOv('ov-action');
+      toast('Goal added to agenda — visible in Meeting prep.');
+      window.parent.postMessage({ type: 'navigate', src: 'meeting_prep.html', forum: forumName }, '*');
+    });
+
+  } else if (type === 'expert') {
+    $('act-title').textContent = 'Ask a Catalyze Expert';
+    $('act-body').innerHTML = `
+      <p style="font-size:12px;color:#666;margin-bottom:12px;line-height:1.6">The AI has drafted a briefing. Review and edit before sending:</p>
+      <textarea class="fta" style="height:220px">${expertBriefing(g)}</textarea>
+      <p style="font-size:11px;color:#bbb;margin-top:6px;line-height:1.6">A Catalyze Expert will respond within 24 hours with a structured recommendation.</p>`;
+    $('act-ft').innerHTML = `
+      <button class="btn btn-outline" data-ov="ov-action">Cancel</button>
+      <button class="btn btn-filled" onclick="closeOv('ov-action');toast('Briefing sent to Catalyze Expert.')"><i class="ti ti-send"></i> Send briefing</button>`;
+  }
+
+  $('act-ft').querySelectorAll('[data-ov]').forEach(el =>
+    el.addEventListener('click', () => closeOv(el.dataset.ov))
+  );
+  openOv('ov-action');
+}
+
+function expertBriefing(g) {
+  const pct = goalProgress(g);
+  const staleKRs = g.keyResults.filter(kr => kr.stale);
+  return `CATALYZE EXPERT BRIEFING
+Company: Meriaux & Fils | Date: ${new Date().toLocaleDateString('en-GB')}
+
+GOAL: ${g.title}
+Type: ${g.type} | Owner: ${g.owner} | Status: ${g.status} | Progress: ${pct}%
+Deadline: ${g.deadline}
+Alignment: ${g.alignment}
+
+OBJECTIVE:
+${g.objective}
+${g.keyResults.length ? `\nKEY RESULTS:\n${g.keyResults.map(kr => `- ${kr.text}: ${kr.progress}% (due ${kr.deadline})${kr.stale ? ' ⚠ STALE' : ''}`).join('\n')}` : ''}
+${staleKRs.length ? `\nSTALE KRs (not updated relative to deadline):\n${staleKRs.map(kr => `- ${kr.text}`).join('\n')}` : ''}
+
+QUESTION FOR EXPERT:
+${g.status === 'Off track' || g.status === 'At risk'
+  ? `This goal is ${g.status.toLowerCase()} with ${Math.round(30)} days to the deadline. We need an independent perspective on whether the objective itself needs to be reset, or whether it is an execution problem.`
+  : 'Seeking an external view on whether the current approach is the right one and whether there are blind spots or risks we have not accounted for.'}`;
+}
+
+// ─── Add goal ─────────────────────────────────────────────────────────────────
+$('btn-add-goal').addEventListener('click', () => {
+  $('add-objective').value = '';
+  $('add-krs').value = '';
+  $('add-source').value = '';
+  openOv('ov-add');
+});
+
+$('add-save').addEventListener('click', () => {
+  const objective = $('add-objective').value.trim();
+  if (!objective) { toast('Please enter an objective.'); return; }
+
+  const type = $('add-type').value;
+  const owner = $('add-owner').value;
+  const deadline = $('add-deadline').value;
+  const sourceTopic = $('add-source').value.trim() || null;
+  const krsRaw = $('add-krs').value.trim();
+
+  const keyResults = type === 'OKR' && krsRaw
+    ? krsRaw.split('\n').filter(Boolean).map(line => {
+        const match = line.match(/(.+?)\s*—\s*by\s*(.+)/i);
+        return { text: match ? match[1].trim() : line.trim(), progress: 0, deadline: match ? match[2].trim() : '', lastUpdated: 'Not started', stale: false };
+      })
+    : [];
+
+  const newId = Math.max(...goals.map(g => g.id)) + 1;
+  const newGoal = {
+    id: newId,
+    title: objective.length > 60 ? objective.slice(0, 60) + '…' : objective,
+    owner,
+    status: 'Not started',
+    alignment: 'Aligned',
+    type,
+    sourceTopicId: null,
+    sourceTopic,
+    deadline: deadline || '30 June 2026',
+    objective,
+    keyResults,
+    progress: 0,
+  };
+
+  goals.unshift(newGoal);
+  saveGoals();
+  closeOv('ov-add');
+  renderTable();
+  selectGoal(newId);
+  toast('Goal created.');
+});
+
+// ─── Inform AI ────────────────────────────────────────────────────────────────
+$('btn-inform').addEventListener('click', () => {
+  $('inform-ta').value = '';
+  $('inform-n').textContent = '0';
+  renderNotesList();
+  openOv('ov-inform');
+});
+$('inform-ta').addEventListener('input', function() {
+  this.value = this.value.slice(0, 500);
+  $('inform-n').textContent = this.value.length;
+});
+$('inform-save').addEventListener('click', () => {
+  const txt = $('inform-ta').value.trim();
+  if (!txt) { closeOv('ov-inform'); return; }
+  ctxNotes.push(txt);
+  closeOv('ov-inform');
+  toast('Context saved — AI will factor this into future analyses.');
+});
+
+function renderNotesList() {
+  const wrap = $('existing-notes');
+  const list = $('notes-list');
+  wrap.style.display = ctxNotes.length ? 'block' : 'none';
+  list.innerHTML = ctxNotes.map((n, i) => `
+    <div style="font-size:11px;color:#555;background:#fafafa;border:1px solid #ebebeb;border-radius:7px;padding:7px 10px;display:flex;justify-content:space-between;gap:8px;line-height:1.5">
+      <span>${n}</span>
+      <span onclick="removeNote(${i})" style="color:#ccc;cursor:pointer;font-size:14px;flex-shrink:0"><i class="ti ti-x"></i></span>
+    </div>`).join('');
+}
+function removeNote(i) { ctxNotes.splice(i, 1); renderNotesList(); }
+
+// ─── Close modals ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.modal-x, [data-ov]').forEach(el => {
+  const target = el.dataset.ov;
+  if (target) el.addEventListener('click', () => closeOv(target));
+});
+document.querySelectorAll('.overlay').forEach(ov => {
+  ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('open'); });
+});
+
+// ─── Resizer ──────────────────────────────────────────────────────────────────
+(function() {
+  const resizer = $('resizer');
+  const dd = $('dd-panel');
+  let startX, startW;
+  resizer.addEventListener('mousedown', e => {
+    startX = e.clientX;
+    startW = dd.offsetWidth;
+    resizer.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    const onMove = e => {
+      const w = Math.min(560, Math.max(220, startW + (startX - e.clientX)));
+      dd.style.width = w + 'px';
+    };
+    const onUp = () => {
+      resizer.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+})();
+
+// ─── Navigation via postMessage (incoming) ────────────────────────────────────
+window.addEventListener('message', e => {
+  if (e.data?.type === 'navigate' && e.data?.src === 'goal_setting.html') {
+    const highlight = e.data?.highlight;
+    if (highlight) {
+      const match = goals.find(g => g.title === highlight || g.title.toLowerCase().includes(highlight.toLowerCase()));
+      if (match) selectGoal(match.id);
+    }
+  }
+});
+
+// ─── API key settings ─────────────────────────────────────────────────────────
+$('btn-api-key').addEventListener('click', () => {
+  $('api-key-display').textContent = maskApiKey(getApiKey());
+  $('api-key-input').value = '';
+  openOv('ov-api-key');
+});
+$('api-key-save').addEventListener('click', () => {
+  const val = $('api-key-input').value.trim();
+  if (!val) { toast('Please enter a key.'); return; }
+  setApiKey(val);
+  closeOv('ov-api-key');
+  toast('API key saved.');
+});
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+renderSuggest();
+renderTable();
+selectGoal(1);
+</script>
+</body>
+</html>
