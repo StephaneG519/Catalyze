@@ -811,6 +811,35 @@ function saveBacklogTopics(newMeeting) {
   } catch(e) {}
 }
 
+function saveGoalsFromTopics(newMeeting) {
+  try {
+    const existing = JSON.parse(localStorage.getItem('catalyze_goals') || '[]');
+    const existingTitles = new Set(existing.map(g => g.title));
+    let added = 0;
+    newMeeting.topics.forEach((t, i) => {
+      if (!t.assigned || existingTitles.has(t.title)) return;
+      existing.unshift({
+        id: Date.now() + i,
+        title: t.title,
+        type: 'Simple',
+        owner: t.owner,
+        deadline: null,
+        alignment: 'Aligned',
+        status: 'Not started',
+        progress: 0,
+        sourceTopicId: null,
+        sourceTopic: t.title,
+        objective: t.assignmentContext || t.title,
+        keyResults: [],
+        autoCreated: true,
+      });
+      existingTitles.add(t.title);
+      added++;
+    });
+    if (added > 0) localStorage.setItem('catalyze_goals', JSON.stringify(existing));
+  } catch(e) {}
+}
+
 loadMeetings();
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -988,6 +1017,7 @@ function renderDeepDive() {
                 <div class="topic-detail-row"><span class="topic-detail-label">Forum</span><span class="topic-detail-value">${t.forum}</span></div>
                 <div class="topic-detail-row"><span class="topic-detail-label">Rationale</span><span class="topic-detail-value">${t.rationale}</span></div>
                 ${t.assigned ? `<button class="btn-action-plan" id="ap-btn-${m.id}-${i}" onclick="sendActionPlan(${m.id}, ${i}, this)"><i class="ti ti-send"></i> Send action plan</button>` : ''}
+                ${t.assigned ? `<div style="font-size:10px;color:#aaa;font-style:italic;margin-top:4px">Goal auto-created in Goal setting</div>` : ''}
               </div>
             </div>`;
           }).join('')}
@@ -1323,6 +1353,7 @@ document.getElementById('modal-add-save').addEventListener('click', async () => 
 
   saveMeetings();
   saveBacklogTopics(newMeeting);
+  saveGoalsFromTopics(newMeeting);
 
   closeModal('modal-add');
   renderList();

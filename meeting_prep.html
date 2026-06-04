@@ -851,8 +851,7 @@ async function triggerPreread(meeting) {
   const attendeeLines = meeting.attendees.join(', ');
   const ctxLine = ctxNotes.length ? `\nCEO context: ${ctxNotes.join(' | ')}` : '';
 
-  const prompt = `You are Catalyze, preparing a meeting pre-read for the CEO of Meriaux & Fils (B2B distribution, ~€18M revenue, 85 employees).
-${ctxLine}
+  const prompt = `${ctxLine}
 
 Meeting: ${meeting.forum} #${meeting.iteration} — ${fmtDateFull(meeting.date)} at ${meeting.time}, ${meeting.duration} min
 Attendees: ${attendeeLines}
@@ -882,7 +881,7 @@ Respond with JSON only (no markdown fences):
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
-        max_tokens: 1200,
+        max_tokens: DEFAULT_MAX_TOKENS,
         system: COMPANY_CONTEXT,
         messages: [{ role: 'user', content: prompt }]
       })

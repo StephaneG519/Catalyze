@@ -210,6 +210,10 @@ tbody td { padding: 9px 10px; color: #111; vertical-align: middle; }
 .badge-checkin-sent { background: #FEF3DA; color: #854F0B; border: 1px solid #D97706; }
 .badge-escalated    { background: #FCEBEB; color: #A32D2D; border: 1px solid #A32D2D; }
 
+/* Simulate reply button */
+.kr-simulate-btn { font-size: 10px; padding: 2px 7px; border-radius: 6px; border: 1px solid #ccc; background: #fff; color: #666; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; font-family: inherit; font-weight: 500; transition: background 0.1s; }
+.kr-simulate-btn:hover { background: #f5f5f5; border-color: #aaa; }
+
 /* Check-in modal */
 .checkin-note { font-size: 10px; color: #854F0B; background: #FEF3DA; border: 1px solid #D97706; border-radius: 6px; padding: 6px 9px; line-height: 1.5; }
 
@@ -440,6 +444,23 @@ tbody td { padding: 9px 10px; color: #111; vertical-align: middle; }
   </div>
 </div>
 
+<!-- Simulate reply modal -->
+<div class="overlay" id="ov-simreply">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title" id="simreply-title">Simulated reply</div>
+      <button class="modal-x" data-ov="ov-simreply"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="simreply-body" style="font-size:12px;color:#333;line-height:1.7;white-space:pre-wrap;background:#fafafa;border:1px solid #ebebeb;border-radius:7px;padding:10px 12px;">Generating reply…</div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-outline" data-ov="ov-simreply">Cancel</button>
+      <button class="btn btn-filled" id="simreply-apply" disabled><i class="ti ti-check"></i> Apply update</button>
+    </div>
+  </div>
+</div>
+
 <!-- Check-in modal -->
 <div class="overlay" id="ov-checkin">
   <div class="modal">
@@ -595,11 +616,20 @@ function saveGoals() {
 }
 
 function loadGoals() {
+  const base = DEFAULT_GOALS.map(g => JSON.parse(JSON.stringify(g)));
   try {
     const stored = JSON.parse(localStorage.getItem('catalyze_goals') || 'null');
-    if (stored && Array.isArray(stored) && stored.length) return stored;
+    if (stored && Array.isArray(stored)) {
+      const baseTitles = new Set(base.map(g => g.title));
+      stored.forEach(g => {
+        if (g.autoCreated && !baseTitles.has(g.title)) {
+          base.push(g);
+          baseTitles.add(g.title);
+        }
+      });
+    }
   } catch(e) {}
-  return DEFAULT_GOALS.map(g => JSON.parse(JSON.stringify(g)));
+  return base;
 }
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -796,6 +826,9 @@ function renderDD() {
           const checkinBtn = kr.stale
             ? `<button class="kr-checkin-btn" onclick="openCheckin(${g.id},${i})"><i class="ti ti-mail"></i> Send check-in</button>`
             : '';
+          const simulateBtn = (fu && fu.count >= 1)
+            ? `<button class="kr-simulate-btn" onclick="openSimReply(${g.id},${i})"><i class="ti ti-message"></i> Simulate reply</button>`
+            : '';
           return `
           <div class="kr-item" id="kr-item-${g.id}-${i}">
             <div class="kr-text">${kr.text}</div>
@@ -807,7 +840,7 @@ function renderDD() {
               <span class="kr-deadline">Due ${kr.deadline}</span>
               <span class="kr-updated ${kr.stale ? 'kr-updated-stale' : ''}">${kr.stale ? `Not updated — ${kr.lastUpdated}` : `Updated ${kr.lastUpdated}`}</span>
             </div>
-            ${(checkinBtn || badgeHTML) ? `<div class="kr-badge-row" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px">${checkinBtn}${badgeHTML}</div>` : ''}
+            ${(checkinBtn || badgeHTML || simulateBtn) ? `<div class="kr-badge-row" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px">${checkinBtn}${badgeHTML}${simulateBtn}</div>` : ''}
           </div>`;
         }).join('')}
       </div>
@@ -927,7 +960,7 @@ async function openCheckin(goalId, krIdx) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
-        max_tokens: 400,
+        max_tokens: DEFAULT_MAX_TOKENS,
         system: COMPANY_CONTEXT,
         messages: [{ role: 'user', content: userPrompt }],
       }),
@@ -967,6 +1000,117 @@ function sendCheckin() {
   toast('Check-in sent.');
 }
 
+// ─── Simulate reply flow ──────────────────────────────────────────────────────
+let simReplyContext = null;
+
+async function openSimReply(goalId, krIdx) {
+  const g = goals.find(x => x.id === goalId);
+  if (!g) return;
+  const kr = g.keyResults[krIdx];
+  if (!kr) return;
+
+  simReplyContext = { goalId, krIdx };
+
+  $('simreply-title').textContent = `Simulated reply from ${g.owner}`;
+  $('simreply-body').textContent = 'Generating reply…';
+  $('simreply-apply').disabled = true;
+  openOv('ov-simreply');
+
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    $('simreply-body').textContent = 'Add your API key to generate simulated replies.';
+    return;
+  }
+
+  const userPrompt = `Write a short realistic reply email from ${g.owner} to Thomas (CEO) about this key result: '${kr.text}'. The reply should give a brief status update — either progress made, a blocker encountered, or a revised timeline. Keep it under 60 words. Casual but professional tone. Plain text only, no subject line.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 200,
+        system: COMPANY_CONTEXT,
+        messages: [{ role: 'user', content: userPrompt }],
+      }),
+    });
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const data = await res.json();
+    const reply = data.content?.[0]?.text?.trim() || '';
+    $('simreply-body').textContent = reply;
+    simReplyContext.reply = reply;
+    $('simreply-apply').disabled = false;
+  } catch(err) {
+    console.warn('Simulate reply failed:', err);
+    $('simreply-body').textContent = 'Could not generate reply — try again.';
+  }
+}
+
+async function applySimReply() {
+  if (!simReplyContext) return;
+  const { goalId, krIdx, reply } = simReplyContext;
+  const g = goals.find(x => x.id === goalId);
+  if (!g || !reply) return;
+  const kr = g.keyResults[krIdx];
+  if (!kr) return;
+
+  $('simreply-apply').disabled = true;
+  $('simreply-apply').innerHTML = '<i class="ti ti-loader"></i> Extracting…';
+
+  const apiKey = getApiKey();
+  let pct = null;
+  if (apiKey) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-5',
+          max_tokens: 10,
+          messages: [{ role: 'user', content: `Based on this update: '${reply}', what percentage complete is this key result: '${kr.text}'? Respond with a single integer 0-100, nothing else.` }],
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const raw = data.content?.[0]?.text?.trim() || '';
+        const parsed = parseInt(raw);
+        if (!isNaN(parsed)) pct = Math.min(100, Math.max(0, parsed));
+      }
+    } catch(err) {
+      console.warn('Progress extraction failed:', err);
+    }
+  }
+
+  // Apply update
+  kr.progress = pct !== null ? pct : kr.progress;
+  kr.lastUpdated = 'Just now';
+  kr.stale = false;
+  saveGoals();
+
+  // Remove check-in followup badge from localStorage
+  const followups = loadFollowups();
+  delete followups[`${goalId}_${krIdx}`];
+  try { localStorage.setItem('catalyze_followups', JSON.stringify(followups)); } catch(e) {}
+
+  closeOv('ov-simreply');
+  simReplyContext = null;
+
+  renderDD();
+  triggerAI(goalId);
+  toast('KR updated from simulated reply.');
+}
+
 function refreshKrBadge(goalId, krIdx, count) {
   const krItem = document.getElementById(`kr-item-${goalId}-${krIdx}`);
   if (!krItem) return;
@@ -985,6 +1129,12 @@ function refreshKrBadge(goalId, krIdx, count) {
     existingBadge.outerHTML = badgeHTML;
   } else {
     badgeRow.insertAdjacentHTML('beforeend', badgeHTML);
+  }
+  // Add simulate button if not already present (always shown once count >= 1)
+  if (!badgeRow.querySelector('.kr-simulate-btn')) {
+    badgeRow.insertAdjacentHTML('beforeend',
+      `<button class="kr-simulate-btn" onclick="openSimReply(${goalId},${krIdx})"><i class="ti ti-message"></i> Simulate reply</button>`
+    );
   }
 }
 
@@ -1344,6 +1494,9 @@ function removeNote(i) { ctxNotes.splice(i, 1); renderNotesList(); }
 
 // ─── Check-in send button ─────────────────────────────────────────────────────
 $('checkin-send').addEventListener('click', sendCheckin);
+
+// ─── Simulate reply apply button ──────────────────────────────────────────────
+$('simreply-apply').addEventListener('click', applySimReply);
 
 // ─── Close modals ─────────────────────────────────────────────────────────────
 document.querySelectorAll('.modal-x, [data-ov]').forEach(el => {
