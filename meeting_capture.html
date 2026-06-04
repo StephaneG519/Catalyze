@@ -7,25 +7,10 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f0f0; display: flex; align-items: flex-start; justify-content: center; min-height: 100vh; padding: 24px; }
-
-/* Shell */
-.shell { display: flex; height: 780px; width: 100%; max-width: 1280px; border: 1px solid #e2e2e2; border-radius: 12px; overflow: hidden; background: #fff; box-shadow: 0 4px 32px rgba(0,0,0,0.10); position: relative; }
-
-/* Sidebar */
-.sidebar { width: 148px; min-width: 148px; background: #f9f9f9; border-right: 1px solid #e2e2e2; padding: 16px 0; display: flex; flex-direction: column; gap: 2px; }
-.sidebar-logo { padding: 0 14px 14px; border-bottom: 1px solid #e2e2e2; margin-bottom: 8px; }
-.sidebar-logo-name { font-size: 13px; font-weight: 700; color: #111; letter-spacing: -0.3px; }
-.sidebar-company { font-size: 10px; color: #999; margin-top: 2px; }
-.nav-item { display: flex; align-items: center; gap: 7px; padding: 7px 14px; font-size: 12px; color: #888; cursor: pointer; user-select: none; transition: background 0.1s; }
-.nav-item:hover { background: #f0f0f0; color: #555; }
-.nav-item.active { background: #fff; color: #111; font-weight: 600; border-right: 2px solid #111; }
-.nav-item i { font-size: 14px; }
-.nav-item.disabled { opacity: 0.4; cursor: default; }
-.nav-item.disabled:hover { background: none; color: #888; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; display: flex; flex-direction: column; width: 100%; height: 100vh; overflow: hidden; }
 
 /* Main area */
-.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; position: relative; }
 
 /* Topbar */
 .topbar { padding: 12px 18px 10px; border-bottom: 1px solid #e2e2e2; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; background: #fff; }
@@ -156,6 +141,11 @@ tbody tr.selected .chevron-icon { color: #888; }
 .topic-detail-label { color: #aaa; width: 58px; flex-shrink: 0; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; padding-top: 1px; }
 .topic-detail-value { color: #333; flex: 1; line-height: 1.5; }
 .topic-count-badge { font-size: 11px; color: #888; font-weight: 400; }
+.badge-assigned { background: #E1F5EE; color: #0F6E56; font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
+.badge-plan-sent { background: #1D9E75; color: #fff; font-size: 9px; padding: 1px 6px; border-radius: 8px; font-weight: 700; margin-left: 6px; vertical-align: middle; }
+.btn-action-plan { font-size: 10px; padding: 3px 9px; border-radius: 6px; cursor: pointer; border: 1px solid #1D9E75; background: transparent; color: #1D9E75; font-family: inherit; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; transition: background 0.1s; margin-top: 6px; }
+.btn-action-plan:hover { background: #E1F5EE; }
+.btn-action-plan:disabled { opacity: 0.6; cursor: default; }
 
 /* Decision quality */
 .dq-list { display: flex; flex-direction: column; gap: 6px; }
@@ -239,22 +229,7 @@ tbody tr.selected .chevron-icon { color: #888; }
 </style>
 </head>
 <body>
-<div class="shell">
-
-  <!-- Sidebar -->
-  <nav class="sidebar">
-    <div class="sidebar-logo">
-      <div class="sidebar-logo-name">Catalyze</div>
-      <div class="sidebar-company">Meriaux &amp; Fils</div>
-    </div>
-    <div class="nav-item active"><i class="ti ti-clipboard-list"></i> Meeting capture</div>
-    <div class="nav-item disabled"><i class="ti ti-stack-2"></i> Topic backlog</div>
-    <div class="nav-item disabled"><i class="ti ti-calendar-event"></i> Meeting prep</div>
-    <div class="nav-item disabled"><i class="ti ti-target"></i> Goal setting</div>
-  </nav>
-
-  <!-- Main -->
-  <div class="main">
+<div class="main">
     <!-- Topbar -->
     <div class="topbar">
       <div class="topbar-left">
@@ -476,6 +451,35 @@ tbody tr.selected .chevron-icon { color: #888; }
       <div class="modal-footer">
         <button class="btn btn-outline" id="modal-api-key-cancel">Cancel</button>
         <button class="btn btn-filled" id="modal-api-key-save"><i class="ti ti-check"></i> Save key</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action plan modal -->
+  <div class="modal-overlay" id="modal-action-plan">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Send action plan</div>
+        <button class="modal-close" id="modal-action-plan-close"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <div class="field-label">To</div>
+          <input type="text" class="field-input" id="ap-recipient" readonly style="background:#fafafa;color:#555">
+        </div>
+        <div class="field">
+          <div class="field-label">Subject</div>
+          <input type="text" class="field-input" id="ap-subject">
+        </div>
+        <div class="field">
+          <div class="field-label">Body</div>
+          <textarea class="field-textarea" id="ap-body" style="height:160px"></textarea>
+        </div>
+        <div style="font-size:10px;color:#aaa;display:flex;align-items:center;gap:5px"><i class="ti ti-clock" style="font-size:12px"></i> Auto-accepted in 48h if no reply</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="modal-action-plan-cancel">Cancel</button>
+        <button class="btn btn-filled" id="modal-action-plan-send"><i class="ti ti-send"></i> Send</button>
       </div>
     </div>
   </div>
@@ -965,14 +969,17 @@ function renderDeepDive() {
       <div class="dd-section">
         <div class="dd-section-title"><i class="ti ti-list-check"></i> Extracted topics <span class="topic-count-badge" id="topic-count-label">— ${m.topics.length} topics · ${checkedCount} sent to backlog</span></div>
         <div class="topic-list" id="topic-list">
-          ${m.topics.map((t, i) => `
+          ${m.topics.map((t, i) => {
+            const planSent = isPlanSent(m.id, t.title);
+            return `
             <div class="topic-row" id="topic-row-${i}">
               <div class="topic-row-header" onclick="toggleTopic(${m.id}, ${i}, event)">
                 <input type="checkbox" class="topic-check" id="chk-${m.id}-${i}" ${topicStates[m.id][i] ? 'checked' : ''} onclick="event.stopPropagation(); toggleCheck(${m.id}, ${i})">
-                <span class="topic-label">${t.title}</span>
+                <span class="topic-label">${t.title}${planSent ? '<span class="badge-plan-sent">Plan sent</span>' : ''}</span>
                 <div class="topic-badges">
                   <span class="badge badge-${t.category.toLowerCase()}">${t.category}</span>
                   <span class="badge badge-${t.priority.toLowerCase()}">${t.priority}</span>
+                  ${t.assigned ? '<span class="badge-assigned">Assigned</span>' : ''}
                 </div>
                 <i class="ti ti-chevron-down topic-chevron" id="chev-${m.id}-${i}"></i>
               </div>
@@ -980,8 +987,10 @@ function renderDeepDive() {
                 <div class="topic-detail-row"><span class="topic-detail-label">Owner</span><span class="topic-detail-value">${t.owner}</span></div>
                 <div class="topic-detail-row"><span class="topic-detail-label">Forum</span><span class="topic-detail-value">${t.forum}</span></div>
                 <div class="topic-detail-row"><span class="topic-detail-label">Rationale</span><span class="topic-detail-value">${t.rationale}</span></div>
+                ${t.assigned ? `<button class="btn-action-plan" id="ap-btn-${m.id}-${i}" onclick="sendActionPlan(${m.id}, ${i}, this)"><i class="ti ti-send"></i> Send action plan</button>` : ''}
               </div>
-            </div>`).join('')}
+            </div>`;
+          }).join('')}
         </div>
       </div>
 
@@ -1050,6 +1059,83 @@ function toggleCheck(meetingId, topicIndex) {
   const m = meetings.find(x => x.id === meetingId);
   const label = document.getElementById('topic-count-label');
   if (label) label.textContent = `— ${m.topics.length} topics · ${checkedCount} sent to backlog`;
+}
+
+// ─── Action plan ──────────────────────────────────────────────────────────────
+function isPlanSent(meetingId, topicTitle) {
+  try {
+    const stored = JSON.parse(localStorage.getItem('catalyze_commitments') || '[]');
+    return stored.some(c => c.meetingId === meetingId && c.topicTitle === topicTitle);
+  } catch(e) { return false; }
+}
+
+async function sendActionPlan(meetingId, topicIndex, btn) {
+  const m = meetings.find(x => x.id === meetingId);
+  if (!m) return;
+  const t = m.topics[topicIndex];
+  if (!t) return;
+
+  const apiKey = getApiKey();
+  if (!apiKey) { showToast('API key required — set it via the settings gear.'); return; }
+
+  const originalHTML = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 0.7s linear infinite;display:inline-block"></i> Drafting…';
+
+  let subject = `Action required: ${t.title}`;
+  let body = `Hi ${t.owner},\n\nFollowing our meeting, you are expected to: ${t.assignmentContext}\n\nPlease reply within 48 hours. If no reply is received, this plan will be considered accepted.\n\nThomas`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 400,
+        system: COMPANY_CONTEXT,
+        messages: [{ role: 'user', content: `Draft a short email from Thomas (CEO) to ${t.owner} about this topic: '${t.assignmentContext}'. The email should: reference exactly what they are expected to do, propose 3 concrete next steps with suggested deadlines, state that if they don't reply within 48 hours this plan will be considered accepted. Tone: direct but collegial, not robotic. Max 150 words. Respond in JSON only (no markdown fences): { "subject": "...", "body": "..." }` }]
+      })
+    });
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const data = await res.json();
+    let raw = data.content?.[0]?.text || '';
+    raw = raw.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+    const parsed = JSON.parse(raw);
+    if (parsed.subject) subject = parsed.subject;
+    if (parsed.body) body = parsed.body;
+  } catch(err) {
+    console.warn('Action plan draft failed:', err);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = originalHTML;
+
+  // Populate and open the modal
+  document.getElementById('ap-recipient').value = t.owner;
+  document.getElementById('ap-subject').value = subject;
+  document.getElementById('ap-body').value = body;
+
+  // Wire Send button with this topic's context
+  const sendBtn = document.getElementById('modal-action-plan-send');
+  sendBtn.onclick = () => {
+    // Save to localStorage
+    try {
+      const stored = JSON.parse(localStorage.getItem('catalyze_commitments') || '[]');
+      stored.push({ meetingId, topicTitle: t.title, owner: t.owner, sentAt: Date.now() });
+      localStorage.setItem('catalyze_commitments', JSON.stringify(stored));
+    } catch(e) {}
+    closeModal('modal-action-plan');
+    showToast(`Action plan sent to ${t.owner}.`);
+    // Re-render so "Plan sent" badge appears
+    renderDeepDive();
+  };
+
+  openModal('modal-action-plan');
 }
 
 // ─── View in backlog ──────────────────────────────────────────────────────────
@@ -1129,7 +1215,7 @@ document.getElementById('modal-add-save').addEventListener('click', async () => 
   let newMeeting;
   try {
     const systemPrompt = COMPANY_CONTEXT;
-    const userPrompt = `Analyse these meeting notes and respond with JSON only (no markdown fences).\n\nExtract:\n- forum: string (meeting forum name)\n- date: string (ISO date if found, else null)\n- attendees: string[] (list of attendee names)\n- topics: array of 3-5 objects each with { title, category ("Strategic"|"Tactical"), priority ("High"|"Medium"|"Low"), owner, forum, rationale }\n- decisionFlags: array of 2-3 objects each with { topic, flagType ("no-decision"|"no-owner"|"no-deadline"), remediation }\n- scorecard: object with four keys — meetingHealth, structure, outputQuality, dynamics — each with { rating ("Poor"|"Fair"|"Good"|"Excellent"), confidence (0-100, your certainty given available data), tooltip (1-2 sentence explanation) }. If confidence < 85 for a dimension, set rating to "n/a" and tooltip to "Insufficient data in transcript." For structure, only give a real rating if the transcript contains explicit timing data per agenda item. For dynamics, only give a real rating if the transcript contains explicit speaking time percentages or turn counts. Otherwise you MUST return rating: "n/a" and confidence below 85.\n\nMeeting notes:\n${notes || '(no notes provided)'}`;
+    const userPrompt = `Analyse these meeting notes and respond with JSON only (no markdown fences).\n\nExtract:\n- forum: string (meeting forum name)\n- date: string (ISO date if found, else null)\n- attendees: string[] (list of attendee names)\n- topics: array of 3-5 objects each with { title, category ("Strategic"|"Tactical"), priority ("High"|"Medium"|"Low"), owner, forum, rationale, assignmentContext (string — one sentence describing what the owner is expected to do; empty string if no clear owner) }\n- decisionFlags: array of 2-3 objects each with { topic, flagType ("no-decision"|"no-owner"|"no-deadline"), remediation }\n- scorecard: object with four keys — meetingHealth, structure, outputQuality, dynamics — each with { rating ("Poor"|"Fair"|"Good"|"Excellent"), confidence (0-100, your certainty given available data), tooltip (1-2 sentence explanation) }. If confidence < 85 for a dimension, set rating to "n/a" and tooltip to "Insufficient data in transcript." For structure, only give a real rating if the transcript contains explicit timing data per agenda item. For dynamics, only give a real rating if the transcript contains explicit speaking time percentages or turn counts. Otherwise you MUST return rating: "n/a" and confidence below 85.\n\nMeeting notes:\n${notes || '(no notes provided)'}`;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -1180,7 +1266,9 @@ document.getElementById('modal-add-save').addEventListener('click', async () => 
       priority: t.priority || 'Medium',
       owner: t.owner || aiAttendees[0] || 'Thomas',
       forum: t.forum || forum,
-      rationale: t.rationale || ''
+      rationale: t.rationale || '',
+      assignmentContext: t.assignmentContext || '',
+      assigned: !!(t.owner || aiAttendees[0])
     })) : staticFallback('Fair').topics;
 
     const flags = Array.isArray(parsed.decisionFlags) ? parsed.decisionFlags : [];
@@ -1396,6 +1484,8 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
     if (e.target === overlay) overlay.classList.remove('open');
   });
 });
+document.getElementById('modal-action-plan-close').addEventListener('click', () => closeModal('modal-action-plan'));
+document.getElementById('modal-action-plan-cancel').addEventListener('click', () => closeModal('modal-action-plan'));
 
 // ─── API key settings ─────────────────────────────────────────────────────────
 document.getElementById('btn-api-key').addEventListener('click', () => {
