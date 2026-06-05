@@ -226,6 +226,22 @@ tbody tr.selected .chevron-icon { color: #888; }
 /* New meeting animation */
 @keyframes highlight { 0% { background: #E1F5EE; } 100% { background: transparent; } }
 .new-row td { animation: highlight 2s ease forwards; }
+
+/* Delete button on row hover */
+.row-delete-btn { opacity: 0; background: none; border: none; cursor: pointer; padding: 2px 4px; border-radius: 5px; color: #bbb; font-size: 14px; display: inline-flex; align-items: center; transition: opacity 0.15s, color 0.1s, background 0.1s; vertical-align: middle; }
+tbody tr:hover .row-delete-btn { opacity: 1; }
+.row-delete-btn:hover { color: #A32D2D; background: #FCEBEB; }
+
+/* Delete confirmation modal */
+.delete-modal { width: 460px; }
+.delete-meeting-name { font-size: 13px; font-weight: 700; color: #111; }
+.delete-meeting-date { font-size: 11px; color: #999; margin-top: 2px; }
+.delete-related-section { margin-top: 4px; }
+.delete-related-module { font-size: 10px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 5px; margin-top: 10px; }
+.delete-related-item { font-size: 11px; color: #555; padding: 4px 8px; background: #fafafa; border: 1px solid #f0f0f0; border-radius: 6px; margin-bottom: 3px; line-height: 1.4; }
+.delete-none-note { font-size: 11px; color: #bbb; font-style: italic; margin-top: 8px; }
+.btn-danger { background: #A32D2D; border: 1px solid #A32D2D; color: #fff; }
+.btn-danger:hover { background: #8a2424; opacity: 1; }
 </style>
 </head>
 <body>
@@ -480,6 +496,27 @@ tbody tr.selected .chevron-icon { color: #888; }
       <div class="modal-footer">
         <button class="btn btn-outline" id="modal-action-plan-cancel">Cancel</button>
         <button class="btn btn-filled" id="modal-action-plan-send"><i class="ti ti-send"></i> Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Meeting Modal -->
+  <div class="modal-overlay" id="modal-delete">
+    <div class="modal delete-modal">
+      <div class="modal-header">
+        <div class="modal-title">Delete this meeting?</div>
+        <button class="modal-close" id="modal-delete-close"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div>
+          <div class="delete-meeting-name" id="delete-meeting-name"></div>
+          <div class="delete-meeting-date" id="delete-meeting-date"></div>
+        </div>
+        <div id="delete-related-content"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="modal-delete-cancel">Cancel</button>
+        <button class="btn btn-danger" id="modal-delete-confirm"><i class="ti ti-trash"></i> Delete meeting and related content</button>
       </div>
     </div>
   </div>
@@ -878,6 +915,109 @@ function showToast(msg, duration = 2200) {
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
+// ─── Delete meeting ───────────────────────────────────────────────────────────
+let pendingDeleteId = null;
+
+function openDeleteModal(meetingId) {
+  const m = meetings.find(x => x.id === meetingId);
+  if (!m) return;
+  pendingDeleteId = meetingId;
+
+  document.getElementById('delete-meeting-name').textContent = `${m.forum} #${m.iteration}`;
+  document.getElementById('delete-meeting-date').textContent = fmtFull(m.date);
+
+  // Gather related content
+  let backlogTopics = [], relatedGoals = [], relatedCommitments = [];
+  try {
+    const sourceKey = `${m.forum} #${m.iteration}`;
+    const allTopics = JSON.parse(localStorage.getItem('catalyze_backlog_topics') || '[]');
+    backlogTopics = allTopics.filter(t => t.source && t.source.includes(m.forum) && t.source.includes(m.date));
+
+    const allGoals = JSON.parse(localStorage.getItem('catalyze_goals') || '[]');
+    const deletedTitles = new Set(backlogTopics.map(t => t.title));
+    relatedGoals = allGoals.filter(g => g.autoCreated && deletedTitles.has(g.title));
+
+    const allCommitments = JSON.parse(localStorage.getItem('catalyze_commitments') || '[]');
+    relatedCommitments = allCommitments.filter(c => c.meetingId === meetingId);
+  } catch(e) {}
+
+  const sections = [];
+  if (backlogTopics.length > 0) {
+    sections.push(`
+      <div class="delete-related-module">Topic Backlog</div>
+      ${backlogTopics.map(t => `<div class="delete-related-item"><i class="ti ti-circle-dot" style="font-size:10px;color:#bbb;margin-right:4px;"></i>${t.title}</div>`).join('')}
+    `);
+  }
+  if (relatedGoals.length > 0) {
+    sections.push(`
+      <div class="delete-related-module">Goal Setting</div>
+      ${relatedGoals.map(g => `<div class="delete-related-item"><i class="ti ti-circle-dot" style="font-size:10px;color:#bbb;margin-right:4px;"></i>${g.title}</div>`).join('')}
+    `);
+  }
+  if (relatedCommitments.length > 0) {
+    sections.push(`
+      <div class="delete-related-module">Commitments</div>
+      ${relatedCommitments.map(c => `<div class="delete-related-item"><i class="ti ti-circle-dot" style="font-size:10px;color:#bbb;margin-right:4px;"></i>Action plan sent to ${c.owner} for: ${c.topicTitle}</div>`).join('')}
+    `);
+  }
+
+  const container = document.getElementById('delete-related-content');
+  if (sections.length > 0) {
+    container.innerHTML = `<div class="delete-related-section">${sections.join('')}</div>`;
+  } else {
+    container.innerHTML = `<div class="delete-none-note">No related content found in other modules.</div>`;
+  }
+
+  openModal('modal-delete');
+}
+
+function confirmDeleteMeeting() {
+  const m = meetings.find(x => x.id === pendingDeleteId);
+  if (!m) { closeModal('modal-delete'); return; }
+
+  let deletedCount = 0;
+
+  // Remove from catalyze_backlog_topics
+  try {
+    const allTopics = JSON.parse(localStorage.getItem('catalyze_backlog_topics') || '[]');
+    const toDelete = allTopics.filter(t => t.source && t.source.includes(m.forum) && t.source.includes(m.date));
+    const kept = allTopics.filter(t => !toDelete.includes(t));
+    deletedCount += toDelete.length;
+
+    // Remove matching goals (autoCreated + title match)
+    const deletedTitles = new Set(toDelete.map(t => t.title));
+    const allGoals = JSON.parse(localStorage.getItem('catalyze_goals') || '[]');
+    const keptGoals = allGoals.filter(g => !(g.autoCreated && deletedTitles.has(g.title)));
+    deletedCount += allGoals.length - keptGoals.length;
+
+    localStorage.setItem('catalyze_backlog_topics', JSON.stringify(kept));
+    localStorage.setItem('catalyze_goals', JSON.stringify(keptGoals));
+  } catch(e) {}
+
+  // Remove from catalyze_commitments
+  try {
+    const allCommitments = JSON.parse(localStorage.getItem('catalyze_commitments') || '[]');
+    const keptCommitments = allCommitments.filter(c => c.meetingId !== pendingDeleteId);
+    deletedCount += allCommitments.length - keptCommitments.length;
+    localStorage.setItem('catalyze_commitments', JSON.stringify(keptCommitments));
+  } catch(e) {}
+
+  // Remove from meetings array and localStorage
+  const idx = meetings.findIndex(x => x.id === pendingDeleteId);
+  if (idx !== -1) meetings.splice(idx, 1);
+  saveMeetings();
+  if (selectedMeetingId === pendingDeleteId) {
+    selectedMeetingId = null;
+    document.getElementById('dd-empty').style.display = 'flex';
+    document.getElementById('dd-content').style.display = 'none';
+  }
+
+  closeModal('modal-delete');
+  pendingDeleteId = null;
+  renderList();
+  showToast(`Meeting and ${deletedCount} related item${deletedCount !== 1 ? 's' : ''} deleted`);
+}
+
 // ─── Render list ──────────────────────────────────────────────────────────────
 function renderList() {
   const tbody = document.getElementById('meeting-list-body');
@@ -897,9 +1037,20 @@ function renderList() {
         <div class="forum-iter">#${m.iteration}</div>
       </td>
       <td><span class="badge badge-${healthClass(m.health)}">${m.health}</span></td>
-      <td><i class="ti ti-chevron-right chevron-icon"></i></td>
+      <td style="text-align:right; padding-right:6px;">
+        ${m._userAdded ? `<button class="row-delete-btn" title="Delete meeting" data-meeting-id="${m.id}"><i class="ti ti-trash"></i></button>` : `<i class="ti ti-chevron-right chevron-icon"></i>`}
+      </td>
     `;
-    tr.addEventListener('click', () => selectMeeting(m.id));
+    tr.addEventListener('click', e => {
+      if (e.target.closest('.row-delete-btn')) return;
+      selectMeeting(m.id);
+    });
+    if (m._userAdded) {
+      tr.querySelector('.row-delete-btn').addEventListener('click', e => {
+        e.stopPropagation();
+        openDeleteModal(m.id);
+      });
+    }
     tbody.appendChild(tr);
   });
   const meta = document.getElementById('topbar-meta');
@@ -1517,6 +1668,11 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 });
 document.getElementById('modal-action-plan-close').addEventListener('click', () => closeModal('modal-action-plan'));
 document.getElementById('modal-action-plan-cancel').addEventListener('click', () => closeModal('modal-action-plan'));
+
+// ─── Delete modal wiring ──────────────────────────────────────────────────────
+document.getElementById('modal-delete-close').addEventListener('click', () => closeModal('modal-delete'));
+document.getElementById('modal-delete-cancel').addEventListener('click', () => closeModal('modal-delete'));
+document.getElementById('modal-delete-confirm').addEventListener('click', confirmDeleteMeeting);
 
 // ─── API key settings ─────────────────────────────────────────────────────────
 document.getElementById('btn-api-key').addEventListener('click', () => {
