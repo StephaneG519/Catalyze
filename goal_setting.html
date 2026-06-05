@@ -201,21 +201,22 @@ tbody td { padding: 9px 10px; color: #111; vertical-align: middle; }
 .kr-update-pct:focus { border-color: #999; }
 .kr-update-current { font-size: 11px; color: #bbb; flex: 1; }
 
-/* KR check-in button */
-.kr-checkin-btn { font-size: 10px; padding: 2px 7px; border-radius: 6px; border: 1px solid #D97706; background: #fff; color: #D97706; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; font-family: inherit; font-weight: 500; transition: background 0.1s; }
-.kr-checkin-btn:hover { background: #FFFBEB; }
-.kr-checkin-btn i { font-size: 11px; }
-
 /* KR follow-up badges */
-.badge-checkin-sent { background: #FEF3DA; color: #854F0B; border: 1px solid #D97706; }
-.badge-escalated    { background: #FCEBEB; color: #A32D2D; border: 1px solid #A32D2D; }
+.badge-escalated { background: #FCEBEB; color: #A32D2D; border: 1px solid #A32D2D; }
 
-/* Simulate reply button */
-.kr-simulate-btn { font-size: 10px; padding: 2px 7px; border-radius: 6px; border: 1px solid #ccc; background: #fff; color: #666; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; font-family: inherit; font-weight: 500; transition: background 0.1s; }
-.kr-simulate-btn:hover { background: #f5f5f5; border-color: #aaa; }
+/* KR follow-up compact block */
+.kr-badge-row { font-size: 10px; color: #888; margin-top: 5px; line-height: 1.6; }
+.kr-auto-link { font-size: 10px; color: #185FA5; cursor: pointer; text-decoration: underline; background: none; border: none; padding: 0; font-family: inherit; }
+.kr-auto-link:hover { opacity: 0.75; }
 
-/* Check-in modal */
-.checkin-note { font-size: 10px; color: #854F0B; background: #FEF3DA; border: 1px solid #D97706; border-radius: 6px; padding: 6px 9px; line-height: 1.5; }
+/* Activity summary in DD header */
+.dd-activity-line { font-size: 10px; color: #bbb; margin-top: 5px; display: flex; align-items: center; gap: 5px; }
+.dd-activity-line i { font-size: 11px; }
+
+/* View message modals */
+.msg-field-label { font-size: 10px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+.msg-readonly-box { font-size: 12px; color: #333; background: #fafafa; border: 1px solid #ebebeb; border-radius: 7px; padding: 9px 11px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+.msg-auto-note { font-size: 10px; color: #854F0B; background: #FEF3DA; border: 1px solid #D97706; border-radius: 6px; padding: 6px 9px; line-height: 1.5; }
 
 /* Toast */
 .toast { position: absolute; bottom: 20px; right: 20px; background: #111; color: #fff; font-size: 12px; padding: 10px 16px; border-radius: 8px; display: none; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 200; }
@@ -461,31 +462,33 @@ tbody td { padding: 9px 10px; color: #111; vertical-align: middle; }
   </div>
 </div>
 
-<!-- Check-in modal -->
-<div class="overlay" id="ov-checkin">
+<!-- View message sent modal -->
+<div class="overlay" id="ov-view-sent">
   <div class="modal">
     <div class="modal-hd">
-      <div class="modal-title">Send check-in email</div>
-      <button class="modal-x" data-ov="ov-checkin"><i class="ti ti-x"></i></button>
+      <div class="modal-title">Check-in sent</div>
+      <button class="modal-x" data-ov="ov-view-sent"><i class="ti ti-x"></i></button>
     </div>
-    <div class="modal-body">
-      <div class="field">
-        <div class="fl">To</div>
-        <div id="checkin-to" style="font-size:12px;color:#555;background:#fafafa;border:1px solid #ebebeb;border-radius:7px;padding:7px 10px;"></div>
-      </div>
-      <div class="field">
-        <div class="fl">Subject</div>
-        <input type="text" class="fi" id="checkin-subject">
-      </div>
-      <div class="field">
-        <div class="fl">Body</div>
-        <textarea class="fta" id="checkin-body" style="height:160px"></textarea>
-      </div>
-      <div class="checkin-note" id="checkin-note">No reply in 48h → flagged as At risk and CEO notified</div>
+    <div class="modal-body" id="view-sent-body">
     </div>
     <div class="modal-ft">
-      <button class="btn btn-outline" data-ov="ov-checkin">Cancel</button>
-      <button class="btn btn-filled" id="checkin-send" style="background:#D97706;border-color:#D97706;"><i class="ti ti-send"></i> Send</button>
+      <button class="btn btn-filled" data-ov="ov-view-sent">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- View next message modal -->
+<div class="overlay" id="ov-view-next">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title">Next follow-up</div>
+      <button class="modal-x" data-ov="ov-view-next"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body" id="view-next-body">
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-outline" data-ov="ov-view-next">Cancel</button>
+      <button class="btn btn-filled" id="view-next-save"><i class="ti ti-check"></i> Save draft</button>
     </div>
   </div>
 </div>
@@ -612,7 +615,7 @@ function toast(msg, ms = 2400) {
 
 // ─── localStorage ────────────────────────────────────────────────────────────
 function saveGoals() {
-  try { localStorage.setItem('catalyze_goals', JSON.stringify(goals)); } catch(e) {}
+  try { localStorage.setItem('catalyze_goals', JSON.stringify(goals)); } catch(e) { console.warn('localStorage error:', e); }
 }
 
 function loadGoals() {
@@ -628,7 +631,7 @@ function loadGoals() {
         }
       });
     }
-  } catch(e) {}
+  } catch(e) { console.warn('localStorage error:', e); }
   return base;
 }
 
@@ -810,25 +813,29 @@ function renderDD() {
   const pct = goalProgress(g);
   const color = progressColor(g);
 
-  const followups = loadFollowups();
   const krsHTML = g.type === 'OKR' && g.keyResults.length ? `
     <div class="dd-sec">
       <div class="dd-lbl">Key results</div>
       <div class="kr-list">
         ${g.keyResults.map((kr, i) => {
-          const fuKey = `${g.id}_${i}`;
-          const fu = followups[fuKey];
-          const badgeHTML = fu
-            ? (fu.count >= 3
-                ? `<span class="badge badge-escalated" style="font-size:10px">Escalated</span>`
-                : `<span class="badge badge-checkin-sent" style="font-size:10px">Check-in sent</span>`)
+          const history = getKrHistory(g.id, i);
+          const count = history.length;
+          const last = count > 0 ? history[count - 1] : null;
+          const daysAgo = last ? daysSince(last.sentAt) : 0;
+          const isEscalated = count >= 3;
+
+          const escalatedBadge = isEscalated
+            ? `<span class="badge badge-escalated" style="font-size:10px;margin-right:5px">Escalated</span>`
             : '';
-          const checkinBtn = kr.stale
-            ? `<button class="kr-checkin-btn" onclick="openCheckin(${g.id},${i})"><i class="ti ti-mail"></i> Send check-in</button>`
-            : '';
-          const simulateBtn = (fu && fu.count >= 1)
-            ? `<button class="kr-simulate-btn" onclick="openSimReply(${g.id},${i})"><i class="ti ti-message"></i> Simulate reply</button>`
-            : '';
+
+          const daysLabel = daysAgo === 0 ? 'today' : daysAgo + ' day' + (daysAgo !== 1 ? 's' : '') + ' ago';
+          const badgeRow = last ? `
+            <div class="kr-badge-row" id="kr-badge-row-${g.id}-${i}">
+              ${escalatedBadge}<i class="ti ti-mail" style="font-size:10px;color:#bbb;margin-right:3px"></i><span>Catalyze · Check-in sent ${daysLabel} · No reply yet</span>
+              <br><button class="kr-auto-link" onclick="openViewSent(${g.id},${i})">View message sent</button> · <button class="kr-auto-link" onclick="openViewNext(${g.id},${i})">View next message</button> · <button class="kr-auto-link" onclick="openSimReply(${g.id},${i})">Simulate reply</button>
+            </div>`
+            : `<div class="kr-badge-row" id="kr-badge-row-${g.id}-${i}"></div>`;
+
           return `
           <div class="kr-item" id="kr-item-${g.id}-${i}">
             <div class="kr-text">${kr.text}</div>
@@ -840,7 +847,7 @@ function renderDD() {
               <span class="kr-deadline">Due ${kr.deadline}</span>
               <span class="kr-updated ${kr.stale ? 'kr-updated-stale' : ''}">${kr.stale ? `Not updated — ${kr.lastUpdated}` : `Updated ${kr.lastUpdated}`}</span>
             </div>
-            ${(checkinBtn || badgeHTML || simulateBtn) ? `<div class="kr-badge-row" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px">${checkinBtn}${badgeHTML}${simulateBtn}</div>` : ''}
+            ${badgeRow}
           </div>`;
         }).join('')}
       </div>
@@ -873,6 +880,17 @@ function renderDD() {
       <div class="dd-sec">
         <div class="dd-lbl">Owner · Deadline</div>
         <div class="dd-val">${g.owner} · ${g.deadline}</div>
+        ${(() => {
+          if (!g.keyResults || !g.keyResults.length) return '';
+          let totalSent = 0, latestTs = 0;
+          g.keyResults.forEach((_, i) => {
+            const h = getKrHistory(g.id, i);
+            totalSent += h.length;
+            if (h.length > 0) latestTs = Math.max(latestTs, h[h.length-1].sentAt);
+          });
+          if (totalSent === 0) return '';
+          return `<div class="dd-activity-line"><i class="ti ti-mail"></i> Catalyze sent ${totalSent} check-in${totalSent !== 1 ? 's' : ''} on this goal · Last sent ${fmtSentDate(latestTs)}</div>`;
+        })()}
       </div>
       ${krsHTML}
       <div class="ai-box" id="ai-box-${g.id}">
@@ -903,51 +921,60 @@ function renderDD() {
 }
 
 // ─── Follow-up localStorage ───────────────────────────────────────────────────
+// Storage format: { "goalId_krIdx": [ { goalId, krId, owner, krText, sentAt, message:{subject,body}, status } ] }
 function loadFollowups() {
   try { return JSON.parse(localStorage.getItem('catalyze_followups') || '{}'); } catch(e) { return {}; }
 }
 
-function saveFollowup(goalId, krIdx, owner, krText) {
+function getKrHistory(goalId, krIdx) {
   const followups = loadFollowups();
-  const key = `${goalId}_${krIdx}`;
-  const existing = followups[key] || { count: 0 };
-  followups[key] = {
-    count: existing.count + 1,
-    lastSentAt: new Date().toISOString(),
-    owner,
-    krText,
-  };
-  try { localStorage.setItem('catalyze_followups', JSON.stringify(followups)); } catch(e) {}
-  return followups[key];
+  return followups[`${goalId}_${krIdx}`] || [];
 }
 
-// ─── Check-in flow ────────────────────────────────────────────────────────────
-let checkinContext = null;
+function appendFollowup(goalId, krIdx, owner, krText, message) {
+  const followups = loadFollowups();
+  const key = `${goalId}_${krIdx}`;
+  const history = followups[key] || [];
+  history.push({ goalId, krId: krIdx, owner, krText, sentAt: Date.now(), message, status: 'sent' });
+  followups[key] = history;
+  try { localStorage.setItem('catalyze_followups', JSON.stringify(followups)); } catch(e) { console.warn('localStorage error:', e); }
+  return history;
+}
 
-async function openCheckin(goalId, krIdx) {
-  const g = goals.find(x => x.id === goalId);
-  if (!g) return;
-  const kr = g.keyResults[krIdx];
-  if (!kr) return;
+function updateNextDraft(goalId, krIdx, message) {
+  const followups = loadFollowups();
+  const key = `${goalId}_${krIdx}`;
+  followups[key] = followups[key] || [];
+  followups[key]._nextDraft = message;
+  try { localStorage.setItem('catalyze_followups', JSON.stringify(followups)); } catch(e) { console.warn('localStorage error:', e); }
+}
 
-  checkinContext = { goalId, krIdx, owner: g.owner, krText: kr.text, deadline: kr.deadline, lastUpdated: kr.lastUpdated };
+function clearKrFollowups(goalId, krIdx) {
+  const followups = loadFollowups();
+  delete followups[`${goalId}_${krIdx}`];
+  try { localStorage.setItem('catalyze_followups', JSON.stringify(followups)); } catch(e) { console.warn('localStorage error:', e); }
+}
 
-  $('checkin-to').textContent = g.owner;
-  $('checkin-subject').value = '';
-  $('checkin-body').value = 'Drafting email…';
-  $('checkin-body').disabled = true;
-  openOv('ov-checkin');
+function daysSince(ts) {
+  return Math.floor((Date.now() - ts) / 86400000);
+}
 
+function fmtSentDate(ts) {
+  return new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// ─── Draft check-in email via API ─────────────────────────────────────────────
+async function draftCheckinEmail(g, kr, krIdx, isFollowUp) {
   const apiKey = getApiKey();
-  if (!apiKey) {
-    $('checkin-body').value = '';
-    $('checkin-body').disabled = false;
-    toast('Add your API key to draft emails automatically.');
-    return;
-  }
+  if (!apiKey) return null;
 
   const daysStale = parseInt(kr.lastUpdated) || 5;
-  const userPrompt = `Draft a short follow-up email from Thomas (CEO) to ${g.owner} about this key result: '${kr.text}'. The KR deadline was ${kr.deadline} and it has not been updated in ${daysStale} days. Reference what was originally agreed, ask for a status update, and state that if no reply comes within 48 hours the KR will be flagged as at risk and escalated. Tone: direct but human, not robotic. Max 120 words. Respond in JSON only: { subject, body }`;
+  const history = getKrHistory(g.id, krIdx);
+  const followUpNote = isFollowUp && history.length > 0
+    ? `A previous check-in was sent on ${fmtSentDate(history[history.length-1].sentAt)} with no reply yet. This is follow-up #${history.length + 1}.`
+    : '';
+
+  const userPrompt = `Draft a short follow-up email from Thomas (CEO) to ${g.owner} about this key result: '${kr.text}'. The KR deadline was ${kr.deadline} and it has not been updated in ${daysStale} days. ${followUpNote} Reference what was originally agreed, ask for a status update, and state that if no reply comes within 48 hours the KR will be flagged as at risk and escalated. Tone: direct but human, not robotic. Max 120 words. Sign the email as "Catalyze for Thomas". Respond in JSON only: { subject, body }`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -969,35 +996,155 @@ async function openCheckin(goalId, krIdx) {
     const data = await res.json();
     let raw = data.content?.[0]?.text || '{}';
     raw = raw.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
-    const parsed = JSON.parse(raw);
-    $('checkin-subject').value = parsed.subject || '';
-    $('checkin-body').value = parsed.body || '';
+    return JSON.parse(raw);
   } catch(err) {
     console.warn('Check-in draft failed:', err);
-    $('checkin-body').value = '';
-    toast('Could not draft email — edit manually.');
-  } finally {
-    $('checkin-body').disabled = false;
+    return null;
   }
 }
 
-function sendCheckin() {
-  if (!checkinContext) return;
-  const { goalId, krIdx, owner, krText } = checkinContext;
-  const fu = saveFollowup(goalId, krIdx, owner, krText);
+// ─── Auto-send check-ins on page load ─────────────────────────────────────────
+const THREE_DAYS_MS = 259200000;
+const STALE_DAYS = 5;
 
-  closeOv('ov-checkin');
-  checkinContext = null;
+async function autoSendCheckins() {
+  const apiKey = getApiKey();
+  if (!apiKey) return;
 
-  // Refresh KR card badges
-  refreshKrBadge(goalId, krIdx, fu.count);
+  const now = Date.now();
+  let sent = 0;
 
-  // If count >= 3, inject escalation alert into AI box
-  if (fu.count >= 3) {
-    injectEscalationAlert(goalId, owner);
+  for (const g of goals) {
+    if (!g.keyResults || !g.keyResults.length) continue;
+    for (let i = 0; i < g.keyResults.length; i++) {
+      const kr = g.keyResults[i];
+      if (!kr.stale && kr.lastUpdated !== null && kr.lastUpdated !== 'Not started') continue;
+
+      const history = getKrHistory(g.id, i);
+      const lastSent = history.length > 0 ? history[history.length - 1].sentAt : null;
+
+      // Gate: only send if never sent OR last sent was > 3 days ago
+      if (lastSent && (now - lastSent) < THREE_DAYS_MS) continue;
+
+      const isFollowUp = history.length > 0;
+      const message = await draftCheckinEmail(g, kr, i, isFollowUp);
+      if (!message) continue;
+
+      appendFollowup(g.id, i, g.owner, kr.text, message);
+      sent++;
+
+      // Refresh card if currently visible
+      const history2 = getKrHistory(g.id, i);
+      refreshKrCard(g.id, i, history2);
+
+      if (history2.length >= 3) injectEscalationAlert(g.id, g.owner);
+    }
   }
 
-  toast('Check-in sent.');
+  if (sent > 0) toast(`Catalyze sent ${sent} check-in${sent !== 1 ? 's' : ''} automatically.`);
+}
+
+// ─── View message sent ────────────────────────────────────────────────────────
+function openViewSent(goalId, krIdx) {
+  const history = getKrHistory(goalId, krIdx);
+  if (!history.length) return;
+  const last = history[history.length - 1];
+  const daysAgo = daysSince(last.sentAt);
+
+  $('view-sent-body').innerHTML = `
+    <div style="font-size:11px;color:#888;margin-bottom:12px;display:flex;align-items:center;gap:6px">
+      <i class="ti ti-clock" style="font-size:12px"></i>
+      Sent automatically on ${fmtSentDate(last.sentAt)} (${daysAgo === 0 ? 'today' : daysAgo + ' day' + (daysAgo !== 1 ? 's' : '') + ' ago'}) · No reply yet
+    </div>
+    <div style="margin-bottom:10px">
+      <div class="msg-field-label">To</div>
+      <div class="msg-readonly-box" style="padding:7px 11px">${last.owner}</div>
+    </div>
+    <div style="margin-bottom:10px">
+      <div class="msg-field-label">Subject</div>
+      <div class="msg-readonly-box" style="padding:7px 11px">${last.message?.subject || '(no subject)'}</div>
+    </div>
+    <div>
+      <div class="msg-field-label">Body</div>
+      <div class="msg-readonly-box" style="min-height:120px">${(last.message?.body || '').replace(/\n/g, '<br>')}</div>
+    </div>
+  `;
+  openOv('ov-view-sent');
+}
+
+// ─── View next message ────────────────────────────────────────────────────────
+let viewNextContext = null;
+
+async function openViewNext(goalId, krIdx) {
+  const g = goals.find(x => x.id === goalId);
+  if (!g) return;
+  const kr = g.keyResults[krIdx];
+  if (!kr) return;
+
+  const history = getKrHistory(goalId, krIdx);
+  const lastSent = history.length > 0 ? history[history.length - 1].sentAt : null;
+  const daysUntilAuto = lastSent
+    ? Math.max(0, 3 - daysSince(lastSent))
+    : 0;
+
+  viewNextContext = { goalId, krIdx };
+
+  $('view-next-body').innerHTML = `
+    <div class="msg-auto-note" style="margin-bottom:12px">
+      <i class="ti ti-clock" style="font-size:11px;margin-right:4px"></i>
+      This message will be sent automatically in ${daysUntilAuto} day${daysUntilAuto !== 1 ? 's' : ''} · You can edit it before then
+    </div>
+    <div style="font-size:11px;color:#888;margin-bottom:12px">Drafting follow-up email…</div>
+  `;
+  $('view-next-save').disabled = true;
+  openOv('ov-view-next');
+
+  // Check for a stored next draft first
+  const followups = loadFollowups();
+  const stored = followups[`${goalId}_${krIdx}`]?._nextDraft;
+
+  let message = stored || null;
+  if (!message) {
+    message = await draftCheckinEmail(g, kr, krIdx, true);
+  }
+
+  if (!message) {
+    $('view-next-body').innerHTML += `<div style="font-size:12px;color:#888">Could not draft — add your API key.</div>`;
+    return;
+  }
+
+  viewNextContext.message = message;
+
+  $('view-next-body').innerHTML = `
+    <div class="msg-auto-note" style="margin-bottom:12px">
+      <i class="ti ti-clock" style="font-size:11px;margin-right:4px"></i>
+      This message will be sent automatically in ${daysUntilAuto} day${daysUntilAuto !== 1 ? 's' : ''} · You can edit it before then
+    </div>
+    <div style="margin-bottom:10px">
+      <div class="msg-field-label">To</div>
+      <div class="msg-readonly-box" style="padding:7px 11px">${g.owner}</div>
+    </div>
+    <div style="margin-bottom:10px">
+      <div class="msg-field-label">Subject</div>
+      <input type="text" class="fi" id="next-subject" value="${(message.subject || '').replace(/"/g, '&quot;')}">
+    </div>
+    <div>
+      <div class="msg-field-label">Body</div>
+      <textarea class="fta" id="next-body" style="height:160px">${message.body || ''}</textarea>
+    </div>
+  `;
+  $('view-next-save').disabled = false;
+}
+
+function saveNextDraft() {
+  if (!viewNextContext) return;
+  const { goalId, krIdx } = viewNextContext;
+  const subject = $('next-subject')?.value || viewNextContext.message?.subject || '';
+  const body = $('next-body')?.value || viewNextContext.message?.body || '';
+  updateNextDraft(goalId, krIdx, { subject, body });
+  closeOv('ov-view-next');
+  viewNextContext = null;
+  toast('Draft saved — will be sent automatically.');
 }
 
 // ─── Simulate reply flow ──────────────────────────────────────────────────────
@@ -1098,10 +1245,8 @@ async function applySimReply() {
   kr.stale = false;
   saveGoals();
 
-  // Remove check-in followup badge from localStorage
-  const followups = loadFollowups();
-  delete followups[`${goalId}_${krIdx}`];
-  try { localStorage.setItem('catalyze_followups', JSON.stringify(followups)); } catch(e) {}
+  // Clear follow-up history — reply received
+  clearKrFollowups(goalId, krIdx);
 
   closeOv('ov-simreply');
   simReplyContext = null;
@@ -1111,31 +1256,27 @@ async function applySimReply() {
   toast('KR updated from simulated reply.');
 }
 
-function refreshKrBadge(goalId, krIdx, count) {
+function refreshKrCard(goalId, krIdx, history) {
   const krItem = document.getElementById(`kr-item-${goalId}-${krIdx}`);
   if (!krItem) return;
+  const count = history.length;
+  const last = count > 0 ? history[count - 1] : null;
+  if (!last) return;
+
+  const daysAgo = daysSince(last.sentAt);
+  const isEscalated = count >= 3;
+  const daysLabel = daysAgo === 0 ? 'today' : daysAgo + ' day' + (daysAgo !== 1 ? 's' : '') + ' ago';
+  const escalatedBadge = isEscalated
+    ? `<span class="badge badge-escalated" style="font-size:10px;margin-right:5px">Escalated</span>`
+    : '';
+
   let badgeRow = krItem.querySelector('.kr-badge-row');
   if (!badgeRow) {
     badgeRow = document.createElement('div');
     badgeRow.className = 'kr-badge-row';
-    badgeRow.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px';
     krItem.appendChild(badgeRow);
   }
-  const badgeHTML = count >= 3
-    ? `<span class="badge badge-escalated" style="font-size:10px">Escalated</span>`
-    : `<span class="badge badge-checkin-sent" style="font-size:10px">Check-in sent</span>`;
-  const existingBadge = badgeRow.querySelector('.badge');
-  if (existingBadge) {
-    existingBadge.outerHTML = badgeHTML;
-  } else {
-    badgeRow.insertAdjacentHTML('beforeend', badgeHTML);
-  }
-  // Add simulate button if not already present (always shown once count >= 1)
-  if (!badgeRow.querySelector('.kr-simulate-btn')) {
-    badgeRow.insertAdjacentHTML('beforeend',
-      `<button class="kr-simulate-btn" onclick="openSimReply(${goalId},${krIdx})"><i class="ti ti-message"></i> Simulate reply</button>`
-    );
-  }
+  badgeRow.innerHTML = `${escalatedBadge}<i class="ti ti-mail" style="font-size:10px;color:#bbb;margin-right:3px"></i><span>Catalyze · Check-in sent ${daysLabel} · No reply yet</span><br><button class="kr-auto-link" onclick="openViewSent(${goalId},${krIdx})">View message sent</button> · <button class="kr-auto-link" onclick="openViewNext(${goalId},${krIdx})">View next message</button> · <button class="kr-auto-link" onclick="openSimReply(${goalId},${krIdx})">Simulate reply</button>`;
 }
 
 function injectEscalationAlert(goalId, owner) {
@@ -1148,14 +1289,11 @@ function injectEscalationAlert(goalId, owner) {
 }
 
 function restoreEscalationAlerts(goalId) {
-  const followups = loadFollowups();
   const g = goals.find(x => x.id === goalId);
   if (!g) return;
   g.keyResults.forEach((kr, i) => {
-    const fu = followups[`${goalId}_${i}`];
-    if (fu && fu.count >= 3) {
-      injectEscalationAlert(goalId, g.owner);
-    }
+    const history = getKrHistory(goalId, i);
+    if (history.length >= 3) injectEscalationAlert(goalId, g.owner);
   });
 }
 
@@ -1172,9 +1310,7 @@ async function triggerAI(goalId) {
 
   const pct = goalProgress(g);
   const staleKRs = g.keyResults ? g.keyResults.filter(kr => kr.stale) : [];
-  const prompt = `You are Catalyze, an AI advisor to the CEO of Meriaux & Fils (B2B distribution, ~€18M revenue, 85 employees).
-${ctxNotes.length ? `\nContext from CEO: ${ctxNotes.join(' | ')}\n` : ''}
-Analyse this goal and respond with JSON only (no markdown fences):
+  const prompt = `${ctxNotes.length ? `Context from CEO: ${ctxNotes.join(' | ')}\n\n` : ''}Analyse this goal and respond with JSON only (no markdown fences):
 {
   "flag": "string or null — one specific red-flag sentence, or null if no critical issue",
   "recommendation": "string — 2-3 sentence specific recommendation for the CEO"
@@ -1202,6 +1338,7 @@ ${staleKRs.length ? `\nStale KRs (not updated relative to deadline): ${staleKRs.
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
         max_tokens: DEFAULT_MAX_TOKENS,
+        system: COMPANY_CONTEXT,
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -1367,7 +1504,7 @@ function doAction(type, goalId) {
           existing.push({ goalId: g.id, title: g.title, owner: g.owner, priority: 'High', forum: forumName, sourceModule: 'goals' });
           localStorage.setItem('catalyze_agenda_topics', JSON.stringify(existing));
         }
-      } catch(e) {}
+      } catch(e) { console.warn('localStorage error:', e); }
       closeOv('ov-action');
       toast('Goal added to agenda — visible in Meeting prep.');
       window.parent.postMessage({ type: 'navigate', src: 'meeting_prep.html', forum: forumName }, '*');
@@ -1437,7 +1574,7 @@ $('add-save').addEventListener('click', () => {
       })
     : [];
 
-  const newId = Math.max(...goals.map(g => g.id)) + 1;
+  const newId = goals.length ? Math.max(...goals.map(g => g.id)) + 1 : 100;
   const newGoal = {
     id: newId,
     title: objective.length > 60 ? objective.slice(0, 60) + '…' : objective,
@@ -1492,8 +1629,8 @@ function renderNotesList() {
 }
 function removeNote(i) { ctxNotes.splice(i, 1); renderNotesList(); }
 
-// ─── Check-in send button ─────────────────────────────────────────────────────
-$('checkin-send').addEventListener('click', sendCheckin);
+// ─── View-next save button ────────────────────────────────────────────────────
+$('view-next-save').addEventListener('click', saveNextDraft);
 
 // ─── Simulate reply apply button ──────────────────────────────────────────────
 $('simreply-apply').addEventListener('click', applySimReply);
@@ -1559,10 +1696,34 @@ $('api-key-save').addEventListener('click', () => {
   toast('API key saved.');
 });
 
+// ─── Migrate followup signatures ──────────────────────────────────────────────
+(function migrateFollowupSignatures() {
+  try {
+    const raw = localStorage.getItem('catalyze_followups');
+    if (!raw) return;
+    const followups = JSON.parse(raw);
+    let changed = false;
+    for (const key of Object.keys(followups)) {
+      const entries = followups[key];
+      if (!Array.isArray(entries)) continue;
+      entries.forEach(entry => {
+        if (!entry.message?.body) return;
+        const fixed = entry.message.body.replace(/\n\nThomas\s*$/g, '\n\nCatalyze for Thomas');
+        if (fixed !== entry.message.body) {
+          entry.message.body = fixed;
+          changed = true;
+        }
+      });
+    }
+    if (changed) localStorage.setItem('catalyze_followups', JSON.stringify(followups));
+  } catch(e) { console.warn('localStorage error:', e); }
+})();
+
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 renderSuggest();
 renderTable();
 selectGoal(1);
+autoSendCheckins();
 </script>
 </body>
 </html>

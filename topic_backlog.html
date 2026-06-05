@@ -191,6 +191,12 @@ tbody td { padding: 9px 10px; vertical-align: middle; }
 /* ── New badge ── */
 .b-new { background: #1D9E75; color: #fff; font-size: 9px; padding: 1px 5px; border-radius: 8px; font-weight: 700; margin-left: 4px; vertical-align: middle; cursor: default; }
 
+/* ── Info-request status line ── */
+.info-status-line { font-size: 10px; color: #999; display: flex; align-items: center; gap: 5px; margin-top: 6px; line-height: 1.5; }
+.info-status-line i { font-size: 11px; color: #bbb; flex-shrink: 0; }
+.info-status-sent { color: #0F6E56; }
+.info-status-sent i { color: #1D9E75; }
+
 /* ── Analyse spinner ── */
 @keyframes spin { to { transform: rotate(360deg) } }
 .spin { display: inline-block; animation: spin .7s linear infinite; }
@@ -430,6 +436,18 @@ tbody td { padding: 9px 10px; vertical-align: middle; }
   </div>
 </div>
 
+<!-- Gather more information modal -->
+<div class="overlay" id="ov-gather">
+  <div class="modal wide">
+    <div class="modal-hd">
+      <div class="modal-title">Gather more information</div>
+      <button class="modal-x" data-ov="ov-gather"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body" id="gather-body"></div>
+    <div class="modal-ft" id="gather-ft"></div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"><i class="ti ti-check"></i><span id="toast-msg"></span></div>
 
@@ -449,7 +467,7 @@ function tagHTML(name) {
 }
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
-const DATA = [
+const topics = [
   {
     id:1, topic:'Sales pipeline Q2 below target by €700k',
     category:'Strategic', priority:'High', owner:'Marc',
@@ -566,7 +584,7 @@ const DATA = [
     status:'Not started', tags:['IT'],
     desc:'Raised on 5 May by Pierre. No documented process for IT access provisioning when new staff join. The CRM issue is a direct symptom. IT access requests are currently handled informally with no tracking.',
     rootCause:'IT infrastructure has not scaled with headcount growth. No onboarding owner and no documentation for system access provisioning.',
-    aiFlag:'Low priority but recurring — this is the third IT access gap flagged in the last six months.',
+    aiFlag:'Insufficient information — no context on what access management process is missing or what systems are affected.',
     aiRec:'Sarah to document a basic IT access checklist covering the five core systems by 31 May. Assign a named point person for all IT access requests — Pierre is a candidate or an external IT contact.',
     aiRisk:'CRM issue recurs with next hire. IT access gaps create ongoing operational friction and a growing security exposure as the team scales.',
     analysed:true,
@@ -588,7 +606,7 @@ let statusEditId = null;
 let analyseState = 'idle'; // idle | running | done
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const byId    = id => DATA.find(t => t.id === id);
+const byId    = id => topics.find(t => t.id === id);
 const $       = id => document.getElementById(id);
 const open    = id => $(id).classList.add('open');
 const close   = id => $(id).classList.remove('open');
@@ -618,7 +636,7 @@ function matchesFilter(t) {
 }
 
 function updateMeta() {
-  const vis = DATA.filter(matchesFilter);
+  const vis = topics.filter(matchesFilter);
   const hi  = vis.filter(t => t.priority === 'High').length;
   $('meta-txt').textContent = `${vis.length} topic${vis.length !== 1 ? 's' : ''} · ${hi} high priority`;
 }
@@ -629,7 +647,7 @@ function hasActiveMatches(t) {
 
 // ─── Render table ─────────────────────────────────────────────────────────────
 function renderTable() {
-  let rows = [...DATA];
+  let rows = [...topics];
 
   if (sortCol) {
     rows.sort((a, b) => {
@@ -767,6 +785,16 @@ function renderDD() {
         }
         <div class="ai-rec">${t.aiRec}</div>
         ${t.aiRisk ? `<div class="ai-risk"><strong style="color:#555">Risk in 30 days:</strong> ${t.aiRisk}</div>` : ''}
+        ${(() => {
+          const req = getInfoRequest(t.id);
+          if (!req) return '';
+          if (req.status === 'sent') {
+            const d = req.sentAt ? daysSinceTs(req.sentAt) : null;
+            const label = d === null ? '' : d === 0 ? 'today' : d + ' day' + (d !== 1 ? 's' : '') + ' ago';
+            return `<div class="info-status-line info-status-sent"><i class="ti ti-mail"></i>Catalyze sent information request · ${label} · Awaiting reply</div>`;
+          }
+          return `<div class="info-status-line"><i class="ti ti-clock"></i>Catalyze will gather more information · Sending to ${req.owner} in 24h</div>`;
+        })()}
       </div>` : `
       <div class="ai-pending">
         <i class="ti ti-sparkles"></i>
@@ -799,9 +827,9 @@ function renderDD() {
     </div>
 
     <div class="dd-actions">
-      <button class="act-btn" onclick="doAction('gather',${t.id})">
+      <button class="act-btn" onclick="openGatherModal(${t.id})">
         <i class="ti ti-mail"></i>
-        <div class="act-lbl"><span>Gather more information</span><span class="act-sub">Validate questions · send via CEO email</span></div>
+        <div class="act-lbl"><span>Gather more information</span><span class="act-sub">Review auto-generated request · edit or send now</span></div>
       </button>
       <button class="act-btn" onclick="doAction('agenda',${t.id})">
         <i class="ti ti-calendar-plus"></i>
@@ -835,9 +863,9 @@ function dismissMatch(tid, mid) {
 
 function mergeTopics(tid, mid) {
   const t = byId(tid);
-  const idx = DATA.findIndex(x => x.id === mid);
+  const idx = topics.findIndex(x => x.id === mid);
   if (idx === -1) return;
-  const removed = DATA.splice(idx, 1)[0];
+  const removed = topics.splice(idx, 1)[0];
   t.matches = t.matches.filter(m => m.id !== mid);
   if (selId === mid) selId = tid;
   renderTable();
@@ -1020,7 +1048,7 @@ $('btn-analyse').addEventListener('click', async () => {
   }
 
   // ── Phase 1: analyse each unanalysed topic ────────────────────────────────
-  const pending = DATA.filter(t => !t.analysed);
+  const pending = topics.filter(t => !t.analysed);
   const total = pending.length;
   let done = 0;
 
@@ -1057,7 +1085,7 @@ Description: ${t.desc}`;
   // ── Phase 2: find matches across all topics ───────────────────────────────
   btn.innerHTML = `<i class="ti ti-loader-2 spin"></i> Finding matches…`;
   try {
-    const topicList = DATA.map(t => `${t.id}: ${t.topic}`).join('\n');
+    const topicList = topics.map(t => `${t.id}: ${t.topic}`).join('\n');
     const matchPrompt = `Here is a list of topics from a company's strategic backlog. Which pairs likely share the same root cause or describe the same underlying problem? Only return pairs where confidence is high.
 
 Topics:
@@ -1070,8 +1098,8 @@ Respond with JSON only (no markdown fences):
     const pairs = Array.isArray(parsed.matches) ? parsed.matches : [];
 
     pairs.forEach(({ id1, id2, reason }) => {
-      const t1 = DATA.find(t => t.id === id1);
-      const t2 = DATA.find(t => t.id === id2);
+      const t1 = topics.find(t => t.id === id1);
+      const t2 = topics.find(t => t.id === id2);
       if (!t1 || !t2) return;
 
       if (!t1.matches.length) {
@@ -1103,9 +1131,9 @@ $('add-save').addEventListener('click', () => {
   if (!desc) { toast('Please enter a topic description.'); return; }
 
   const tags = $('add-tags').value.split(',').map(s => s.trim()).filter(Boolean);
-  const newId = Math.max(...DATA.map(t => t.id)) + 1;
+  const newId = Math.max(...topics.map(t => t.id)) + 1;
 
-  DATA.unshift({
+  topics.unshift({
     id: newId,
     topic: desc,
     category: $('add-cat').value,
@@ -1159,6 +1187,182 @@ $('add-save').addEventListener('click', () => {
   $('add-source').value = '';
 });
 
+// ─── Info-request localStorage ───────────────────────────────────────────────
+const SEVEN_DAYS_MS = 604800000;
+const MISSING_INFO_PHRASES = ['insufficient information', 'not enough context', 'missing information', 'insufficient data', 'need more information', 'more context needed'];
+
+function loadInfoRequests() {
+  try { return JSON.parse(localStorage.getItem('catalyze_info_requests') || '{}'); } catch(e) { return {}; }
+}
+
+function saveInfoRequest(req) {
+  const all = loadInfoRequests();
+  all[req.topicId] = req;
+  try { localStorage.setItem('catalyze_info_requests', JSON.stringify(all)); } catch(e) { console.warn('localStorage error:', e); }
+}
+
+function getInfoRequest(topicId) {
+  return loadInfoRequests()[topicId] || null;
+}
+
+function removeInfoRequest(topicId) {
+  const all = loadInfoRequests();
+  delete all[topicId];
+  try { localStorage.setItem('catalyze_info_requests', JSON.stringify(all)); } catch(e) { console.warn('localStorage error:', e); }
+}
+
+function topicNeedsMissingInfo(t) {
+  if (!t.analysed || !t.aiFlag) return false;
+  const flag = t.aiFlag.toLowerCase();
+  return MISSING_INFO_PHRASES.some(p => flag.includes(p));
+}
+
+function daysSinceTs(ts) {
+  return Math.floor((Date.now() - ts) / 86400000);
+}
+
+function fmtTs(ts) {
+  return new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+async function autoGatherInfo() {
+  const apiKey = getApiKey();
+  if (!apiKey) return;
+
+  const now = Date.now();
+  let generated = 0;
+
+  for (const t of topics) {
+    if (!topicNeedsMissingInfo(t)) continue;
+
+    const existing = getInfoRequest(t.id);
+    if (existing) {
+      const age = now - existing.generatedAt;
+      if (age < SEVEN_DAYS_MS) continue;
+    }
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-5',
+          max_tokens: DEFAULT_MAX_TOKENS,
+          system: COMPANY_CONTEXT,
+          messages: [{ role: 'user', content: `For this topic: '${t.topic}' with this context: '${t.desc}', generate 3-4 specific questions to ask ${t.owner} to gather the missing information needed to act on this topic. Questions should be direct and answerable in 1-2 sentences each. Respond in JSON only: { "questions": ["...", "..."], "emailSubject": "...", "emailBody": "..." } — emailBody should be a complete email from Thomas (CEO) to ${t.owner}, signed 'Catalyze for Thomas'` }],
+        }),
+      });
+      if (!res.ok) throw new Error(`API ${res.status}`);
+      const data = await res.json();
+      let raw = data.content?.[0]?.text || '{}';
+      raw = raw.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+      const parsed = JSON.parse(raw);
+
+      const req = {
+        topicId: t.id,
+        topicTitle: t.topic,
+        owner: t.owner,
+        generatedAt: Date.now(),
+        questions: parsed.questions || [],
+        emailSubject: parsed.emailSubject || `Information request: ${t.topic}`,
+        emailBody: parsed.emailBody || '',
+        status: 'pending',
+      };
+      saveInfoRequest(req);
+      generated++;
+
+      if (selId === t.id) renderDD();
+    } catch(err) {
+      console.warn(`Info gather failed for topic ${t.id}:`, err);
+    }
+  }
+
+  if (generated > 0) toast(`Catalyze generated ${generated} information request${generated !== 1 ? 's' : ''}.`);
+}
+
+// ─── Gather modal ─────────────────────────────────────────────────────────────
+function openGatherModal(tid) {
+  const t = byId(tid);
+  if (!t) return;
+  const req = getInfoRequest(tid);
+
+  if (!req) {
+    // No request generated yet — show a waiting state
+    $('gather-body').innerHTML = `
+      <p style="font-size:12px;color:#666;line-height:1.7">No information request has been generated for this topic yet.</p>
+      <p style="font-size:11px;color:#bbb;margin-top:8px">Catalyze will automatically generate one when AI analysis detects insufficient information. You can also run <strong>Analyse all</strong> first.</p>`;
+    $('gather-ft').innerHTML = `<button class="btn" data-ov="ov-gather">Close</button>`;
+    $('gather-ft').querySelectorAll('[data-ov]').forEach(el => el.addEventListener('click', () => close(el.dataset.ov)));
+    open('ov-gather');
+    return;
+  }
+
+  const isSent = req.status === 'sent';
+  const daysAgo = isSent && req.sentAt ? daysSinceTs(req.sentAt) : null;
+  const autoNote = !isSent
+    ? `<div style="font-size:10px;color:#854F0B;background:#FEF3DA;border:1px solid #D97706;border-radius:6px;padding:6px 9px;line-height:1.5;margin-bottom:4px"><i class="ti ti-clock" style="font-size:11px;margin-right:4px"></i>This will be sent automatically in 24h · You can edit or cancel below</div>`
+    : `<div style="font-size:10px;color:#0F6E56;background:#E1F5EE;border:1px solid #1D9E75;border-radius:6px;padding:6px 9px;line-height:1.5;margin-bottom:4px"><i class="ti ti-check" style="font-size:11px;margin-right:4px"></i>Sent ${daysAgo !== null ? (daysAgo === 0 ? 'today' : daysAgo + ' day' + (daysAgo !== 1 ? 's' : '') + ' ago') : ''} · Awaiting reply</div>`;
+
+  $('gather-body').innerHTML = `
+    ${autoNote}
+    <div class="field">
+      <div class="fl">To</div>
+      <div style="font-size:12px;color:#555;background:#fafafa;border:1px solid #ebebeb;border-radius:7px;padding:7px 10px;">${req.owner}</div>
+    </div>
+    <div class="field">
+      <div class="fl">Subject</div>
+      <input type="text" class="fi" id="gather-subject" value="${(req.emailSubject || '').replace(/"/g, '&quot;')}" ${isSent ? 'readonly style="background:#fafafa;color:#555"' : ''}>
+    </div>
+    <div class="field">
+      <div class="fl">Body</div>
+      <textarea class="fta" id="gather-body-ta" style="height:200px" ${isSent ? 'readonly style="background:#fafafa;color:#555"' : ''}>${req.emailBody || ''}</textarea>
+    </div>
+  `;
+
+  if (!isSent) {
+    $('gather-ft').innerHTML = `
+      <button class="btn" id="gather-cancel-req" style="color:#A32D2D;border-color:#A32D2D">Cancel request</button>
+      <button class="btn" id="gather-save-edits">Save edits</button>
+      <button class="btn btn-filled" id="gather-send-now"><i class="ti ti-send"></i> Send now</button>`;
+
+    $('gather-cancel-req').addEventListener('click', () => {
+      removeInfoRequest(tid);
+      close('ov-gather');
+      if (selId === tid) renderDD();
+      toast('Request cancelled.');
+    });
+
+    $('gather-save-edits').addEventListener('click', () => {
+      req.emailSubject = $('gather-subject').value;
+      req.emailBody = $('gather-body-ta').value;
+      saveInfoRequest(req);
+      close('ov-gather');
+      toast('Draft saved.');
+    });
+
+    $('gather-send-now').addEventListener('click', () => {
+      req.emailSubject = $('gather-subject').value;
+      req.emailBody = $('gather-body-ta').value;
+      req.status = 'sent';
+      req.sentAt = Date.now();
+      saveInfoRequest(req);
+      close('ov-gather');
+      if (selId === tid) renderDD();
+      toast(`Email sent to ${req.owner}.`);
+    });
+  } else {
+    $('gather-ft').innerHTML = `<button class="btn btn-filled" data-ov="ov-gather">Close</button>`;
+  }
+
+  $('gather-ft').querySelectorAll('[data-ov]').forEach(el => el.addEventListener('click', () => close(el.dataset.ov)));
+  open('ov-gather');
+}
+
 // ─── Action modal (shared) ────────────────────────────────────────────────────
 const FORUMS_UPCOMING = [
   'Weekly ELT #26 — Mon 26 May',
@@ -1170,24 +1374,7 @@ const FORUMS_UPCOMING = [
 function doAction(type, tid) {
   const t = byId(tid);
 
-  if (type === 'gather') {
-    $('act-title').textContent = 'Gather more information';
-    $('act-body').innerHTML = `
-      <p style="font-size:12px;color:#666;line-height:1.7;margin-bottom:10px">The AI has drafted these questions to send via Thomas's email. Edit before sending:</p>
-      <div style="display:flex;flex-direction:column;gap:6px">
-        <div style="padding:9px 12px;border:1px solid #ebebeb;border-radius:8px;background:#fafafa;font-size:12px;color:#333;line-height:1.6">
-          <strong>To ${t.owner}:</strong> What is the current status of the following topic: "<em>${t.topic}</em>"? What specifically is blocking a decision, and by when can you commit to a next step?
-        </div>
-        ${t.aiFlag ? `<div style="padding:9px 12px;border:1px solid #ebebeb;border-radius:8px;background:#fafafa;font-size:12px;color:#333;line-height:1.6">
-          <strong>Follow-up:</strong> The AI has flagged: "${t.aiFlag}" — please address this specifically in your reply.
-        </div>` : ''}
-      </div>
-      <p style="font-size:11px;color:#bbb;margin-top:8px">Replies will automatically update this topic in the backlog.</p>`;
-    $('act-ft').innerHTML = `
-      <button class="btn" data-ov="ov-action">Cancel</button>
-      <button class="btn btn-filled" onclick="close('ov-action');toast('Questions sent (simulated) — awaiting replies.')"><i class="ti ti-send"></i> Send questions</button>`;
-
-  } else if (type === 'agenda') {
+  if (type === 'agenda') {
     $('act-title').textContent = 'Put on agenda';
     $('act-body').innerHTML = `
       <p style="font-size:12px;color:#666;margin-bottom:12px">Select the meeting to route this topic to:</p>
@@ -1217,7 +1404,7 @@ function doAction(type, tid) {
           existing.push({ topicId: t.id, title: t.topic, owner: t.owner, priority: t.priority, forum: forumName, sourceModule: 'backlog' });
           localStorage.setItem('catalyze_agenda_topics', JSON.stringify(existing));
         }
-      } catch(e) {}
+      } catch(e) { console.warn('localStorage error:', e); }
       close('ov-action');
       toast('Topic added to agenda — visible in Meeting prep.');
       window.parent.postMessage({ type: 'navigate', src: 'meeting_prep.html', forum: forumName }, '*');
@@ -1380,12 +1567,12 @@ document.querySelectorAll('.overlay').forEach(ov => {
 function loadFromLocalStorage() {
   try {
     const stored = JSON.parse(localStorage.getItem('catalyze_backlog_topics') || '[]');
-    const existingTitles = new Set(DATA.map(t => t.topic));
+    const existingTitles = new Set(topics.map(t => t.topic));
+    let nextId = Math.max(...topics.map(t => t.id)) + 1;
     stored.forEach(s => {
       if (existingTitles.has(s.title)) return;
-      const newId = Math.max(...DATA.map(t => t.id)) + 1;
-      DATA.unshift({
-        id: newId,
+      topics.unshift({
+        id: nextId++,
         topic: s.title,
         category: s.category || 'Tactical',
         priority: s.priority || 'Medium',
@@ -1406,14 +1593,14 @@ function loadFromLocalStorage() {
       });
       existingTitles.add(s.title);
     });
-  } catch(e) {}
+  } catch(e) { console.warn('localStorage error:', e); }
 }
 
 function highlightFromURL() {
   const param = new URLSearchParams(window.location.search).get('highlight');
   if (!param) return false;
   const decoded = decodeURIComponent(param);
-  const match = DATA.find(t => t.topic === decoded || t.topic.toLowerCase().includes(decoded.toLowerCase()));
+  const match = topics.find(t => t.topic === decoded || t.topic.toLowerCase().includes(decoded.toLowerCase()));
   if (!match) return false;
   selectTopic(match.id);
   setTimeout(() => {
@@ -1470,7 +1657,7 @@ function createGoalFromTopic(t) {
   }
 
   let existing = [];
-  try { existing = JSON.parse(localStorage.getItem('catalyze_goals') || '[]'); } catch(e) {}
+  try { existing = JSON.parse(localStorage.getItem('catalyze_goals') || '[]'); } catch(e) { console.warn('localStorage error:', e); }
   const newId = existing.length ? Math.max(...existing.map(g => g.id || 0)) + 1 : 100;
 
   const newGoal = {
@@ -1489,7 +1676,7 @@ function createGoalFromTopic(t) {
   };
 
   existing.push(newGoal);
-  try { localStorage.setItem('catalyze_goals', JSON.stringify(existing)); } catch(e) {}
+  try { localStorage.setItem('catalyze_goals', JSON.stringify(existing)); } catch(e) { console.warn('localStorage error:', e); }
 
   close('ov-action');
   toast('Goal created — visible in Goal setting.');
@@ -1500,6 +1687,7 @@ function createGoalFromTopic(t) {
 loadFromLocalStorage();
 renderTable();
 if (!highlightFromURL()) selectTopic(1);
+autoGatherInfo();
 </script>
 </body>
 </html>
