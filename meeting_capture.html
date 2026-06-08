@@ -146,6 +146,11 @@ tbody tr.selected .chevron-icon { color: #888; }
 .btn-action-plan { font-size: 10px; padding: 3px 9px; border-radius: 6px; cursor: pointer; border: 1px solid #1D9E75; background: transparent; color: #1D9E75; font-family: inherit; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; transition: background 0.1s; margin-top: 6px; }
 .btn-action-plan:hover { background: #E1F5EE; }
 .btn-action-plan:disabled { opacity: 0.6; cursor: default; }
+.kr-badge-row { font-size: 10px; color: #888; margin-top: 5px; line-height: 1.6; }
+.kr-auto-link { font-size: 10px; color: #185FA5; cursor: pointer; text-decoration: underline; background: none; border: none; padding: 0; font-family: inherit; }
+.kr-auto-link:hover { opacity: 0.75; }
+.msg-readonly-box { font-size: 11px; color: #333; background: #fafafa; border: 1px solid #ebebeb; border-radius: 7px; padding: 9px 11px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+.msg-auto-note { font-size: 10px; color: #854F0B; background: #FEF3DA; border: 1px solid #D97706; border-radius: 6px; padding: 6px 9px; line-height: 1.5; }
 
 /* Decision quality */
 .dq-list { display: flex; flex-direction: column; gap: 6px; }
@@ -211,6 +216,7 @@ tbody tr.selected .chevron-icon { color: #888; }
 .toast { position: absolute; bottom: 20px; right: 20px; background: #111; color: #fff; font-size: 12px; padding: 10px 16px; border-radius: 8px; display: none; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 200; animation: slideUp 0.2s ease; }
 .toast.show { display: flex; }
 @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* Inform AI context notes indicator */
 .context-indicator { display: none; font-size: 10px; color: #1D9E75; background: #E1F5EE; padding: 2px 8px; border-radius: 10px; font-weight: 600; align-items: center; gap: 4px; }
@@ -875,6 +881,9 @@ function saveGoalsFromTopics(newMeeting) {
     });
     if (added > 0) localStorage.setItem('catalyze_goals', JSON.stringify(existing));
   } catch(e) {}
+  // Fire-and-forget: schedule action plan emails in background
+  const apiKey = getApiKey();
+  if (apiKey) scheduleActionPlans(newMeeting, apiKey);
 }
 
 loadMeetings();
@@ -1167,7 +1176,7 @@ function renderDeepDive() {
                 <div class="topic-detail-row"><span class="topic-detail-label">Owner</span><span class="topic-detail-value">${t.owner}</span></div>
                 <div class="topic-detail-row"><span class="topic-detail-label">Forum</span><span class="topic-detail-value">${t.forum}</span></div>
                 <div class="topic-detail-row"><span class="topic-detail-label">Rationale</span><span class="topic-detail-value">${t.rationale}</span></div>
-                ${t.assigned ? `<button class="btn-action-plan" id="ap-btn-${m.id}-${i}" onclick="sendActionPlan(${m.id}, ${i}, this)"><i class="ti ti-send"></i> Send action plan</button>` : ''}
+                ${t.assigned ? buildTopicActionStatus(m.id, t.title, i, t) : ''}
                 ${t.assigned ? `<div style="font-size:10px;color:#aaa;font-style:italic;margin-top:4px">Goal auto-created in Goal setting</div>` : ''}
               </div>
             </div>`;
@@ -1242,20 +1251,256 @@ function toggleCheck(meetingId, topicIndex) {
   if (label) label.textContent = `— ${m.topics.length} topics · ${checkedCount} sent to backlog`;
 }
 
-// ─── Action plan ──────────────────────────────────────────────────────────────
+// ─── Commitments localStorage helpers ─────────────────────────────────────────
+function loadCommitments() {
+  try { return JSON.parse(localStorage.getItem('catalyze_commitments') || '[]'); } catch(e) { return []; }
+}
+function saveCommitments(arr) {
+  try { localStorage.setItem('catalyze_commitments', JSON.stringify(arr)); } catch(e) {}
+}
+function getPlanCommitment(meetingId, topicTitle) {
+  return loadCommitments().find(c => c.meetingId === meetingId && c.topicTitle === topicTitle) || null;
+}
+// Legacy shim — still used by renderDeepDive badge logic
 function isPlanSent(meetingId, topicTitle) {
-  try {
-    const stored = JSON.parse(localStorage.getItem('catalyze_commitments') || '[]');
-    return stored.some(c => c.meetingId === meetingId && c.topicTitle === topicTitle);
-  } catch(e) { return false; }
+  const c = getPlanCommitment(meetingId, topicTitle);
+  return !!(c && c.status === 'sent');
 }
 
-async function sendActionPlan(meetingId, topicIndex, btn) {
+// ─── checkScheduledCommitments — runs on page load ────────────────────────────
+function checkScheduledCommitments() {
+  const now = Date.now();
+  const arr = loadCommitments();
+  let changed = false;
+  arr.forEach(c => {
+    if (c.status === 'scheduled' && c.scheduledAt <= now) {
+      c.status = 'sent';
+      c.sentAt = now;
+      changed = true;
+    }
+  });
+  if (changed) saveCommitments(arr);
+}
+
+// ─── Draft action plan email via API (shared helper) ─────────────────────────
+async function draftActionPlanEmail(apiKey, owner, assignmentContext) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 400,
+      system: COMPANY_CONTEXT,
+      messages: [{ role: 'user', content: `Draft a short email from Thomas (CEO) to ${owner} about this topic: '${assignmentContext}'. The email should: reference exactly what they are expected to do, propose 3 concrete next steps with suggested deadlines, state that if they don't reply within 48 hours this plan will be considered accepted. Tone: direct but collegial, not robotic. Max 150 words. Respond in JSON only (no markdown fences): { "subject": "...", "body": "..." }` }]
+    })
+  });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  const data = await res.json();
+  let raw = data.content?.[0]?.text || '';
+  raw = raw.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+  return JSON.parse(raw);
+}
+
+// ─── Schedule action plans after meeting save ─────────────────────────────────
+async function scheduleActionPlans(newMeeting, apiKey) {
+  if (!apiKey) return;
+  const existing = loadCommitments();
+  const existingKeys = new Set(existing.map(c => `${c.meetingId}__${c.topicTitle}`));
+
+  for (const t of newMeeting.topics) {
+    if (!t.assigned || !t.assignmentContext) continue;
+    const key = `${newMeeting.id}__${t.title}`;
+    if (existingKeys.has(key)) continue;
+
+    // Show spinner on the topic card while drafting
+    const topicIdx = newMeeting.topics.indexOf(t);
+    setTopicPlanSpinner(newMeeting.id, topicIdx, true);
+
+    let message = null;
+    try {
+      message = await draftActionPlanEmail(apiKey, t.owner, t.assignmentContext);
+    } catch(err) {
+      console.warn('Action plan draft failed for', t.title, err);
+    }
+
+    setTopicPlanSpinner(newMeeting.id, topicIdx, false);
+
+    if (message) {
+      existing.push({
+        meetingId: newMeeting.id,
+        topicTitle: t.title,
+        owner: t.owner,
+        assignmentContext: t.assignmentContext,
+        scheduledAt: Date.now() + 43200000, // 12 hours
+        sentAt: null,
+        message,
+        status: 'scheduled'
+      });
+      existingKeys.add(key);
+      saveCommitments(existing);
+    }
+    // Refresh the topic card to show scheduled/fallback state
+    refreshTopicPlanStatus(newMeeting.id, topicIdx, t);
+  }
+}
+
+function setTopicPlanSpinner(meetingId, topicIdx, on) {
+  const detail = document.getElementById(`detail-${meetingId}-${topicIdx}`);
+  if (!detail) return;
+  const placeholder = detail.querySelector('.ap-status');
+  if (!placeholder) return;
+  if (on) {
+    placeholder.innerHTML = `<span style="font-size:10px;color:#aaa;display:inline-flex;align-items:center;gap:5px"><i class="ti ti-loader-2" style="animation:spin 0.7s linear infinite;display:inline-block;font-size:11px"></i> Drafting action plan…</span>`;
+  }
+}
+
+function refreshTopicPlanStatus(meetingId, topicIdx, t) {
+  const detail = document.getElementById(`detail-${meetingId}-${topicIdx}`);
+  if (!detail) return;
+  const placeholder = detail.querySelector('.ap-status');
+  if (!placeholder) return;
+  placeholder.outerHTML = buildTopicActionStatus(meetingId, t.title, topicIdx, t);
+}
+
+// ─── fmtCountdown ─────────────────────────────────────────────────────────────
+function fmtCountdown(ms) {
+  if (ms <= 0) return '0m';
+  const totalMin = Math.ceil(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+// ─── Build topic action status line (replaces old button / sent-status) ────────
+function buildTopicActionStatus(meetingId, topicTitle, topicIdx, t) {
+  const c = getPlanCommitment(meetingId, topicTitle);
+  const esc = s => s.replace(/'/g, "\\'");
+
+  if (!c) {
+    return `<div class="ap-status" style="margin-top:6px">
+      <button class="btn-action-plan" onclick="sendActionPlanFallback(${meetingId},${topicIdx},this)">
+        <i class="ti ti-alert-circle" style="font-size:11px;color:#854F0B"></i> Send action plan
+      </button>
+    </div>`;
+  }
+
+  if (c.status === 'scheduled') {
+    const remaining = c.scheduledAt - Date.now();
+    const countdown = fmtCountdown(remaining);
+    return `<div class="ap-status kr-badge-row" id="ap-status-${meetingId}-${topicIdx}">
+      <i class="ti ti-mail" style="font-size:10px;color:#bbb;margin-right:3px"></i>Action plan sends in <span class="ap-countdown" data-scheduleat="${c.scheduledAt}">${countdown}</span> · <button class="kr-auto-link" onclick="openCommitmentModal(${meetingId},'${esc(topicTitle)}',${topicIdx})">View &amp; Edit</button>
+    </div>`;
+  }
+
+  // status === 'sent'
+  return `<div class="ap-status kr-badge-row" id="ap-status-${meetingId}-${topicIdx}">
+    <i class="ti ti-mail" style="font-size:10px;color:#bbb;margin-right:3px"></i>Action plan sent · ${c.owner} notified · <button class="kr-auto-link" onclick="openCommitmentModal(${meetingId},'${esc(topicTitle)}',${topicIdx})">View</button>
+  </div>`;
+}
+
+// ─── Commitment modal (view / edit / send now / cancel) ───────────────────────
+function openCommitmentModal(meetingId, topicTitle, topicIdx) {
+  const c = getPlanCommitment(meetingId, topicTitle);
+  if (!c) return;
+  const isSent = c.status === 'sent';
+  const bodyEl = document.getElementById('action-modal-body');
+  const footerEl = document.getElementById('action-modal-footer');
+  document.getElementById('action-modal-title').textContent = isSent ? 'Action plan sent' : 'Action plan';
+  const esc = s => s.replace(/'/g, "\\'");
+
+  const noteHtml = isSent
+    ? `<div class="msg-auto-note" style="margin-bottom:12px"><i class="ti ti-check" style="color:#1D9E75"></i> Sent automatically · Catalyze for Thomas</div>`
+    : `<div class="msg-auto-note" style="margin-bottom:12px"><i class="ti ti-clock"></i> Sending automatically in ${fmtCountdown(c.scheduledAt - Date.now())} · Catalyze for Thomas</div>`;
+
+  if (isSent) {
+    const subj = (c.message?.subject || '').replace(/</g, '&lt;');
+    const bod  = (c.message?.body  || '').replace(/</g, '&lt;');
+    bodyEl.innerHTML = `${noteHtml}
+      <div style="margin-bottom:10px"><div class="field-label">To</div>
+        <div class="msg-readonly-box" style="font-size:12px;padding:7px 10px">${c.owner}</div>
+      </div>
+      <div style="margin-bottom:10px"><div class="field-label">Subject</div>
+        <div class="msg-readonly-box" style="font-size:12px;padding:7px 10px">${subj || '(no subject)'}</div>
+      </div>
+      <div><div class="field-label">Body</div>
+        <div class="msg-readonly-box" style="min-height:120px">${bod}</div>
+      </div>`;
+    footerEl.innerHTML = `<button class="btn btn-filled" onclick="closeModal('modal-action')">Close</button>`;
+  } else {
+    bodyEl.innerHTML = `${noteHtml}
+      <div style="margin-bottom:10px"><div class="field-label">To</div>
+        <div class="msg-readonly-box" style="font-size:12px;padding:7px 10px">${c.owner}</div>
+      </div>
+      <div class="field" style="margin-bottom:10px"><div class="field-label">Subject</div>
+        <input class="field-input" id="edit-ap-subject" value="${(c.message?.subject || '').replace(/"/g, '&quot;')}">
+      </div>
+      <div class="field"><div class="field-label">Body</div>
+        <textarea class="field-textarea" id="edit-ap-body" style="height:160px">${c.message?.body || ''}</textarea>
+      </div>`;
+    footerEl.innerHTML = `
+      <button class="btn btn-outline" style="color:#A32D2D;border-color:#A32D2D;margin-right:auto" onclick="cancelCommitment(${meetingId},'${esc(topicTitle)}',${topicIdx})">Cancel request</button>
+      <button class="btn btn-outline" onclick="saveDraftCommitment(${meetingId},'${esc(topicTitle)}',${topicIdx})">Save draft</button>
+      <button class="btn btn-filled" onclick="sendNowCommitment(${meetingId},'${esc(topicTitle)}',${topicIdx})"><i class="ti ti-send"></i> Send now</button>`;
+  }
+  openModal('modal-action');
+}
+
+function saveDraftCommitment(meetingId, topicTitle, topicIdx) {
+  const subject = document.getElementById('edit-ap-subject')?.value || '';
+  const body    = document.getElementById('edit-ap-body')?.value    || '';
+  const arr = loadCommitments();
+  const c = arr.find(x => x.meetingId === meetingId && x.topicTitle === topicTitle);
+  if (c) { c.message = { subject, body }; saveCommitments(arr); }
+  closeModal('modal-action');
+  showToast('Action plan saved.');
+}
+
+function sendNowCommitment(meetingId, topicTitle, topicIdx) {
+  const subject = document.getElementById('edit-ap-subject')?.value;
+  const body    = document.getElementById('edit-ap-body')?.value;
+  const arr = loadCommitments();
+  const c = arr.find(x => x.meetingId === meetingId && x.topicTitle === topicTitle);
+  if (!c) return;
+  if (subject !== undefined) c.message = { subject, body: body || '' };
+  c.status = 'sent';
+  c.sentAt = Date.now();
+  saveCommitments(arr);
+  closeModal('modal-action');
+  showToast(`Action plan sent to ${c.owner} · Catalyze for Thomas`, 3000);
+  const m = meetings.find(x => x.id === meetingId);
+  const t = m?.topics[topicIdx];
+  if (t) refreshTopicPlanStatus(meetingId, topicIdx, t);
+  const label = document.querySelector(`#topic-row-${topicIdx} .topic-label`);
+  if (label && !label.querySelector('.badge-plan-sent')) {
+    label.insertAdjacentHTML('beforeend', '<span class="badge-plan-sent">Plan sent</span>');
+  }
+}
+
+function cancelCommitment(meetingId, topicTitle, topicIdx) {
+  const arr = loadCommitments().filter(c => !(c.meetingId === meetingId && c.topicTitle === topicTitle));
+  saveCommitments(arr);
+  closeModal('modal-action');
+  showToast('Action plan cancelled.');
+  const m = meetings.find(x => x.id === meetingId);
+  const t = m?.topics[topicIdx];
+  if (t) refreshTopicPlanStatus(meetingId, topicIdx, t);
+  const label = document.querySelector(`#topic-row-${topicIdx} .topic-label`);
+  const badge = label?.querySelector('.badge-plan-sent');
+  if (badge) badge.remove();
+}
+
+// ─── Fallback: manual trigger when auto-draft failed ─────────────────────────
+async function sendActionPlanFallback(meetingId, topicIdx, btn) {
   const m = meetings.find(x => x.id === meetingId);
   if (!m) return;
-  const t = m.topics[topicIndex];
+  const t = m.topics[topicIdx];
   if (!t) return;
-
   const apiKey = getApiKey();
   if (!apiKey) { showToast('API key required — set it via the settings gear.'); return; }
 
@@ -1263,61 +1508,57 @@ async function sendActionPlan(meetingId, topicIndex, btn) {
   btn.disabled = true;
   btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 0.7s linear infinite;display:inline-block"></i> Drafting…';
 
-  let subject = `Action required: ${t.title}`;
-  let body = `Hi ${t.owner},\n\nFollowing our meeting, you are expected to: ${t.assignmentContext}\n\nPlease reply within 48 hours. If no reply is received, this plan will be considered accepted.\n\nThomas`;
-
+  let message = null;
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 400,
-        system: COMPANY_CONTEXT,
-        messages: [{ role: 'user', content: `Draft a short email from Thomas (CEO) to ${t.owner} about this topic: '${t.assignmentContext}'. The email should: reference exactly what they are expected to do, propose 3 concrete next steps with suggested deadlines, state that if they don't reply within 48 hours this plan will be considered accepted. Tone: direct but collegial, not robotic. Max 150 words. Respond in JSON only (no markdown fences): { "subject": "...", "body": "..." }` }]
-      })
-    });
-    if (!res.ok) throw new Error(`API ${res.status}`);
-    const data = await res.json();
-    let raw = data.content?.[0]?.text || '';
-    raw = raw.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
-    const parsed = JSON.parse(raw);
-    if (parsed.subject) subject = parsed.subject;
-    if (parsed.body) body = parsed.body;
+    message = await draftActionPlanEmail(apiKey, t.owner, t.assignmentContext || t.title);
   } catch(err) {
-    console.warn('Action plan draft failed:', err);
+    console.warn('Fallback draft failed:', err);
   }
 
   btn.disabled = false;
   btn.innerHTML = originalHTML;
 
-  // Populate and open the modal
-  document.getElementById('ap-recipient').value = t.owner;
-  document.getElementById('ap-subject').value = subject;
-  document.getElementById('ap-body').value = body;
+  if (!message) { showToast('Could not draft email — try again.'); return; }
 
-  // Wire Send button with this topic's context
-  const sendBtn = document.getElementById('modal-action-plan-send');
-  sendBtn.onclick = () => {
-    // Save to localStorage
-    try {
-      const stored = JSON.parse(localStorage.getItem('catalyze_commitments') || '[]');
-      stored.push({ meetingId, topicTitle: t.title, owner: t.owner, sentAt: Date.now() });
-      localStorage.setItem('catalyze_commitments', JSON.stringify(stored));
-    } catch(e) {}
-    closeModal('modal-action-plan');
-    showToast(`Action plan sent to ${t.owner}.`);
-    // Re-render so "Plan sent" badge appears
-    renderDeepDive();
-  };
-
-  openModal('modal-action-plan');
+  const arr = loadCommitments();
+  const exists = arr.find(c => c.meetingId === meetingId && c.topicTitle === t.title);
+  if (!exists) {
+    arr.push({
+      meetingId, topicTitle: t.title, owner: t.owner,
+      assignmentContext: t.assignmentContext || t.title,
+      scheduledAt: Date.now() + 43200000,
+      sentAt: null, message, status: 'scheduled'
+    });
+    saveCommitments(arr);
+  }
+  refreshTopicPlanStatus(meetingId, topicIdx, t);
 }
+
+// ─── Countdown ticker ─────────────────────────────────────────────────────────
+setInterval(() => {
+  document.querySelectorAll('.ap-countdown').forEach(el => {
+    const scheduledAt = parseInt(el.dataset.scheduleat, 10);
+    if (!scheduledAt) return;
+    const remaining = scheduledAt - Date.now();
+    if (remaining <= 0) {
+      // Time has passed — promote to sent and re-render
+      const statusDiv = el.closest('.ap-status');
+      if (!statusDiv) return;
+      const idAttr = statusDiv.id || '';
+      const match = idAttr.match(/ap-status-(\d+)-(\d+)/);
+      if (!match) return;
+      const meetingId = parseInt(match[1], 10);
+      const topicIdx  = parseInt(match[2], 10);
+      const mm = meetings.find(x => x.id === meetingId);
+      const tt = mm?.topics[topicIdx];
+      if (!tt) return;
+      checkScheduledCommitments();
+      refreshTopicPlanStatus(meetingId, topicIdx, tt);
+    } else {
+      el.textContent = fmtCountdown(remaining);
+    }
+  });
+}, 60000);
 
 // ─── View in backlog ──────────────────────────────────────────────────────────
 function viewInBacklog(topic) {
@@ -1691,6 +1932,7 @@ document.getElementById('modal-api-key-save').addEventListener('click', () => {
 });
 
 // ─── Initial render ───────────────────────────────────────────────────────────
+checkScheduledCommitments();
 renderList();
 selectMeeting(1); // Open first meeting by default
 

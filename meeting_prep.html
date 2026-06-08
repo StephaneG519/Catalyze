@@ -489,6 +489,8 @@ let ctxNotes     = [];
 const prereadCache = {};
 // topicState[meetingId][topicId] = true (included) | false (excluded)
 let topicState = {};
+// sentPrereads[meetingId] = { sentAt: timestamp }
+let sentPrereads = {};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const $       = id => document.getElementById(id);
@@ -525,13 +527,17 @@ function dayDiff(iso) {
 
 // ─── localStorage ─────────────────────────────────────────────────────────────
 function saveTopicState() {
-  try { localStorage.setItem('catalyze_meeting_prep', JSON.stringify(topicState)); } catch(e) {}
+  try { localStorage.setItem('catalyze_meeting_prep', JSON.stringify({ topics: topicState, sent: sentPrereads })); } catch(e) {}
 }
 
 function loadTopicState() {
   try {
-    const s = JSON.parse(localStorage.getItem('catalyze_meeting_prep') || '{}');
-    if (s && typeof s === 'object') topicState = s;
+    const raw = JSON.parse(localStorage.getItem('catalyze_meeting_prep') || '{}');
+    if (raw && typeof raw === 'object') {
+      // Support both old format (bare topicState obj) and new format ({ topics, sent })
+      if (raw.topics) { topicState = raw.topics; sentPrereads = raw.sent || {}; }
+      else topicState = raw;
+    }
   } catch(e) {}
 }
 
@@ -736,6 +742,14 @@ function renderDD() {
   const prereadId = `preread-${m.id}`;
   const prereadHTML = buildPrereadHTML(m);
 
+  const isSent = !!sentPrereads[m.id];
+  const headerAction = isSent
+    ? `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
+        <span style="font-size:10px;color:#888;white-space:nowrap"><i class="ti ti-check" style="font-size:10px;color:#1D9E75"></i> Pre-read sent · ${m.attendees.length} attendees notified · Catalyze for Thomas</span>
+        <a id="view-sent-prereads-link" style="font-size:10px;color:#185FA5;cursor:pointer;text-decoration:underline">View sent pre-reads</a>
+       </div>`
+    : `<button class="btn btn-outline" id="send-preread-btn"><i class="ti ti-mail"></i> Send pre-read</button>`;
+
   inner.innerHTML = `
     <div class="dd-hd">
       <div class="dd-hd-left">
@@ -745,7 +759,7 @@ function renderDD() {
           <span class="dd-meta-item"><i class="ti ti-users" style="font-size:12px;color:#ccc"></i> ${m.attendees.join(', ')}</span>
         </div>
       </div>
-      <button class="btn btn-outline" id="send-preread-btn"><i class="ti ti-mail"></i> Send pre-read</button>
+      ${headerAction}
     </div>
     <div class="dd-body">
       <div>
@@ -768,7 +782,11 @@ function renderDD() {
     </div>
   `;
 
-  $('send-preread-btn').addEventListener('click', () => openSendPreread(m));
+  if (isSent) {
+    $('view-sent-prereads-link').addEventListener('click', () => openPrereadReadOnly(m));
+  } else {
+    $('send-preread-btn').addEventListener('click', () => openSendPreread(m));
+  }
   $('btn-add-backlog').addEventListener('click', () => openAddTopic(m));
   $('btn-expert').addEventListener('click', () => openExpert(m));
 
@@ -892,6 +910,14 @@ Respond with JSON only (no markdown fences):
     raw = raw.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
     const parsed = JSON.parse(raw);
     prereadCache[meeting.id] = { status: 'done', data: parsed };
+
+    // Auto-mark as sent after successful generation
+    if (!sentPrereads[meeting.id]) {
+      sentPrereads[meeting.id] = { sentAt: Date.now() };
+      saveTopicState();
+      refreshPrereadHeader(meeting);
+      toast(`Pre-read sent to ${meeting.attendees.join(', ')} · Catalyze for Thomas`, 3000);
+    }
   } catch(err) {
     console.warn('Pre-read generation failed:', err);
     prereadCache[meeting.id] = { status: 'error' };
@@ -905,6 +931,58 @@ function refreshPrereadSection(meeting) {
   const container = document.getElementById(`preread-${meeting.id}`);
   if (!container) return;
   container.innerHTML = buildPrereadHTML(meeting);
+}
+
+function refreshPrereadHeader(meeting) {
+  if (selectedId !== meeting.id) return;
+  const inner = $('dd-inner');
+  if (!inner) return;
+  // Swap the button/status line in-place without re-rendering the whole panel
+  const hd = inner.querySelector('.dd-hd');
+  if (!hd) return;
+  const existing = hd.lastElementChild;
+  if (!existing) return;
+  const statusHTML = `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
+    <span style="font-size:10px;color:#888;white-space:nowrap"><i class="ti ti-check" style="font-size:10px;color:#1D9E75"></i> Pre-read sent · ${meeting.attendees.length} attendees notified · Catalyze for Thomas</span>
+    <a id="view-sent-prereads-link" style="font-size:10px;color:#185FA5;cursor:pointer;text-decoration:underline">View sent pre-reads</a>
+  </div>`;
+  existing.outerHTML = statusHTML;
+  $('view-sent-prereads-link').addEventListener('click', () => openPrereadReadOnly(meeting));
+}
+
+function openPrereadReadOnly(m) {
+  $('preread-modal-title').textContent = `Pre-read — ${m.forum} #${m.iteration}`;
+  const cache = prereadCache[m.id];
+  const body = $('preread-modal-body');
+
+  if (!cache || cache.status === 'loading') {
+    body.innerHTML = `<div style="font-size:12px;color:#aaa;font-style:italic;text-align:center;padding:20px 0"><i class="ti ti-loader-2 spin"></i> Loading…</div>`;
+  } else if (cache.status === 'error') {
+    body.innerHTML = `<div style="font-size:12px;color:#aaa;font-style:italic">Pre-read generation requires an Anthropic API key.</div>`;
+  } else {
+    body.innerHTML = m.attendees.map(name => {
+      const p = cache.data[name] || { text: 'No specific preparation required.', items: [] };
+      const style = AVATAR_STYLE[name] || { bg:'#f0f0f0', color:'#555' };
+      return `
+        <div class="preread-modal-section">
+          <div class="preread-modal-sec-hd">
+            <div class="preread-avatar" style="background:${style.bg};color:${style.color}">${name[0]}</div>
+            <div style="font-size:12px;font-weight:600;color:#111">${name}</div>
+            <div style="font-size:11px;color:#aaa;margin-left:4px">— ${personRole(name, m)}</div>
+          </div>
+          <div class="preread-modal-body">
+            <div>${p.text}</div>
+            ${p.items && p.items.length ? `<div class="preread-modal-items">${p.items.map(it=>`<div class="preread-modal-item">${it}</div>`).join('')}</div>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // Read-only mode: hide send button, show only Close
+  const sendBtn = $('preread-send-btn');
+  sendBtn.style.display = 'none';
+  $('ov-preread').querySelector('.modal-ft').querySelector('.btn-outline').textContent = 'Close';
+  openOv('ov-preread');
 }
 
 // ─── Toggle topic include/exclude ─────────────────────────────────────────────
@@ -956,9 +1034,15 @@ function openSendPreread(m) {
     }).join('');
   }
 
-  $('preread-send-btn').onclick = () => {
+  const sendBtn = $('preread-send-btn');
+  sendBtn.style.display = '';
+  $('ov-preread').querySelector('.modal-ft').querySelector('.btn-outline').textContent = 'Cancel';
+  sendBtn.onclick = () => {
+    sentPrereads[m.id] = { sentAt: Date.now() };
+    saveTopicState();
     closeOv('ov-preread');
-    toast(`Pre-read sent to ${m.attendees.join(', ')}.`);
+    refreshPrereadHeader(m);
+    toast(`Pre-read sent to ${m.attendees.join(', ')} · Catalyze for Thomas`, 3000);
   };
   openOv('ov-preread');
 }

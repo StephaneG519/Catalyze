@@ -222,6 +222,7 @@ tbody td { padding: 9px 10px; color: #111; vertical-align: middle; }
 .toast { position: absolute; bottom: 20px; right: 20px; background: #111; color: #fff; font-size: 12px; padding: 10px 16px; border-radius: 8px; display: none; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 200; }
 .toast.show { display: flex; animation: slideup 0.2s ease; }
 @keyframes slideup { from { transform: translateY(8px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+@keyframes spin { to { transform: rotate(360deg) } }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -450,14 +451,14 @@ tbody td { padding: 9px 10px; color: #111; vertical-align: middle; }
   <div class="modal">
     <div class="modal-hd">
       <div class="modal-title" id="simreply-title">Simulated reply</div>
-      <button class="modal-x" data-ov="ov-simreply"><i class="ti ti-x"></i></button>
+      <button class="modal-x" id="simreply-close"><i class="ti ti-x"></i></button>
     </div>
     <div class="modal-body">
       <div id="simreply-body" style="font-size:12px;color:#333;line-height:1.7;white-space:pre-wrap;background:#fafafa;border:1px solid #ebebeb;border-radius:7px;padding:10px 12px;">Generating reply…</div>
     </div>
     <div class="modal-ft">
-      <button class="btn btn-outline" data-ov="ov-simreply">Cancel</button>
-      <button class="btn btn-filled" id="simreply-apply" disabled><i class="ti ti-check"></i> Apply update</button>
+      <button class="btn btn-outline" id="simreply-cancel">Cancel</button>
+      <button class="btn btn-filled" id="simreply-apply" style="display:none" disabled><i class="ti ti-check"></i> Apply update</button>
     </div>
   </div>
 </div>
@@ -1161,6 +1162,9 @@ async function openSimReply(goalId, krIdx) {
   $('simreply-title').textContent = `Simulated reply from ${g.owner}`;
   $('simreply-body').textContent = 'Generating reply…';
   $('simreply-apply').disabled = true;
+  // Remove any leftover auto-note from a previous open
+  const oldNote = document.getElementById('simreply-auto-note');
+  if (oldNote) oldNote.remove();
   openOv('ov-simreply');
 
   const apiKey = getApiKey();
@@ -1192,7 +1196,16 @@ async function openSimReply(goalId, krIdx) {
     const reply = data.content?.[0]?.text?.trim() || '';
     $('simreply-body').textContent = reply;
     simReplyContext.reply = reply;
+
+    // Auto-apply after 2-second delay
+    const applyNote = document.createElement('div');
+    applyNote.id = 'simreply-auto-note';
+    applyNote.style.cssText = 'font-size:11px;color:#888;font-style:italic;margin-top:10px;display:flex;align-items:center;gap:6px';
+    applyNote.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 0.7s linear infinite;display:inline-block"></i> Applying update automatically…';
+    $('ov-simreply').querySelector('.modal-body').appendChild(applyNote);
+
     $('simreply-apply').disabled = false;
+    simReplyContext._autoTimer = setTimeout(() => applySimReply(), 2000);
   } catch(err) {
     console.warn('Simulate reply failed:', err);
     $('simreply-body').textContent = 'Could not generate reply — try again.';
@@ -1201,6 +1214,8 @@ async function openSimReply(goalId, krIdx) {
 
 async function applySimReply() {
   if (!simReplyContext) return;
+  // Cancel any pending auto-timer to avoid double-apply
+  if (simReplyContext._autoTimer) { clearTimeout(simReplyContext._autoTimer); simReplyContext._autoTimer = null; }
   const { goalId, krIdx, reply } = simReplyContext;
   const g = goals.find(x => x.id === goalId);
   if (!g || !reply) return;
@@ -1253,7 +1268,7 @@ async function applySimReply() {
 
   renderDD();
   triggerAI(goalId);
-  toast('KR updated from simulated reply.');
+  toast(`KR updated automatically from ${g.owner}'s reply`);
 }
 
 function refreshKrCard(goalId, krIdx, history) {
@@ -1632,8 +1647,17 @@ function removeNote(i) { ctxNotes.splice(i, 1); renderNotesList(); }
 // ─── View-next save button ────────────────────────────────────────────────────
 $('view-next-save').addEventListener('click', saveNextDraft);
 
-// ─── Simulate reply apply button ──────────────────────────────────────────────
+// ─── Simulate reply apply button (hidden, but kept for direct call) ───────────
 $('simreply-apply').addEventListener('click', applySimReply);
+
+// ─── Simulate reply cancel / close ────────────────────────────────────────────
+function cancelSimReply() {
+  if (simReplyContext?._autoTimer) { clearTimeout(simReplyContext._autoTimer); simReplyContext._autoTimer = null; }
+  simReplyContext = null;
+  closeOv('ov-simreply');
+}
+$('simreply-cancel').addEventListener('click', cancelSimReply);
+$('simreply-close').addEventListener('click', cancelSimReply);
 
 // ─── Close modals ─────────────────────────────────────────────────────────────
 document.querySelectorAll('.modal-x, [data-ov]').forEach(el => {
@@ -1641,7 +1665,11 @@ document.querySelectorAll('.modal-x, [data-ov]').forEach(el => {
   if (target) el.addEventListener('click', () => closeOv(target));
 });
 document.querySelectorAll('.overlay').forEach(ov => {
-  ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('open'); });
+  ov.addEventListener('click', e => {
+    if (e.target !== ov) return;
+    if (ov.id === 'ov-simreply') { cancelSimReply(); return; }
+    ov.classList.remove('open');
+  });
 });
 
 // ─── Resizer ──────────────────────────────────────────────────────────────────
