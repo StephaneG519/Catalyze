@@ -452,14 +452,15 @@ tbody tr:hover .row-delete-btn { opacity: 1; }
     </div>
   </div>
 
-  <!-- API Key Modal -->
+  <!-- Settings Modal -->
   <div class="modal-overlay" id="modal-api-key">
     <div class="modal inform-modal">
       <div class="modal-header">
-        <div class="modal-title">API key settings</div>
+        <div class="modal-title">Settings</div>
         <button class="modal-close" id="modal-api-key-close"><i class="ti ti-x"></i></button>
       </div>
       <div class="modal-body">
+        <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">API Key</div>
         <div class="field">
           <div class="field-label">Current key</div>
           <div id="api-key-display" style="font-size:12px;color:#555;background:#fafafa;border:1px solid #ebebeb;border-radius:7px;padding:7px 10px;font-family:monospace;letter-spacing:0.5px;">No key saved</div>
@@ -469,10 +470,59 @@ tbody tr:hover .row-delete-btn { opacity: 1; }
           <input type="text" class="field-input" id="api-key-input" placeholder="sk-ant-…">
           <div class="field-hint">Stored in localStorage and used for all AI features across modules.</div>
         </div>
+        <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 10px">Automatic actions</div>
+        <div class="field">
+          <div class="field-label">Action plan delay</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;color:#555">Send action plans after</span>
+            <input type="number" class="field-input" id="settings-ap-delay" min="1" max="48" style="width:60px">
+            <span style="font-size:12px;color:#555">hours</span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">Backlog delay</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;color:#555">Send topics to backlog after</span>
+            <input type="number" class="field-input" id="settings-backlog-delay" min="1" max="48" style="width:60px">
+            <span style="font-size:12px;color:#555">hours</span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">Check-in interval</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;color:#555">Send KR check-ins every</span>
+            <input type="number" class="field-input" id="settings-checkin-interval" min="1" max="14" style="width:60px">
+            <span style="font-size:12px;color:#555">days</span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">Escalation threshold</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;color:#555">Escalate after</span>
+            <input type="number" class="field-input" id="settings-escalation-threshold" min="1" max="10" style="width:60px">
+            <span style="font-size:12px;color:#555">unanswered check-ins</span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">Email tone</div>
+          <select class="field-input" id="settings-email-tone">
+            <option value="direct">Direct</option>
+            <option value="collegial">Collegial</option>
+            <option value="formal">Formal</option>
+          </select>
+        </div>
+        <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 10px">About</div>
+        <div style="font-size:12px;color:#555;line-height:1.8">
+          <div>Brief version: <span style="color:#333;font-weight:500">v6 final</span></div>
+          <div>App version: <span style="color:#333;font-weight:500">Prototype — June 2026</span></div>
+        </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-outline" id="modal-api-key-cancel">Cancel</button>
-        <button class="btn btn-filled" id="modal-api-key-save"><i class="ti ti-check"></i> Save key</button>
+      <div class="modal-footer" style="flex-direction:column;align-items:stretch;gap:8px">
+        <div style="display:flex;justify-content:flex-end;gap:8px">
+          <button class="btn btn-outline" id="modal-api-key-cancel">Cancel</button>
+          <button class="btn btn-filled" id="modal-api-key-save"><i class="ti ti-check"></i> Save</button>
+        </div>
+        <div style="font-size:11px;color:#aaa;text-align:center">Settings are stored locally in your browser.</div>
       </div>
     </div>
   </div>
@@ -819,7 +869,7 @@ function saveMeetings() {
   try {
     const userAdded = meetings.filter(m => m._userAdded);
     localStorage.setItem('catalyze_meetings', JSON.stringify(userAdded));
-  } catch(e) {}
+  } catch(e) { console.warn('localStorage error:', e); }
 }
 
 function loadMeetings() {
@@ -827,7 +877,7 @@ function loadMeetings() {
     const stored = JSON.parse(localStorage.getItem('catalyze_meetings') || '[]');
     const existingIds = new Set(meetings.map(m => m.id));
     stored.forEach(m => { if (!existingIds.has(m.id)) meetings.unshift(m); });
-  } catch(e) {}
+  } catch(e) { console.warn('localStorage error:', e); }
 }
 
 function saveBacklogTopics(newMeeting) {
@@ -851,7 +901,7 @@ function saveBacklogTopics(newMeeting) {
       }
     });
     localStorage.setItem('catalyze_backlog_topics', JSON.stringify(existing));
-  } catch(e) {}
+  } catch(e) { console.warn('localStorage error:', e); }
 }
 
 function saveGoalsFromTopics(newMeeting) {
@@ -880,7 +930,7 @@ function saveGoalsFromTopics(newMeeting) {
       added++;
     });
     if (added > 0) localStorage.setItem('catalyze_goals', JSON.stringify(existing));
-  } catch(e) {}
+  } catch(e) { console.warn('localStorage error:', e); }
   // Fire-and-forget: schedule action plan emails in background
   const apiKey = getApiKey();
   if (apiKey) scheduleActionPlans(newMeeting, apiKey);
@@ -948,7 +998,7 @@ function openDeleteModal(meetingId) {
 
     const allCommitments = JSON.parse(localStorage.getItem('catalyze_commitments') || '[]');
     relatedCommitments = allCommitments.filter(c => c.meetingId === meetingId);
-  } catch(e) {}
+  } catch(e) { console.warn('localStorage error:', e); }
 
   const sections = [];
   if (backlogTopics.length > 0) {
@@ -1001,7 +1051,7 @@ function confirmDeleteMeeting() {
 
     localStorage.setItem('catalyze_backlog_topics', JSON.stringify(kept));
     localStorage.setItem('catalyze_goals', JSON.stringify(keptGoals));
-  } catch(e) {}
+  } catch(e) { console.warn('localStorage error:', e); }
 
   // Remove from catalyze_commitments
   try {
@@ -1009,7 +1059,7 @@ function confirmDeleteMeeting() {
     const keptCommitments = allCommitments.filter(c => c.meetingId !== pendingDeleteId);
     deletedCount += allCommitments.length - keptCommitments.length;
     localStorage.setItem('catalyze_commitments', JSON.stringify(keptCommitments));
-  } catch(e) {}
+  } catch(e) { console.warn('localStorage error:', e); }
 
   // Remove from meetings array and localStorage
   const idx = meetings.findIndex(x => x.id === pendingDeleteId);
@@ -1156,7 +1206,8 @@ function renderDeepDive() {
 
       <!-- Section 2: Topics -->
       <div class="dd-section">
-        <div class="dd-section-title"><i class="ti ti-list-check"></i> Extracted topics <span class="topic-count-badge" id="topic-count-label">— ${m.topics.length} topics · ${checkedCount} sent to backlog</span></div>
+        <div class="dd-section-title"><i class="ti ti-list-check"></i> Extracted topics <span class="topic-count-badge" id="topic-count-label">— ${m.topics.length} topics · ${checkedCount} selected</span></div>
+        ${buildBacklogStatus(m.id)}
         <div class="topic-list" id="topic-list">
           ${m.topics.map((t, i) => {
             const planSent = isPlanSent(m.id, t.title);
@@ -1248,7 +1299,7 @@ function toggleCheck(meetingId, topicIndex) {
   const checkedCount = Object.values(topicStates[meetingId]).filter(Boolean).length;
   const m = meetings.find(x => x.id === meetingId);
   const label = document.getElementById('topic-count-label');
-  if (label) label.textContent = `— ${m.topics.length} topics · ${checkedCount} sent to backlog`;
+  if (label) label.textContent = `— ${m.topics.length} topics · ${checkedCount} selected`;
 }
 
 // ─── Commitments localStorage helpers ─────────────────────────────────────────
@@ -1256,7 +1307,7 @@ function loadCommitments() {
   try { return JSON.parse(localStorage.getItem('catalyze_commitments') || '[]'); } catch(e) { return []; }
 }
 function saveCommitments(arr) {
-  try { localStorage.setItem('catalyze_commitments', JSON.stringify(arr)); } catch(e) {}
+  try { localStorage.setItem('catalyze_commitments', JSON.stringify(arr)); } catch(e) { console.warn('localStorage error:', e); }
 }
 function getPlanCommitment(meetingId, topicTitle) {
   return loadCommitments().find(c => c.meetingId === meetingId && c.topicTitle === topicTitle) || null;
@@ -1265,6 +1316,79 @@ function getPlanCommitment(meetingId, topicTitle) {
 function isPlanSent(meetingId, topicTitle) {
   const c = getPlanCommitment(meetingId, topicTitle);
   return !!(c && c.status === 'sent');
+}
+
+// ─── Pending backlog helpers ──────────────────────────────────────────────────
+function loadPendingBacklog() {
+  try { return JSON.parse(localStorage.getItem('catalyze_pending_backlog') || '[]'); } catch(e) { return []; }
+}
+function savePendingBacklog(arr) {
+  try { localStorage.setItem('catalyze_pending_backlog', JSON.stringify(arr)); } catch(e) { console.warn('localStorage error:', e); }
+}
+
+function schedulePendingBacklog(newMeeting) {
+  const checkedTopics = newMeeting.topics.filter((_, i) => topicStates[newMeeting.id]?.[i] !== false);
+  if (!checkedTopics.length) return;
+  const arr = loadPendingBacklog();
+  if (arr.find(e => e.meetingId === newMeeting.id)) return;
+  arr.push({
+    meetingId: newMeeting.id,
+    topics: checkedTopics,
+    scheduledAt: Date.now() + getSettings().backlogDelay * 3600000,
+    status: 'scheduled'
+  });
+  savePendingBacklog(arr);
+}
+
+function flushBacklogEntry(entry) {
+  const m = meetings.find(x => x.id === entry.meetingId);
+  if (!m) return;
+  // Use a synthetic id that has no topicStates entry so all pre-filtered topics pass through
+  const proxy = Object.assign({}, m, { id: 'pending', topics: entry.topics });
+  saveBacklogTopics(proxy);
+}
+
+function checkPendingBacklog() {
+  const now = Date.now();
+  const arr = loadPendingBacklog();
+  let changed = false;
+  arr.forEach(entry => {
+    if (entry.status === 'scheduled' && entry.scheduledAt <= now) {
+      flushBacklogEntry(entry);
+      entry.status = 'sent';
+      changed = true;
+    }
+  });
+  if (changed) savePendingBacklog(arr);
+}
+
+function sendBacklogNow(meetingId) {
+  const arr = loadPendingBacklog();
+  const entry = arr.find(e => e.meetingId === meetingId);
+  if (!entry || entry.status !== 'scheduled') return;
+  flushBacklogEntry(entry);
+  entry.status = 'sent';
+  savePendingBacklog(arr);
+  renderDeepDive();
+  showToast('Topics sent to backlog.');
+}
+
+function cancelPendingBacklog(meetingId) {
+  const arr = loadPendingBacklog().filter(e => e.meetingId !== meetingId);
+  savePendingBacklog(arr);
+  renderDeepDive();
+  showToast('Backlog send cancelled.');
+}
+
+function buildBacklogStatus(meetingId) {
+  const arr = loadPendingBacklog();
+  const entry = arr.find(e => e.meetingId === meetingId);
+  if (!entry) return '';
+  if (entry.status === 'sent') {
+    return `<div class="bl-status" style="font-size:10px;color:#888;margin-top:4px"><i class="ti ti-stack" style="font-size:10px;color:#bbb;margin-right:3px"></i>Topics sent to backlog</div>`;
+  }
+  const countdown = fmtCountdown(entry.scheduledAt - Date.now());
+  return `<div class="bl-status" style="font-size:10px;color:#888;margin-top:4px" id="bl-status-${meetingId}"><i class="ti ti-stack" style="font-size:10px;color:#bbb;margin-right:3px"></i>Topics send to backlog in <span class="bl-countdown" data-scheduleat="${entry.scheduledAt}" data-meetingid="${meetingId}">${countdown}</span> · <button class="kr-auto-link" onclick="sendBacklogNow(${meetingId})">Send now</button> · <button class="kr-auto-link" onclick="cancelPendingBacklog(${meetingId})">Cancel</button></div>`;
 }
 
 // ─── checkScheduledCommitments — runs on page load ────────────────────────────
@@ -1296,7 +1420,7 @@ async function draftActionPlanEmail(apiKey, owner, assignmentContext) {
       model: 'claude-sonnet-4-5',
       max_tokens: 400,
       system: COMPANY_CONTEXT,
-      messages: [{ role: 'user', content: `Draft a short email from Thomas (CEO) to ${owner} about this topic: '${assignmentContext}'. The email should: reference exactly what they are expected to do, propose 3 concrete next steps with suggested deadlines, state that if they don't reply within 48 hours this plan will be considered accepted. Tone: direct but collegial, not robotic. Max 150 words. Respond in JSON only (no markdown fences): { "subject": "...", "body": "..." }` }]
+      messages: [{ role: 'user', content: `Draft a short email from Thomas (CEO) to ${owner} about this topic: '${assignmentContext}'. The email should: reference exactly what they are expected to do, propose 3 concrete next steps with suggested deadlines, state that if they don't reply within 48 hours this plan will be considered accepted. Max 150 words. Sign the email 'Catalyze for Thomas'. Tone: ${getSettings().emailTone}. Respond in JSON only (no markdown fences): { "subject": "...", "body": "..." }` }]
     })
   });
   if (!res.ok) throw new Error(`API ${res.status}`);
@@ -1336,7 +1460,7 @@ async function scheduleActionPlans(newMeeting, apiKey) {
         topicTitle: t.title,
         owner: t.owner,
         assignmentContext: t.assignmentContext,
-        scheduledAt: Date.now() + 43200000, // 12 hours
+        scheduledAt: Date.now() + getSettings().actionPlanDelay * 3600000,
         sentAt: null,
         message,
         status: 'scheduled'
@@ -1526,7 +1650,7 @@ async function sendActionPlanFallback(meetingId, topicIdx, btn) {
     arr.push({
       meetingId, topicTitle: t.title, owner: t.owner,
       assignmentContext: t.assignmentContext || t.title,
-      scheduledAt: Date.now() + 43200000,
+      scheduledAt: Date.now() + getSettings().actionPlanDelay * 3600000,
       sentAt: null, message, status: 'scheduled'
     });
     saveCommitments(arr);
@@ -1554,6 +1678,20 @@ setInterval(() => {
       if (!tt) return;
       checkScheduledCommitments();
       refreshTopicPlanStatus(meetingId, topicIdx, tt);
+    } else {
+      el.textContent = fmtCountdown(remaining);
+    }
+  });
+
+  document.querySelectorAll('.bl-countdown').forEach(el => {
+    const scheduledAt = parseInt(el.dataset.scheduleat, 10);
+    if (!scheduledAt) return;
+    const remaining = scheduledAt - Date.now();
+    if (remaining <= 0) {
+      const meetingId = parseInt(el.dataset.meetingid, 10);
+      checkPendingBacklog();
+      const statusDiv = document.getElementById(`bl-status-${meetingId}`);
+      if (statusDiv) statusDiv.outerHTML = buildBacklogStatus(meetingId);
     } else {
       el.textContent = fmtCountdown(remaining);
     }
@@ -1744,7 +1882,7 @@ document.getElementById('modal-add-save').addEventListener('click', async () => 
   newMeeting.topics.forEach((_, i) => { topicStates[newId][i] = true; });
 
   saveMeetings();
-  saveBacklogTopics(newMeeting);
+  schedulePendingBacklog(newMeeting);
   saveGoalsFromTopics(newMeeting);
 
   closeModal('modal-add');
@@ -1915,24 +2053,37 @@ document.getElementById('modal-delete-close').addEventListener('click', () => cl
 document.getElementById('modal-delete-cancel').addEventListener('click', () => closeModal('modal-delete'));
 document.getElementById('modal-delete-confirm').addEventListener('click', confirmDeleteMeeting);
 
-// ─── API key settings ─────────────────────────────────────────────────────────
+// ─── Settings modal ───────────────────────────────────────────────────────────
 document.getElementById('btn-api-key').addEventListener('click', () => {
   document.getElementById('api-key-display').textContent = maskApiKey(getApiKey());
   document.getElementById('api-key-input').value = '';
+  const s = getSettings();
+  document.getElementById('settings-ap-delay').value = s.actionPlanDelay;
+  document.getElementById('settings-backlog-delay').value = s.backlogDelay;
+  document.getElementById('settings-checkin-interval').value = s.checkinIntervalDays;
+  document.getElementById('settings-escalation-threshold').value = s.escalationThreshold;
+  document.getElementById('settings-email-tone').value = s.emailTone;
   openModal('modal-api-key');
 });
 document.getElementById('modal-api-key-close').addEventListener('click', () => closeModal('modal-api-key'));
 document.getElementById('modal-api-key-cancel').addEventListener('click', () => closeModal('modal-api-key'));
 document.getElementById('modal-api-key-save').addEventListener('click', () => {
   const val = document.getElementById('api-key-input').value.trim();
-  if (!val) { showToast('Please enter a key.'); return; }
-  setApiKey(val);
+  if (val) setApiKey(val);
+  saveSettings({
+    actionPlanDelay: parseInt(document.getElementById('settings-ap-delay').value) || 12,
+    backlogDelay: parseInt(document.getElementById('settings-backlog-delay').value) || 12,
+    checkinIntervalDays: parseInt(document.getElementById('settings-checkin-interval').value) || 3,
+    escalationThreshold: parseInt(document.getElementById('settings-escalation-threshold').value) || 3,
+    emailTone: document.getElementById('settings-email-tone').value || 'direct',
+  });
   closeModal('modal-api-key');
-  showToast('API key saved.');
+  showToast('Settings saved.');
 });
 
 // ─── Initial render ───────────────────────────────────────────────────────────
 checkScheduledCommitments();
+checkPendingBacklog();
 renderList();
 selectMeeting(1); // Open first meeting by default
 

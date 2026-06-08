@@ -415,10 +415,11 @@ tbody td { padding: 9px 10px; vertical-align: middle; }
 <div class="overlay" id="ov-api-key">
   <div class="modal">
     <div class="modal-hd">
-      <div class="modal-title">API key settings</div>
+      <div class="modal-title">Settings</div>
       <button class="modal-x" data-ov="ov-api-key"><i class="ti ti-x"></i></button>
     </div>
     <div class="modal-body">
+      <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">API Key</div>
       <div class="field">
         <div class="fl">Current key</div>
         <div id="api-key-display" style="font-size:12px;color:#555;background:#fafafa;border:1px solid #ebebeb;border-radius:7px;padding:7px 10px;font-family:monospace;letter-spacing:0.5px;">No key saved</div>
@@ -428,10 +429,59 @@ tbody td { padding: 9px 10px; vertical-align: middle; }
         <input type="text" class="fi" id="api-key-input" placeholder="sk-ant-…">
         <div class="fhint">Stored in localStorage and used for all AI features across modules.</div>
       </div>
+      <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 10px">Automatic actions</div>
+      <div class="field">
+        <div class="fl">Action plan delay</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px;color:#555">Send action plans after</span>
+          <input type="number" class="fi" id="settings-ap-delay" min="1" max="48" style="width:60px">
+          <span style="font-size:12px;color:#555">hours</span>
+        </div>
+      </div>
+      <div class="field">
+        <div class="fl">Backlog delay</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px;color:#555">Send topics to backlog after</span>
+          <input type="number" class="fi" id="settings-backlog-delay" min="1" max="48" style="width:60px">
+          <span style="font-size:12px;color:#555">hours</span>
+        </div>
+      </div>
+      <div class="field">
+        <div class="fl">Check-in interval</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px;color:#555">Send KR check-ins every</span>
+          <input type="number" class="fi" id="settings-checkin-interval" min="1" max="14" style="width:60px">
+          <span style="font-size:12px;color:#555">days</span>
+        </div>
+      </div>
+      <div class="field">
+        <div class="fl">Escalation threshold</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px;color:#555">Escalate after</span>
+          <input type="number" class="fi" id="settings-escalation-threshold" min="1" max="10" style="width:60px">
+          <span style="font-size:12px;color:#555">unanswered check-ins</span>
+        </div>
+      </div>
+      <div class="field">
+        <div class="fl">Email tone</div>
+        <select class="fi" id="settings-email-tone">
+          <option value="direct">Direct</option>
+          <option value="collegial">Collegial</option>
+          <option value="formal">Formal</option>
+        </select>
+      </div>
+      <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 10px">About</div>
+      <div style="font-size:12px;color:#555;line-height:1.8">
+        <div>Brief version: <span style="color:#333;font-weight:500">v6 final</span></div>
+        <div>App version: <span style="color:#333;font-weight:500">Prototype — June 2026</span></div>
+      </div>
     </div>
-    <div class="modal-ft">
-      <button class="btn" data-ov="ov-api-key">Cancel</button>
-      <button class="btn btn-filled" id="api-key-save"><i class="ti ti-check"></i> Save key</button>
+    <div class="modal-ft" style="flex-direction:column;align-items:stretch;gap:8px">
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn" data-ov="ov-api-key">Cancel</button>
+        <button class="btn btn-filled" id="api-key-save"><i class="ti ti-check"></i> Save</button>
+      </div>
+      <div style="font-size:11px;color:#aaa;text-align:center">Settings are stored locally in your browser.</div>
     </div>
   </div>
 </div>
@@ -1610,18 +1660,30 @@ function highlightFromURL() {
   return true;
 }
 
-// ─── API key settings ─────────────────────────────────────────────────────────
+// ─── Settings modal ───────────────────────────────────────────────────────────
 $('btn-api-key').addEventListener('click', () => {
   $('api-key-display').textContent = maskApiKey(getApiKey());
   $('api-key-input').value = '';
+  const s = getSettings();
+  $('settings-ap-delay').value = s.actionPlanDelay;
+  $('settings-backlog-delay').value = s.backlogDelay;
+  $('settings-checkin-interval').value = s.checkinIntervalDays;
+  $('settings-escalation-threshold').value = s.escalationThreshold;
+  $('settings-email-tone').value = s.emailTone;
   open('ov-api-key');
 });
 $('api-key-save').addEventListener('click', () => {
   const val = $('api-key-input').value.trim();
-  if (!val) { toast('Please enter a key.'); return; }
-  setApiKey(val);
+  if (val) setApiKey(val);
+  saveSettings({
+    actionPlanDelay: parseInt($('settings-ap-delay').value) || 12,
+    backlogDelay: parseInt($('settings-backlog-delay').value) || 12,
+    checkinIntervalDays: parseInt($('settings-checkin-interval').value) || 3,
+    escalationThreshold: parseInt($('settings-escalation-threshold').value) || 3,
+    emailTone: $('settings-email-tone').value || 'direct',
+  });
   close('ov-api-key');
-  toast('API key saved.');
+  toast('Settings saved.');
 });
 
 // ─── Create goal from topic ───────────────────────────────────────────────────

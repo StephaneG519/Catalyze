@@ -40,3 +40,25 @@ function setApiKey(key) {
 function maskApiKey(k) {
   return k ? k.slice(0, 8) + '•'.repeat(Math.min(k.length - 8, 24)) : 'No key saved';
 }
+
+const CATALYZE_SETTINGS_DEFAULTS = {
+  actionPlanDelay: 12,        // hours before action plan auto-sends
+  backlogDelay: 12,           // hours before topics auto-send to backlog
+  checkinIntervalDays: 3,     // days between KR check-ins
+  escalationThreshold: 3,     // number of unanswered check-ins before escalation
+  emailTone: 'direct',        // 'direct' | 'collegial' | 'formal'
+};
+// Additional localStorage keys managed by this module:
+// catalyze_settings — persisted user settings (this object, JSON)
+// catalyze_pending_backlog — scheduled backlog sends from Meeting Capture
+
+function getSettings() {
+  try {
+    const stored = localStorage.getItem('catalyze_settings');
+    return stored ? { ...CATALYZE_SETTINGS_DEFAULTS, ...JSON.parse(stored) } : { ...CATALYZE_SETTINGS_DEFAULTS };
+  } catch(e) { return { ...CATALYZE_SETTINGS_DEFAULTS }; }
+}
+
+function saveSettings(settings) {
+  try { localStorage.setItem('catalyze_settings', JSON.stringify(settings)); } catch(e) { console.warn('localStorage error:', e); }
+}

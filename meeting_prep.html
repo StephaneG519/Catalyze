@@ -289,14 +289,15 @@ tbody tr.selected .chev-icon { color: #888; }
   </div>
 </div>
 
-<!-- API Key -->
+<!-- Settings -->
 <div class="overlay" id="ov-api-key">
   <div class="modal">
     <div class="modal-hd">
-      <div class="modal-title">API key settings</div>
+      <div class="modal-title">Settings</div>
       <button class="modal-x" data-ov="ov-api-key"><i class="ti ti-x"></i></button>
     </div>
     <div class="modal-body">
+      <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">API Key</div>
       <div class="field">
         <div class="fl">Current key</div>
         <div id="api-key-display" style="font-size:12px;color:#555;background:#fafafa;border:1px solid #ebebeb;border-radius:7px;padding:7px 10px;font-family:monospace;letter-spacing:0.5px;">No key saved</div>
@@ -306,10 +307,59 @@ tbody tr.selected .chev-icon { color: #888; }
         <input type="text" class="fi" id="api-key-input" placeholder="sk-ant-…">
         <div class="fhint">Stored in localStorage and used for all AI features across modules.</div>
       </div>
+      <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 10px">Automatic actions</div>
+      <div class="field">
+        <div class="fl">Action plan delay</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px;color:#555">Send action plans after</span>
+          <input type="number" class="fi" id="settings-ap-delay" min="1" max="48" style="width:60px">
+          <span style="font-size:12px;color:#555">hours</span>
+        </div>
+      </div>
+      <div class="field">
+        <div class="fl">Backlog delay</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px;color:#555">Send topics to backlog after</span>
+          <input type="number" class="fi" id="settings-backlog-delay" min="1" max="48" style="width:60px">
+          <span style="font-size:12px;color:#555">hours</span>
+        </div>
+      </div>
+      <div class="field">
+        <div class="fl">Check-in interval</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px;color:#555">Send KR check-ins every</span>
+          <input type="number" class="fi" id="settings-checkin-interval" min="1" max="14" style="width:60px">
+          <span style="font-size:12px;color:#555">days</span>
+        </div>
+      </div>
+      <div class="field">
+        <div class="fl">Escalation threshold</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px;color:#555">Escalate after</span>
+          <input type="number" class="fi" id="settings-escalation-threshold" min="1" max="10" style="width:60px">
+          <span style="font-size:12px;color:#555">unanswered check-ins</span>
+        </div>
+      </div>
+      <div class="field">
+        <div class="fl">Email tone</div>
+        <select class="fi" id="settings-email-tone">
+          <option value="direct">Direct</option>
+          <option value="collegial">Collegial</option>
+          <option value="formal">Formal</option>
+        </select>
+      </div>
+      <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 10px">About</div>
+      <div style="font-size:12px;color:#555;line-height:1.8">
+        <div>Brief version: <span style="color:#333;font-weight:500">v6 final</span></div>
+        <div>App version: <span style="color:#333;font-weight:500">Prototype — June 2026</span></div>
+      </div>
     </div>
-    <div class="modal-ft">
-      <button class="btn btn-outline" data-ov="ov-api-key">Cancel</button>
-      <button class="btn btn-filled" id="api-key-save"><i class="ti ti-check"></i> Save key</button>
+    <div class="modal-ft" style="flex-direction:column;align-items:stretch;gap:8px">
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn btn-outline" data-ov="ov-api-key">Cancel</button>
+        <button class="btn btn-filled" id="api-key-save"><i class="ti ti-check"></i> Save</button>
+      </div>
+      <div style="font-size:11px;color:#aaa;text-align:center">Settings are stored locally in your browser.</div>
     </div>
   </div>
 </div>
@@ -487,6 +537,8 @@ let activeFilter = 'all';
 let ctxNotes     = [];
 // prereadCache[meetingId] = { status: 'loading'|'done'|'error', data: {personName: {text, items[]}} }
 const prereadCache = {};
+// aiSuggestionCache[meetingId] = { status: 'loading'|'done'|'error', included: [title,...], reason: '' }
+const aiSuggestionCache = {};
 // topicState[meetingId][topicId] = true (included) | false (excluded)
 let topicState = {};
 // sentPrereads[meetingId] = { sentAt: timestamp }
@@ -527,7 +579,7 @@ function dayDiff(iso) {
 
 // ─── localStorage ─────────────────────────────────────────────────────────────
 function saveTopicState() {
-  try { localStorage.setItem('catalyze_meeting_prep', JSON.stringify({ topics: topicState, sent: sentPrereads })); } catch(e) {}
+  try { localStorage.setItem('catalyze_meeting_prep', JSON.stringify({ topics: topicState, sent: sentPrereads })); } catch(e) { console.warn('localStorage error:', e); }
 }
 
 function loadTopicState() {
@@ -538,7 +590,7 @@ function loadTopicState() {
       if (raw.topics) { topicState = raw.topics; sentPrereads = raw.sent || {}; }
       else topicState = raw;
     }
-  } catch(e) {}
+  } catch(e) { console.warn('localStorage error:', e); }
 }
 
 // ─── Get topics for a meeting ─────────────────────────────────────────────────
@@ -558,7 +610,7 @@ function getTopicsForMeeting(meeting) {
         existingTitles.add(title);
       }
     });
-  } catch(e) {}
+  } catch(e) { console.warn('localStorage error:', e); }
 
   // Merge topics explicitly routed here via catalyze_agenda_topics
   try {
@@ -577,7 +629,7 @@ function getTopicsForMeeting(meeting) {
         if (existing) existing._added = true;
       }
     });
-  } catch(e) {}
+  } catch(e) { console.warn('localStorage error:', e); }
 
   // Filter to topics whose forum matches this meeting
   const matched = all.filter(t =>
@@ -670,7 +722,10 @@ function renderList() {
 function selectMeeting(id) {
   selectedId = id;
   renderList();
+  const hadPriorState = !!(topicState[id] && Object.keys(topicState[id]).length);
   renderDD();
+  const m = MEETINGS.find(x => x.id === id);
+  if (m && !aiSuggestionCache[id]) triggerAiSuggestion(m, hadPriorState);
 }
 
 // ─── Render deep dive ─────────────────────────────────────────────────────────
@@ -735,6 +790,7 @@ function renderDD() {
         <span class="ai-note-dot"></span>
         <span class="ai-note-text">Suggestions from the backlog, ranked by priority. You decide what gets discussed — include or exclude any item. Topics can also be added live during the meeting.</span>
       </div>
+      ${buildAiSuggestionLine(m.id)}
       ${topics.length ? topicRowsHTML : '<div style="padding:10px 11px;font-size:11px;color:#aaa;font-style:italic">No open topics assigned to this forum.</div>'}
     </div>`;
 
@@ -985,6 +1041,84 @@ function openPrereadReadOnly(m) {
   openOv('ov-preread');
 }
 
+// ─── AI topic suggestion ───────────────────────────────────────────────────────
+async function triggerAiSuggestion(meeting, hadPriorState) {
+  // Only apply defaults when there was no saved state for this meeting
+  const applyDefaults = !hadPriorState;
+  const apiKey = getApiKey();
+  if (!apiKey) return;
+
+  aiSuggestionCache[meeting.id] = { status: 'loading' };
+  refreshAiSuggestionLine(meeting.id);
+
+  const topics = getTopicsForMeeting(meeting);
+  const topicLines = topics.map(t => `- "${t.topic}" (owner: ${t.owner}, priority: ${t.priority})`).join('\n');
+
+  const prompt = `For this meeting: '${meeting.forum}' on ${meeting.date} with ${meeting.topicBudgetMin} minutes available for discussion topics, review these candidate topics and suggest which to include. Select maximum 3-4 topics that are most urgent, most relevant to this forum, and most actionable in this meeting.\n\nTopics:\n${topicLines}\n\nRespond in JSON only: { "included": ["topic title 1", "topic title 2"], "reason": "one sentence explaining the selection" }`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: DEFAULT_MAX_TOKENS,
+        system: COMPANY_CONTEXT,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const data = await res.json();
+    let raw = data.content?.[0]?.text || '';
+    raw = raw.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+    const parsed = JSON.parse(raw);
+    const included = Array.isArray(parsed.included) ? parsed.included : [];
+    const reason = typeof parsed.reason === 'string' ? parsed.reason : '';
+    aiSuggestionCache[meeting.id] = { status: 'done', included, reason };
+
+    if (applyDefaults) {
+      topics.forEach(t => {
+        topicState[meeting.id][t.id] = included.some(title => title.trim() === t.topic.trim());
+      });
+      saveTopicState();
+      // Re-render the agenda section to reflect new include/exclude state
+      if (selectedId === meeting.id) renderDD();
+      return; // renderDD already refreshes the suggestion line
+    }
+  } catch(err) {
+    console.warn('AI suggestion failed:', err);
+    aiSuggestionCache[meeting.id] = { status: 'error' };
+  }
+
+  refreshAiSuggestionLine(meeting.id);
+}
+
+function buildAiSuggestionLine(meetingId) {
+  const cache = aiSuggestionCache[meetingId];
+  if (!cache || cache.status === 'loading' || cache.status === 'error') return '';
+  const count = cache.included.length;
+  return `<div id="ai-suggestion-line-${meetingId}" style="font-size:11px;color:#888;font-style:italic;margin-bottom:6px">Catalyze suggests ${count} topic${count !== 1 ? 's' : ''} · ${cache.reason} · Modify before meeting</div>`;
+}
+
+function refreshAiSuggestionLine(meetingId) {
+  if (selectedId !== meetingId) return;
+  const existing = document.getElementById(`ai-suggestion-line-${meetingId}`);
+  const html = buildAiSuggestionLine(meetingId);
+  if (existing) {
+    if (html) existing.outerHTML = html;
+    else existing.remove();
+  } else {
+    // Insert before the topic rows container
+    const topicSection = document.querySelector('.topic-section .ai-note');
+    if (topicSection && html) topicSection.insertAdjacentHTML('afterend', html);
+  }
+}
+
 // ─── Toggle topic include/exclude ─────────────────────────────────────────────
 function toggleTopic(meetingId, topicId, btn) {
   const current = topicState[meetingId][topicId] !== false;
@@ -1054,7 +1188,7 @@ function openAddTopic(m) {
   try {
     const stored = JSON.parse(localStorage.getItem('catalyze_backlog_topics') || '[]');
     stored.forEach(s => { if (!existingIds.has(s.id)) all.push({ id:s.id, topic:s.title||s.topic, priority:s.priority||'Medium', owner:s.owner||'Thomas', status:s.status||'Not started' }); });
-  } catch(e) {}
+  } catch(e) { console.warn('localStorage error:', e); }
 
   const available = all.filter(t => !existingIds.has(t.id) && t.status !== 'Completed');
 
@@ -1156,18 +1290,30 @@ function renderNotesList() {
 }
 function removeNote(i) { ctxNotes.splice(i,1); renderNotesList(); }
 
-// ─── API key settings ─────────────────────────────────────────────────────────
+// ─── Settings modal ───────────────────────────────────────────────────────────
 $('btn-api-key').addEventListener('click', () => {
   $('api-key-display').textContent = maskApiKey(getApiKey());
   $('api-key-input').value = '';
+  const s = getSettings();
+  $('settings-ap-delay').value = s.actionPlanDelay;
+  $('settings-backlog-delay').value = s.backlogDelay;
+  $('settings-checkin-interval').value = s.checkinIntervalDays;
+  $('settings-escalation-threshold').value = s.escalationThreshold;
+  $('settings-email-tone').value = s.emailTone;
   openOv('ov-api-key');
 });
 $('api-key-save').addEventListener('click', () => {
   const val = $('api-key-input').value.trim();
-  if (!val) { toast('Please enter a key.'); return; }
-  setApiKey(val);
+  if (val) setApiKey(val);
+  saveSettings({
+    actionPlanDelay: parseInt($('settings-ap-delay').value) || 12,
+    backlogDelay: parseInt($('settings-backlog-delay').value) || 12,
+    checkinIntervalDays: parseInt($('settings-checkin-interval').value) || 3,
+    escalationThreshold: parseInt($('settings-escalation-threshold').value) || 3,
+    emailTone: $('settings-email-tone').value || 'direct',
+  });
   closeOv('ov-api-key');
-  toast('API key saved.');
+  toast('Settings saved.');
 });
 
 // ─── Filters ──────────────────────────────────────────────────────────────────
