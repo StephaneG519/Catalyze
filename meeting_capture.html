@@ -578,7 +578,7 @@ tbody tr:hover .row-delete-btn { opacity: 1; }
   </div>
 
   <!-- Toast -->
-  <div class="toast" id="toast"><i class="ti ti-check"></i> <span id="toast-text"></span></div>
+  <div class="toast" id="toast"><i class="ti ti-check"></i> <span id="toast-msg"></span></div>
 
 </div>
 
@@ -964,13 +964,6 @@ function healthClass(h) {
 
 function scoreClass(r) {
   return { Poor: 'poor', Fair: 'fair', Good: 'good', Excellent: 'excellent', 'n/a': 'na' }[r] || 'fair';
-}
-
-function showToast(msg, duration = 2200) {
-  const t = document.getElementById('toast');
-  document.getElementById('toast-text').textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), duration);
 }
 
 function openModal(id) { document.getElementById(id).classList.add('open'); }

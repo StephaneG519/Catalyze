@@ -404,7 +404,7 @@ tbody tr.selected .chev-icon { color: #888; }
     <div class="modal-body" id="expert-body"></div>
     <div class="modal-ft">
       <button class="btn btn-outline" data-ov="ov-expert">Cancel</button>
-      <button class="btn btn-filled" onclick="closeOv('ov-expert');toast('Briefing sent to Catalyze Expert.')"><i class="ti ti-send"></i> Send briefing</button>
+      <button class="btn btn-filled" onclick="closeOv('ov-expert');showToast('Briefing sent to Catalyze Expert.')"><i class="ti ti-send"></i> Send briefing</button>
     </div>
   </div>
 </div>
@@ -548,15 +548,6 @@ let sentPrereads = {};
 const $       = id => document.getElementById(id);
 const openOv  = id => $(id).classList.add('open');
 const closeOv = id => $(id).classList.remove('open');
-
-function toast(msg, ms = 2400) {
-  $('toast-msg').textContent = msg;
-  const el = $('toast');
-  el.classList.add('show');
-  clearTimeout(el._t);
-  el._t = setTimeout(() => el.classList.remove('show'), ms);
-}
-
 
 function fmtDate(iso) {
   const [y, m, d] = iso.split('-');
@@ -955,7 +946,7 @@ Respond with JSON only (no markdown fences):
       sentPrereads[meeting.id] = { sentAt: Date.now() };
       saveTopicState();
       refreshPrereadHeader(meeting);
-      toast(`Pre-read sent to ${meeting.attendees.join(', ')} · Catalyze for Thomas`, 3000);
+      showToast(`Pre-read sent to ${meeting.attendees.join(', ')} · Catalyze for Thomas`, 3000);
     }
   } catch(err) {
     console.warn('Pre-read generation failed:', err);
@@ -1102,7 +1093,7 @@ function toggleTopic(meetingId, topicId, btn) {
 // ─── View in backlog (postMessage) ────────────────────────────────────────────
 function viewInBacklog(topicTitle) {
   window.parent.postMessage({ type: 'navigate', src: 'topic_backlog.html', highlight: topicTitle }, '*');
-  toast('Opening topic in backlog…');
+  showToast('Opening topic in backlog…');
 }
 
 // ─── Send pre-read modal ──────────────────────────────────────────────────────
@@ -1142,7 +1133,7 @@ function openSendPreread(m) {
     saveTopicState();
     closeOv('ov-preread');
     refreshPrereadHeader(m);
-    toast(`Pre-read sent to ${m.attendees.join(', ')} · Catalyze for Thomas`, 3000);
+    showToast(`Pre-read sent to ${m.attendees.join(', ')} · Catalyze for Thomas`, 3000);
   };
   openOv('ov-preread');
 }
@@ -1198,7 +1189,7 @@ function openAddTopic(m) {
       saveTopicState();
       closeOv('ov-add-topic');
       renderDD();
-      toast('Topic added to agenda.');
+      showToast('Topic added to agenda.');
     };
   }
   openOv('ov-add-topic');
@@ -1242,7 +1233,7 @@ $('inform-save').addEventListener('click', () => {
   if (!txt) { closeOv('ov-inform'); return; }
   ctxNotes.push(txt);
   closeOv('ov-inform');
-  toast('Context saved — AI will factor this into pre-reads.');
+  showToast('Context saved — AI will factor this into pre-reads.');
 });
 function renderNotesList() {
   const wrap = $('existing-notes');
@@ -1279,7 +1270,7 @@ $('api-key-save').addEventListener('click', () => {
     emailTone: $('settings-email-tone').value || 'direct',
   });
   closeOv('ov-api-key');
-  toast('Settings saved.');
+  showToast('Settings saved.');
 });
 
 // ─── Filters ──────────────────────────────────────────────────────────────────

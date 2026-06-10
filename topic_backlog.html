@@ -661,13 +661,6 @@ const $       = id => document.getElementById(id);
 const open    = id => $(id).classList.add('open');
 const close   = id => $(id).classList.remove('open');
 
-function toast(msg, ms = 2400) {
-  $('toast-msg').textContent = msg;
-  const el = $('toast');
-  el.classList.add('show');
-  clearTimeout(el._t);
-  el._t = setTimeout(() => el.classList.remove('show'), ms);
-}
 
 function skFromStatus(s) {
   return s.toLowerCase().replace(' ','');
@@ -901,14 +894,14 @@ function renderDD() {
 function confirmMatch(tid, mid) {
   byId(tid).matchState[mid] = 'confirmed';
   renderDD();
-  toast('Link confirmed — topics are now formally connected.');
+  showToast('Link confirmed — topics are now formally connected.');
 }
 
 function dismissMatch(tid, mid) {
   byId(tid).matchState[mid] = 'dismissed';
   renderTable();
   renderDD();
-  toast('Match dismissed.');
+  showToast('Match dismissed.');
 }
 
 function mergeTopics(tid, mid) {
@@ -920,7 +913,7 @@ function mergeTopics(tid, mid) {
   if (selId === mid) selId = tid;
   renderTable();
   renderDD();
-  toast(`Topics merged — "${removed.topic.slice(0,42)}…" removed from backlog.`);
+  showToast(`Topics merged — "${removed.topic.slice(0,42)}…" removed from backlog.`);
 }
 
 // ─── Category modal ───────────────────────────────────────────────────────────
@@ -950,7 +943,7 @@ $('cat-save').addEventListener('click', () => {
   close('ov-cat');
   renderTable();
   if (selId === catEditId) renderDD();
-  toast('Category updated.');
+  showToast('Category updated.');
 });
 
 // ─── Status modal ─────────────────────────────────────────────────────────────
@@ -983,7 +976,7 @@ $('status-save').addEventListener('click', () => {
   close('ov-status');
   renderTable();
   if (selId === statusEditId) renderDD();
-  toast('Status updated.');
+  showToast('Status updated.');
 });
 
 // ─── Filters ──────────────────────────────────────────────────────────────────
@@ -1034,7 +1027,7 @@ $('inform-save').addEventListener('click', () => {
   ctxNotes.push(txt);
   updateCtxPill();
   close('ov-inform');
-  toast('Context saved — AI will factor this into future analyses.');
+  showToast('Context saved — AI will factor this into future analyses.');
 });
 
 function renderNotesList() {
@@ -1057,13 +1050,13 @@ function updateCtxPill() {
 
 // ─── Analyse all ──────────────────────────────────────────────────────────────
 $('btn-analyse').addEventListener('click', async () => {
-  if (analyseState === 'done') { toast('All topics already have AI analysis.'); return; }
+  if (analyseState === 'done') { showToast('All topics already have AI analysis.'); return; }
   if (analyseState === 'running') return;
 
   let apiKey = getApiKey();
   if (!apiKey) {
     apiKey = prompt('Enter your Anthropic API key to enable AI analysis:');
-    if (!apiKey || !apiKey.trim()) { toast('API key required.'); return; }
+    if (!apiKey || !apiKey.trim()) { showToast('API key required.'); return; }
     setApiKey(apiKey);
     apiKey = apiKey.trim();
   }
@@ -1170,7 +1163,7 @@ Respond with JSON only (no markdown fences):
   btn.disabled = false;
   renderTable();
   if (selId) renderDD();
-  toast(`${total} topic${total !== 1 ? 's' : ''} analysed.`);
+  showToast(`${total} topic${total !== 1 ? 's' : ''} analysed.`);
 });
 
 // ─── Add topic ────────────────────────────────────────────────────────────────
@@ -1178,7 +1171,7 @@ $('btn-add').addEventListener('click', () => open('ov-add'));
 
 $('add-save').addEventListener('click', () => {
   const desc = $('add-desc').value.trim();
-  if (!desc) { toast('Please enter a topic description.'); return; }
+  if (!desc) { showToast('Please enter a topic description.'); return; }
 
   const tags = $('add-tags').value.split(',').map(s => s.trim()).filter(Boolean);
   const newId = Math.max(...topics.map(t => t.id)) + 1;
@@ -1229,7 +1222,7 @@ $('add-save').addEventListener('click', () => {
     if (row) row.classList.add('newrow');
   }, 40);
 
-  toast(`Topic added to backlog.`);
+  showToast(`Topic added to backlog.`);
 
   // Clear form
   $('add-desc').value = '';
@@ -1315,7 +1308,7 @@ async function autoGatherInfo() {
     }
   }
 
-  if (generated > 0) toast(`Catalyze generated ${generated} information request${generated !== 1 ? 's' : ''}.`);
+  if (generated > 0) showToast(`Catalyze generated ${generated} information request${generated !== 1 ? 's' : ''}.`);
 }
 
 // ─── Gather modal ─────────────────────────────────────────────────────────────
@@ -1367,7 +1360,7 @@ function openGatherModal(tid) {
       removeInfoRequest(tid);
       close('ov-gather');
       if (selId === tid) renderDD();
-      toast('Request cancelled.');
+      showToast('Request cancelled.');
     });
 
     $('gather-save-edits').addEventListener('click', () => {
@@ -1375,7 +1368,7 @@ function openGatherModal(tid) {
       req.emailBody = $('gather-body-ta').value;
       saveInfoRequest(req);
       close('ov-gather');
-      toast('Draft saved.');
+      showToast('Draft saved.');
     });
 
     $('gather-send-now').addEventListener('click', () => {
@@ -1386,7 +1379,7 @@ function openGatherModal(tid) {
       saveInfoRequest(req);
       close('ov-gather');
       if (selId === tid) renderDD();
-      toast(`Email sent to ${req.owner}.`);
+      showToast(`Email sent to ${req.owner}.`);
     });
   } else {
     $('gather-ft').innerHTML = `<button class="btn btn-filled" data-ov="ov-gather">Close</button>`;
@@ -1439,7 +1432,7 @@ function doAction(type, tid) {
         }
       } catch(e) { console.warn('localStorage error:', e); }
       close('ov-action');
-      toast('Topic added to agenda — visible in Meeting prep.');
+      showToast('Topic added to agenda — visible in Meeting prep.');
       window.parent.postMessage({ type: 'navigate', src: 'meeting_prep.html', forum: forumName }, '*');
     });
 
@@ -1496,7 +1489,7 @@ function doAction(type, tid) {
       <p style="font-size:11px;color:#bbb;line-height:1.6">A Catalyze Expert will respond within 24 hours with a structured recommendation.</p>`;
     $('act-ft').innerHTML = `
       <button class="btn" data-ov="ov-action">Cancel</button>
-      <button class="btn btn-filled" onclick="close('ov-action');toast('Briefing sent to Catalyze Expert.')"><i class="ti ti-send"></i> Send briefing</button>`;
+      <button class="btn btn-filled" onclick="close('ov-action');showToast('Briefing sent to Catalyze Expert.')"><i class="ti ti-send"></i> Send briefing</button>`;
   }
 
   // Wire close buttons inside the newly-set HTML
@@ -1666,7 +1659,7 @@ $('api-key-save').addEventListener('click', () => {
     emailTone: $('settings-email-tone').value || 'direct',
   });
   close('ov-api-key');
-  toast('Settings saved.');
+  showToast('Settings saved.');
 });
 
 // ─── Create goal from topic ───────────────────────────────────────────────────
@@ -1677,7 +1670,7 @@ function createGoalFromTopic(t) {
   const deadline = $('goal-deadline')?.value || '2026-06-30';
   const krsRaw   = $('goal-krs')?.value.trim() || '';
 
-  if (!objective) { toast('Please enter an objective.'); return; }
+  if (!objective) { showToast('Please enter an objective.'); return; }
 
   const keyResults = type === 'OKR' && krsRaw
     ? krsRaw.split('\n').filter(Boolean).map((line, i) => {
@@ -1724,7 +1717,7 @@ function createGoalFromTopic(t) {
   try { localStorage.setItem('catalyze_goals', JSON.stringify(existing)); } catch(e) { console.warn('localStorage error:', e); }
 
   close('ov-action');
-  toast('Goal created — visible in Goal setting.');
+  showToast('Goal created — visible in Goal setting.');
   window.parent.postMessage({ type: 'navigate', src: 'goal_setting.html' }, '*');
 }
 

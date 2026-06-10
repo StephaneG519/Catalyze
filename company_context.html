@@ -410,7 +410,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   </div>
 
   <!-- Toast -->
-  <div class="toast" id="toast"><i class="ti ti-check"></i> <span id="toast-text"></span></div>
+  <div class="toast" id="toast"><i class="ti ti-check"></i> <span id="toast-msg"></span></div>
 
 </div>
 
@@ -446,13 +446,6 @@ let vsObsCache = null;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function $(id) { return document.getElementById(id); }
-
-function showToast(msg, duration = 2500) {
-  const t = $('toast');
-  $('toast-text').textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), duration);
-}
 
 function loadContext() {
   try {
@@ -683,14 +676,7 @@ function renderBmObs() { renderObsCard('bm-obs-content', bmObsCache); }
 function renderVsObs() { renderObsCard('vs-obs-content', vsObsCache); }
 
 // ─── AI calls ──────────────────────────────────────────────────────────────────
-// callAI is provided by catalyze-config.js
-// Local wrapper adds API key toast on missing key
-const _callAI = callAI;
-async function callAI(userPrompt, maxTokens, systemOverride) {
-  const key = getApiKey();
-  if (!key) { showToast('Add an API key in Settings'); return null; }
-  return _callAI(userPrompt, maxTokens, systemOverride);
-}
+// callAI and showToast are provided by catalyze-config.js
 
 function parseObsJson(text) {
   const clean = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
@@ -707,6 +693,7 @@ function persistObservations() {
 }
 
 async function loadBmObservations() {
+  if (!getApiKey()) { showToast('Add an API key in Settings'); return; }
   bmObsCache = 'loading';
   renderBmObs();
   try {
@@ -723,6 +710,7 @@ async function loadBmObservations() {
 }
 
 async function loadVsObservations() {
+  if (!getApiKey()) { showToast('Add an API key in Settings'); return; }
   vsObsCache = 'loading';
   renderVsObs();
   try {

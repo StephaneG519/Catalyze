@@ -61,6 +61,17 @@ function saveSettings(settings) {
   try { localStorage.setItem('catalyze_settings', JSON.stringify(settings)); } catch(e) { console.warn('localStorage error:', e); }
 }
 
+let _toastTimer = null;
+function showToast(msg, duration = 3000) {
+  const el = document.getElementById('toast');
+  const msgEl = document.getElementById('toast-msg');
+  if (!el || !msgEl) return;
+  msgEl.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), duration);
+}
+
 const COMPANY_CONTEXT_DEFAULTS = {
   businessModel: 'Meriaux & Fils is a B2B distributor serving industrial and construction clients across France. Revenue of ~€18M comes primarily from product margins (typically 12–18%) on a catalogue of 4,000+ SKUs sourced from 35 European suppliers.',
   vision: 'Become the most operationally reliable B2B distributor in our region by 2028. Grow revenue to €25M while improving EBITDA from current 6–7% toward 10%.',
