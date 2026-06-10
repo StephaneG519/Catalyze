@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catalyze — Company Context</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; display: flex; flex-direction: column; width: 100%; height: 100vh; overflow: hidden; }
+
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; position: relative; }
+
+/* Topbar */
+.topbar { padding: 12px 18px 10px; border-bottom: 1px solid #e2e2e2; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; background: #fff; }
+.topbar-left { display: flex; flex-direction: column; gap: 1px; }
+.topbar-title { font-size: 14px; font-weight: 700; color: #111; }
+.topbar-meta { font-size: 11px; color: #999; }
+.topbar-actions { display: flex; gap: 8px; align-items: center; }
+.btn { font-size: 11px; padding: 6px 11px; border-radius: 7px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: background 0.1s, box-shadow 0.1s; font-family: inherit; font-weight: 500; }
+.btn:hover { opacity: 0.85; }
+.btn-outline { background: #fff; border: 1px solid #ddd; color: #333; }
+.btn-outline:hover { background: #f9f9f9; border-color: #bbb; }
+.btn-filled { background: #111; border: 1px solid #111; color: #fff; }
+.btn-filled:hover { background: #333; }
+
+/* Content layout */
+.content-area { flex: 1; display: flex; overflow: hidden; }
+
+/* Left column */
+.left-col { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid #e2e2e2; }
+
+/* Right column */
+.right-col { width: 248px; min-width: 248px; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; flex-shrink: 0; }
+
+/* Section card */
+.section-card { border: 1px solid #ebebeb; border-radius: 10px; flex-shrink: 0; }
+.section-header { padding: 10px 14px 8px; display: flex; align-items: center; justify-content: space-between; background: #fafafa; border-bottom: 1px solid #f0f0f0; }
+.section-title { font-size: 11px; font-weight: 700; color: #444; text-transform: uppercase; letter-spacing: 0.5px; }
+.section-hint { font-size: 10px; color: #bbb; font-style: italic; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.section-body { padding: 12px 14px; }
+
+/* Editable fields */
+.editable-text { font-size: 12px; color: #333; line-height: 1.7; outline: none; min-height: 20px; border-radius: 5px; padding: 3px 6px; margin: -3px -6px; transition: background 0.1s, box-shadow 0.1s; }
+.editable-text:hover { background: #f5f5f5; }
+.editable-text:focus { background: #f0f8ff; box-shadow: 0 0 0 2px rgba(24,95,165,0.15); }
+
+/* Priority list */
+.priority-list { display: flex; flex-direction: column; gap: 6px; }
+.priority-item { display: flex; align-items: flex-start; gap: 8px; }
+.priority-bullet { width: 6px; height: 6px; border-radius: 50%; background: #1D9E75; flex-shrink: 0; margin-top: 6px; }
+.priority-item-text { font-size: 12px; color: #333; line-height: 1.6; outline: none; flex: 1; border-radius: 5px; padding: 2px 5px; margin: -2px -5px; transition: background 0.1s, box-shadow 0.1s; }
+.priority-item-text:hover { background: #f5f5f5; }
+.priority-item-text:focus { background: #f0f8ff; box-shadow: 0 0 0 2px rgba(24,95,165,0.15); }
+.priority-item-delete { opacity: 0; background: none; border: none; cursor: pointer; font-size: 13px; color: #ccc; padding: 1px 3px; border-radius: 4px; transition: opacity 0.15s, color 0.1s; flex-shrink: 0; margin-top: 2px; }
+.priority-item:hover .priority-item-delete { opacity: 1; }
+.priority-item-delete:hover { color: #A32D2D; }
+.btn-add-item { font-size: 11px; color: #999; background: none; border: 1px dashed #ddd; border-radius: 7px; padding: 5px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: border-color 0.1s, color 0.1s; margin-top: 4px; font-family: inherit; }
+.btn-add-item:hover { color: #555; border-color: #aaa; }
+
+/* Annual goals table */
+.goals-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.goals-table th { font-size: 10px; font-weight: 600; color: #999; padding: 5px 8px; text-align: left; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 1px solid #ebebeb; }
+.goals-table td { padding: 7px 8px; border-bottom: 1px solid #f5f5f5; vertical-align: middle; }
+.goals-table tr:last-child td { border-bottom: none; }
+.goals-table tr:hover td { background: #fafafa; }
+.goal-cell-edit { outline: none; font-size: 11px; color: #333; font-family: inherit; border-radius: 4px; padding: 2px 4px; margin: -2px -4px; transition: background 0.1s, box-shadow 0.1s; display: inline-block; min-width: 20px; }
+.goal-cell-edit:hover { background: #f5f5f5; }
+.goal-cell-edit:focus { background: #f0f8ff; box-shadow: 0 0 0 2px rgba(24,95,165,0.15); }
+.goal-del-btn { opacity: 0; background: none; border: none; cursor: pointer; font-size: 12px; color: #ccc; padding: 2px; border-radius: 4px; transition: opacity 0.15s, color 0.1s; }
+.goals-table tr:hover .goal-del-btn { opacity: 1; }
+.goal-del-btn:hover { color: #A32D2D; }
+
+/* Right column cards */
+.right-card { border: 1px solid #ebebeb; border-radius: 10px; flex-shrink: 0; }
+.right-card-header { padding: 9px 12px 7px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f0f0f0; }
+.right-card-title { font-size: 11px; font-weight: 700; color: #444; }
+.right-card-body { padding: 10px 12px; }
+.right-card.blue-tint { background: #F0F6FF; border-color: #C5D9F2; }
+.right-card.blue-tint .right-card-header { background: #E6F0FA; border-color: #C5D9F2; }
+.right-card.green-tint { background: #F0FBF5; border-color: #B6E4CC; }
+.right-card.green-tint .right-card-header { background: #E1F5EE; border-color: #B6E4CC; }
+.right-card-text { font-size: 11px; color: #444; line-height: 1.7; }
+.right-card-subtext { font-size: 10px; color: #999; margin-top: 5px; line-height: 1.5; }
+.right-card-loading { font-size: 11px; color: #aaa; font-style: italic; display: flex; align-items: center; gap: 6px; }
+.right-card-loading i { font-size: 13px; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.right-card-error { font-size: 11px; color: #A32D2D; }
+
+/* Correction input */
+.correction-wrap { margin-top: 8px; display: none; }
+.correction-wrap.open { display: block; }
+.correction-input { font-size: 11px; padding: 6px 8px; border: 1px solid #C5D9F2; border-radius: 6px; color: #333; background: #fff; font-family: inherit; line-height: 1.5; resize: none; height: 60px; width: 100%; outline: none; transition: border-color 0.15s; }
+.correction-input:focus { border-color: #185FA5; }
+.correction-actions { display: flex; gap: 6px; margin-top: 6px; justify-content: flex-end; }
+.btn-tiny { font-size: 10px; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-family: inherit; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
+.btn-tiny-outline { background: #fff; border: 1px solid #C5D9F2; color: #185FA5; }
+.btn-tiny-outline:hover { background: #E6F0FA; }
+.btn-tiny-filled { background: #185FA5; border: 1px solid #185FA5; color: #fff; }
+.btn-tiny-filled:hover { opacity: 0.85; }
+
+/* Feedback observations */
+.feedback-list { display: flex; flex-direction: column; gap: 8px; }
+.feedback-item { display: flex; align-items: flex-start; gap: 7px; }
+.feedback-icon { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+.feedback-icon.ok { color: #1D9E75; }
+.feedback-icon.warn { color: #E8971A; }
+.feedback-text { font-size: 11px; color: #333; line-height: 1.6; }
+
+/* Share card */
+.share-row { display: flex; gap: 6px; margin-top: 4px; }
+.share-input { flex: 1; font-size: 11px; padding: 6px 8px; border: 1px solid #ddd; border-radius: 6px; color: #333; background: #fff; font-family: inherit; outline: none; transition: border-color 0.15s; }
+.share-input:focus { border-color: #999; }
+.share-sent-note { font-size: 10px; color: #1D9E75; margin-top: 5px; display: none; }
+.share-sent-note.show { display: block; }
+
+/* Modal */
+.modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.35); display: none; align-items: center; justify-content: center; z-index: 100; }
+.modal-overlay.open { display: flex; }
+.modal { background: #fff; border-radius: 12px; border: 1px solid #ddd; width: 460px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 12px 48px rgba(0,0,0,0.16); }
+.modal-header { padding: 15px 18px 13px; border-bottom: 1px solid #ebebeb; display: flex; align-items: center; justify-content: space-between; }
+.modal-title { font-size: 14px; font-weight: 700; color: #111; }
+.modal-close { font-size: 18px; color: #aaa; cursor: pointer; background: none; border: none; display: flex; align-items: center; padding: 2px; transition: color 0.1s; }
+.modal-close:hover { color: #333; }
+.modal-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 13px; overflow-y: auto; max-height: 480px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field-label { font-size: 11px; font-weight: 600; color: #888; }
+.field-input { font-size: 12px; padding: 7px 10px; border: 1px solid #ddd; border-radius: 7px; color: #111; background: #fff; font-family: inherit; outline: none; transition: border-color 0.15s; }
+.field-input:focus { border-color: #999; }
+.field-hint { font-size: 10px; color: #bbb; }
+.inform-modal { width: 420px; }
+.modal-footer { padding: 12px 18px; border-top: 1px solid #ebebeb; display: flex; justify-content: flex-end; gap: 8px; background: #fafafa; }
+
+/* Toast */
+.toast { position: absolute; bottom: 20px; right: 20px; background: #111; color: #fff; font-size: 12px; padding: 10px 16px; border-radius: 8px; display: none; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 200; animation: slideUp 0.2s ease; }
+.toast.show { display: flex; }
+@keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+
+/* Save indicator */
+.save-dot { width: 7px; height: 7px; border-radius: 50%; background: #1D9E75; display: none; margin-top: 1px; }
+.save-dot.visible { display: inline-block; }
+</style>
+</head>
+<body>
+<div class="main">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title">Company context</div>
+      <div class="topbar-meta" id="topbar-meta">Meriaux &amp; Fils · last saved <span id="last-saved">never</span></div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline" id="btn-settings"><i class="ti ti-settings"></i></button>
+      <button class="btn btn-outline" id="btn-inform-ai"><i class="ti ti-message-bolt"></i> Inform AI</button>
+      <button class="btn btn-filled" id="btn-save"><i class="ti ti-device-floppy"></i> Save</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Left column: editable sections -->
+    <div class="left-col" id="left-col">
+
+      <!-- Business model -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Business model <span class="section-hint">— click to edit</span></div>
+        </div>
+        <div class="section-body">
+          <div class="editable-text" id="field-business-model" contenteditable="true" data-field="businessModel"></div>
+        </div>
+      </div>
+
+      <!-- Vision -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Vision <span class="section-hint">— click to edit</span></div>
+        </div>
+        <div class="section-body">
+          <div class="editable-text" id="field-vision" contenteditable="true" data-field="vision"></div>
+        </div>
+      </div>
+
+      <!-- Strategic priorities -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Strategic priorities</div>
+        </div>
+        <div class="section-body">
+          <div class="priority-list" id="priority-list"></div>
+          <button class="btn-add-item" id="btn-add-priority"><i class="ti ti-plus"></i> Add priority</button>
+        </div>
+      </div>
+
+      <!-- Annual goals -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Annual goals</div>
+        </div>
+        <div class="section-body">
+          <table class="goals-table">
+            <thead>
+              <tr>
+                <th style="width:52%">Goal</th>
+                <th style="width:20%">Owner</th>
+                <th style="width:22%">Deadline</th>
+                <th style="width:6%"></th>
+              </tr>
+            </thead>
+            <tbody id="goals-tbody"></tbody>
+          </table>
+          <button class="btn-add-item" id="btn-add-goal" style="margin-top:8px"><i class="ti ti-plus"></i> Add goal</button>
+        </div>
+      </div>
+
+      <!-- Constraints & context -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Constraints &amp; context <span class="section-hint">— click to edit</span></div>
+        </div>
+        <div class="section-body">
+          <div class="editable-text" id="field-constraints" contenteditable="true" data-field="constraints"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right column: AI cards -->
+    <div class="right-col" id="right-col">
+
+      <!-- Card 1: How Catalyze understands this -->
+      <div class="right-card blue-tint" id="card-summary">
+        <div class="right-card-header">
+          <div class="right-card-title"><i class="ti ti-brain" style="font-size:12px;color:#185FA5;margin-right:4px"></i>How Catalyze sees this</div>
+          <button class="btn-tiny btn-tiny-outline" id="btn-refresh-summary" title="Refresh summary"><i class="ti ti-refresh" style="font-size:11px"></i></button>
+        </div>
+        <div class="right-card-body">
+          <div id="summary-content" class="right-card-text"></div>
+          <div class="correction-wrap" id="correction-wrap">
+            <textarea class="correction-input" id="correction-input" placeholder="Correct anything Catalyze got wrong…"></textarea>
+            <div class="correction-actions">
+              <button class="btn-tiny btn-tiny-outline" id="btn-correction-cancel">Cancel</button>
+              <button class="btn-tiny btn-tiny-filled" id="btn-correction-apply"><i class="ti ti-sparkles" style="font-size:10px"></i> Apply</button>
+            </div>
+          </div>
+          <div style="margin-top:8px">
+            <button class="btn-tiny btn-tiny-outline" id="btn-open-correction" style="font-size:10px;color:#666;border-color:#ddd"><i class="ti ti-pencil" style="font-size:10px"></i> Correct</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Share & get feedback -->
+      <div class="right-card" id="card-share">
+        <div class="right-card-header">
+          <div class="right-card-title"><i class="ti ti-share" style="font-size:12px;color:#888;margin-right:4px"></i>Share &amp; get feedback</div>
+        </div>
+        <div class="right-card-body">
+          <div class="right-card-subtext">Send this context to a colleague for a quick sanity check.</div>
+          <div class="share-row">
+            <input type="email" class="share-input" id="share-email" placeholder="colleague@company.com">
+            <button class="btn-tiny btn-tiny-filled" id="btn-share-send" style="background:#555;border-color:#555"><i class="ti ti-send" style="font-size:10px"></i> Send</button>
+          </div>
+          <div class="share-sent-note" id="share-sent-note"><i class="ti ti-check" style="font-size:10px"></i> Sent — simulated</div>
+        </div>
+      </div>
+
+      <!-- Card 3: AI feedback -->
+      <div class="right-card green-tint" id="card-feedback">
+        <div class="right-card-header">
+          <div class="right-card-title"><i class="ti ti-bulb" style="font-size:12px;color:#1D9E75;margin-right:4px"></i>AI observations</div>
+          <button class="btn-tiny" id="btn-refresh-feedback" style="background:none;border:1px solid #B6E4CC;color:#1D9E75" title="Refresh feedback"><i class="ti ti-refresh" style="font-size:11px"></i></button>
+        </div>
+        <div class="right-card-body">
+          <div id="feedback-content"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="modal-settings">
+    <div class="modal inform-modal">
+      <div class="modal-header">
+        <div class="modal-title">Settings</div>
+        <button class="modal-close" id="modal-settings-close"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">API Key</div>
+        <div class="field">
+          <div class="field-label">Current key</div>
+          <div id="settings-key-display" style="font-size:12px;color:#555;background:#fafafa;border:1px solid #ebebeb;border-radius:7px;padding:7px 10px;font-family:monospace;letter-spacing:0.5px;">No key saved</div>
+        </div>
+        <div class="field">
+          <div class="field-label">New API key</div>
+          <input type="text" class="field-input" id="settings-key-input" placeholder="sk-ant-…">
+          <div class="field-hint">Stored in localStorage and used for all AI features across modules.</div>
+        </div>
+        <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 10px">Automatic actions</div>
+        <div class="field">
+          <div class="field-label">Action plan delay</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;color:#555">Send action plans after</span>
+            <input type="number" class="field-input" id="settings-ap-delay" min="1" max="48" style="width:60px">
+            <span style="font-size:12px;color:#555">hours</span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">Backlog delay</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;color:#555">Send topics to backlog after</span>
+            <input type="number" class="field-input" id="settings-backlog-delay" min="1" max="48" style="width:60px">
+            <span style="font-size:12px;color:#555">hours</span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">Check-in interval</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;color:#555">Send KR check-ins every</span>
+            <input type="number" class="field-input" id="settings-checkin-interval" min="1" max="14" style="width:60px">
+            <span style="font-size:12px;color:#555">days</span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">Escalation threshold</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;color:#555">Escalate after</span>
+            <input type="number" class="field-input" id="settings-escalation-threshold" min="1" max="10" style="width:60px">
+            <span style="font-size:12px;color:#555">unanswered check-ins</span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">Email tone</div>
+          <select class="field-input" id="settings-email-tone">
+            <option value="direct">Direct</option>
+            <option value="collegial">Collegial</option>
+            <option value="formal">Formal</option>
+          </select>
+        </div>
+        <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 10px">About</div>
+        <div style="font-size:12px;color:#555;line-height:1.8">
+          <div>Brief version: <span style="color:#333;font-weight:500">v6 final</span></div>
+          <div>App version: <span style="color:#333;font-weight:500">Prototype — June 2026</span></div>
+        </div>
+      </div>
+      <div class="modal-footer" style="flex-direction:column;align-items:stretch;gap:8px">
+        <div style="display:flex;justify-content:flex-end;gap:8px">
+          <button class="btn btn-outline" id="modal-settings-cancel">Cancel</button>
+          <button class="btn btn-filled" id="modal-settings-save"><i class="ti ti-check"></i> Save</button>
+        </div>
+        <div style="font-size:11px;color:#aaa;text-align:center">Settings are stored locally in your browser.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inform AI Modal -->
+  <div class="modal-overlay" id="modal-inform">
+    <div class="modal inform-modal">
+      <div class="modal-header">
+        <div class="modal-title">Inform AI</div>
+        <button class="modal-close" id="modal-inform-close"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <div class="field-label">Share context the AI doesn't have</div>
+          <textarea style="font-size:11px;padding:9px 10px;border:1px solid #ddd;border-radius:7px;color:#111;background:#fff;font-family:inherit;line-height:1.6;resize:none;height:100px;width:100%;outline:none;" id="inform-text" placeholder="A context shift, a recent decision, something that changed…"></textarea>
+        </div>
+        <div style="font-size:11px;color:#999;line-height:1.6;">This context will be used the next time the AI generates a summary or observations.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="modal-inform-cancel">Cancel</button>
+        <button class="btn btn-filled" id="modal-inform-save"><i class="ti ti-check"></i> Save context</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"><i class="ti ti-check"></i> <span id="toast-text"></span></div>
+
+</div>
+
+<script src="catalyze-config.js"></script>
+<script>
+// ─── Defaults ─────────────────────────────────────────────────────────────────
+const DEFAULT_CONTEXT = {
+  businessModel: 'Meriaux & Fils is a B2B distributor serving industrial and construction clients across France. Revenue of ~€18M comes primarily from product margins (typically 12–18%) on a catalogue of 4,000+ SKUs sourced from 35 European suppliers. Key customer segments: SME manufacturers, construction firms, and public works contractors. The business is relationship-driven with long sales cycles and high account concentration risk (top 10 clients = 62% of revenue).',
+  vision: 'Become the most operationally reliable B2B distributor in our region by 2028 — trusted for on-time delivery, transparent pricing, and expert account management. Grow revenue to €25M while improving EBITDA from current 6–7% toward 10%.',
+  priorities: [
+    'Fix Q2 pipeline shortfall — recover €700k by end of June',
+    'Improve decision quality in leadership meetings (owners + deadlines on every decision)',
+    'Resolve CRM configuration to restore pipeline visibility for new reps',
+    'Renegotiate or exit the Technic Pro contract before July renewal',
+    'Identify 2 new cost levers to close EBITDA gap vs board target',
+  ],
+  goals: [
+    { title: 'Reach €18.5M revenue', owner: 'Thomas', deadline: 'Dec 2026' },
+    { title: 'EBITDA ≥ 7%', owner: 'Julie', deadline: 'Dec 2026' },
+    { title: 'On-time delivery ≥ 95%', owner: 'Pierre', deadline: 'Dec 2026' },
+    { title: 'CRM adoption 100% sales team', owner: 'Sarah', deadline: 'Jul 2026' },
+  ],
+  constraints: 'Cash position is tight — investment decisions above €50k require board sign-off. Team bandwidth is stretched; we have one open hire in Sales and one in Ops. The board expects a revised forecast presentation in September. Key risk: over-reliance on top 3 clients (Durand SA, Technic Pro, Lefebvre Industries) who together represent 38% of revenue.',
+};
+
+const LS_KEY = 'catalyze_company_context';
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let ctx = {};
+let informNote = '';
+let summaryCache = null; // null = not loaded, 'loading', or {text, correctedAt}
+let feedbackCache = null;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+
+function showToast(msg, duration = 2500) {
+  const t = $('toast');
+  $('toast-text').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function loadContext() {
+  try {
+    const stored = localStorage.getItem(LS_KEY);
+    ctx = stored ? { ...DEFAULT_CONTEXT, ...JSON.parse(stored) } : { ...DEFAULT_CONTEXT };
+    if (!Array.isArray(ctx.priorities)) ctx.priorities = [...DEFAULT_CONTEXT.priorities];
+    if (!Array.isArray(ctx.goals)) ctx.goals = [...DEFAULT_CONTEXT.goals];
+  } catch(e) {
+    console.warn('localStorage error:', e);
+    ctx = { ...DEFAULT_CONTEXT };
+  }
+}
+
+function saveContext() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(ctx));
+    const now = new Date();
+    $('last-saved').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    showToast('Saved');
+  } catch(e) {
+    console.warn('localStorage error:', e);
+    showToast('Save failed');
+  }
+}
+
+function getCompanyContext() {
+  return [
+    `Business model: ${ctx.businessModel}`,
+    `Vision: ${ctx.vision}`,
+    `Strategic priorities: ${ctx.priorities.join('; ')}`,
+    `Annual goals: ${ctx.goals.map(g => `${g.title} (${g.owner}, ${g.deadline})`).join('; ')}`,
+    `Constraints & context: ${ctx.constraints}`,
+  ].join('\n\n');
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function renderFields() {
+  $('field-business-model').textContent = ctx.businessModel;
+  $('field-vision').textContent = ctx.vision;
+  $('field-constraints').textContent = ctx.constraints;
+  renderPriorities();
+  renderGoals();
+}
+
+function renderPriorities() {
+  const list = $('priority-list');
+  list.innerHTML = '';
+  ctx.priorities.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'priority-item';
+    row.innerHTML = `
+      <div class="priority-bullet"></div>
+      <div class="priority-item-text" contenteditable="true" data-idx="${i}">${escHtml(p)}</div>
+      <button class="priority-item-delete" data-idx="${i}" title="Remove"><i class="ti ti-x"></i></button>
+    `;
+    list.appendChild(row);
+    row.querySelector('.priority-item-text').addEventListener('blur', e => {
+      ctx.priorities[i] = e.target.textContent.trim();
+    });
+    row.querySelector('.priority-item-delete').addEventListener('click', () => {
+      ctx.priorities.splice(i, 1);
+      renderPriorities();
+    });
+  });
+}
+
+function renderGoals() {
+  const tbody = $('goals-tbody');
+  tbody.innerHTML = '';
+  ctx.goals.forEach((g, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="goal-cell-edit" contenteditable="true" data-gfield="title" data-idx="${i}">${escHtml(g.title)}</span></td>
+      <td><span class="goal-cell-edit" contenteditable="true" data-gfield="owner" data-idx="${i}">${escHtml(g.owner)}</span></td>
+      <td><span class="goal-cell-edit" contenteditable="true" data-gfield="deadline" data-idx="${i}">${escHtml(g.deadline)}</span></td>
+      <td><button class="goal-del-btn" data-idx="${i}" title="Remove"><i class="ti ti-x"></i></button></td>
+    `;
+    tbody.appendChild(tr);
+    tr.querySelectorAll('.goal-cell-edit').forEach(el => {
+      el.addEventListener('blur', e => {
+        const idx = parseInt(e.target.dataset.idx);
+        const field = e.target.dataset.gfield;
+        ctx.goals[idx][field] = e.target.textContent.trim();
+      });
+    });
+    tr.querySelector('.goal-del-btn').addEventListener('click', () => {
+      ctx.goals.splice(i, 1);
+      renderGoals();
+    });
+  });
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ─── AI calls ──────────────────────────────────────────────────────────────────
+async function callAI(userPrompt, maxTokens) {
+  const key = getApiKey();
+  if (!key) { showToast('Add an API key in Settings'); return null; }
+  const body = {
+    model: 'claude-sonnet-4-5',
+    max_tokens: maxTokens,
+    system: buildCompanyContextString(),
+    messages: [{ role: 'user', content: userPrompt }]
+  };
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  const data = await res.json();
+  return data.content?.[0]?.text || '';
+}
+
+async function loadSummary() {
+  summaryCache = 'loading';
+  renderSummaryCard();
+  const contextText = getCompanyContext();
+  const noteAppend = informNote ? `\n\nAdditional context: ${informNote}` : '';
+  const prompt = `Based on the company context below, write 2–3 sentences summarising how Catalyze understands this company: its situation, main challenge, and what matters most right now. Be specific, not generic.\n\n${contextText}${noteAppend}`;
+  try {
+    const text = await callAI(prompt, 200);
+    if (text) {
+      summaryCache = { text };
+      renderSummaryCard();
+    } else {
+      summaryCache = null;
+      renderSummaryCard();
+    }
+  } catch(e) {
+    console.warn('Summary AI error:', e);
+    summaryCache = { error: 'Could not load — check API key.' };
+    renderSummaryCard();
+  }
+}
+
+async function applyCorrectionToSummary(correction) {
+  if (!summaryCache || summaryCache === 'loading') return;
+  const currentText = summaryCache.text || '';
+  const prompt = `You wrote this summary of a company:\n\n"${currentText}"\n\nThe user wants to correct it:\n"${correction}"\n\nRewrite the summary incorporating their correction. Keep it 2–3 sentences, specific and direct.`;
+  $('btn-correction-apply').disabled = true;
+  $('btn-correction-apply').textContent = '…';
+  try {
+    const text = await callAI(prompt, 200);
+    if (text) {
+      summaryCache = { text };
+      renderSummaryCard();
+      closeCorrectionWrap();
+    }
+  } catch(e) {
+    console.warn('Correction AI error:', e);
+    showToast('Could not apply — check API key.');
+  } finally {
+    const btn = $('btn-correction-apply');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-sparkles" style="font-size:10px"></i> Apply'; }
+  }
+}
+
+async function loadFeedback() {
+  feedbackCache = 'loading';
+  renderFeedbackCard();
+  const contextText = getCompanyContext();
+  const noteAppend = informNote ? `\n\nAdditional context: ${informNote}` : '';
+  const prompt = `Review the company context below for a CEO. Give exactly 3 observations: 1 or 2 should flag a concern (use ⚠), the rest should confirm something solid (use ✓). Each observation must be one sentence, specific to this company's data. No generic advice.\n\n${contextText}${noteAppend}`;
+  try {
+    const text = await callAI(prompt, 400);
+    if (text) {
+      feedbackCache = { text };
+      renderFeedbackCard();
+    } else {
+      feedbackCache = null;
+      renderFeedbackCard();
+    }
+  } catch(e) {
+    console.warn('Feedback AI error:', e);
+    feedbackCache = { error: 'Could not load — check API key.' };
+    renderFeedbackCard();
+  }
+}
+
+function renderSummaryCard() {
+  const el = $('summary-content');
+  if (!summaryCache || summaryCache === null) {
+    el.innerHTML = '<span class="right-card-subtext">Save your context, then click refresh to get an AI summary.</span>';
+  } else if (summaryCache === 'loading') {
+    el.innerHTML = '<div class="right-card-loading"><i class="ti ti-loader-2"></i> Generating summary…</div>';
+  } else if (summaryCache.error) {
+    el.innerHTML = `<span class="right-card-error">${summaryCache.error}</span>`;
+  } else {
+    el.innerHTML = `<span class="right-card-text">${escHtml(summaryCache.text)}</span>`;
+  }
+}
+
+function renderFeedbackCard() {
+  const el = $('feedback-content');
+  if (!feedbackCache || feedbackCache === null) {
+    el.innerHTML = '<span class="right-card-subtext">Save your context, then click refresh for AI observations.</span>';
+  } else if (feedbackCache === 'loading') {
+    el.innerHTML = '<div class="right-card-loading"><i class="ti ti-loader-2"></i> Analysing…</div>';
+  } else if (feedbackCache.error) {
+    el.innerHTML = `<span class="right-card-error">${feedbackCache.error}</span>`;
+  } else {
+    const lines = feedbackCache.text.split('\n').filter(l => l.trim());
+    const items = lines.map(l => {
+      const isWarn = l.includes('⚠');
+      const clean = l.replace(/^[⚠✓\s\d\.\-]+/, '').trim();
+      return `<div class="feedback-item"><i class="ti ${isWarn ? 'ti-alert-triangle feedback-icon warn' : 'ti-check feedback-icon ok'}"></i><div class="feedback-text">${escHtml(clean)}</div></div>`;
+    }).join('');
+    el.innerHTML = `<div class="feedback-list">${items}</div>`;
+  }
+}
+
+function closeCorrectionWrap() {
+  $('correction-wrap').classList.remove('open');
+  $('correction-input').value = '';
+  $('btn-open-correction').style.display = '';
+}
+
+// ─── Settings modal ────────────────────────────────────────────────────────────
+function openSettings() {
+  const s = getSettings();
+  const k = getApiKey();
+  $('settings-key-display').textContent = maskApiKey(k);
+  $('settings-key-input').value = '';
+  $('settings-ap-delay').value = s.actionPlanDelay;
+  $('settings-backlog-delay').value = s.backlogDelay;
+  $('settings-checkin-interval').value = s.checkinIntervalDays;
+  $('settings-escalation-threshold').value = s.escalationThreshold;
+  $('settings-email-tone').value = s.emailTone;
+  $('modal-settings').classList.add('open');
+}
+
+function closeSettings() { $('modal-settings').classList.remove('open'); }
+
+function saveSettingsModal() {
+  const val = $('settings-key-input').value.trim();
+  if (val) setApiKey(val);
+  saveSettings({
+    actionPlanDelay: parseInt($('settings-ap-delay').value) || 12,
+    backlogDelay: parseInt($('settings-backlog-delay').value) || 12,
+    checkinIntervalDays: parseInt($('settings-checkin-interval').value) || 3,
+    escalationThreshold: parseInt($('settings-escalation-threshold').value) || 3,
+    emailTone: $('settings-email-tone').value,
+  });
+  closeSettings();
+  showToast('Settings saved');
+}
+
+// ─── Event wiring ──────────────────────────────────────────────────────────────
+$('btn-save').addEventListener('click', () => {
+  ctx.businessModel = $('field-business-model').textContent.trim();
+  ctx.vision = $('field-vision').textContent.trim();
+  ctx.constraints = $('field-constraints').textContent.trim();
+  saveContext();
+});
+
+$('btn-settings').addEventListener('click', openSettings);
+$('modal-settings-close').addEventListener('click', closeSettings);
+$('modal-settings-cancel').addEventListener('click', closeSettings);
+$('modal-settings-save').addEventListener('click', saveSettingsModal);
+
+$('btn-inform-ai').addEventListener('click', () => {
+  $('inform-text').value = informNote;
+  $('modal-inform').classList.add('open');
+});
+$('modal-inform-close').addEventListener('click', () => $('modal-inform').classList.remove('open'));
+$('modal-inform-cancel').addEventListener('click', () => $('modal-inform').classList.remove('open'));
+$('modal-inform-save').addEventListener('click', () => {
+  informNote = $('inform-text').value.trim();
+  $('modal-inform').classList.remove('open');
+  showToast('Context saved for this session');
+});
+
+$('btn-refresh-summary').addEventListener('click', loadSummary);
+$('btn-refresh-feedback').addEventListener('click', loadFeedback);
+
+$('btn-open-correction').addEventListener('click', () => {
+  $('correction-wrap').classList.add('open');
+  $('btn-open-correction').style.display = 'none';
+  $('correction-input').focus();
+});
+$('btn-correction-cancel').addEventListener('click', closeCorrectionWrap);
+$('btn-correction-apply').addEventListener('click', () => {
+  const val = $('correction-input').value.trim();
+  if (val) applyCorrectionToSummary(val);
+});
+
+$('btn-add-priority').addEventListener('click', () => {
+  ctx.priorities.push('New priority');
+  renderPriorities();
+  const items = $('priority-list').querySelectorAll('.priority-item-text');
+  const last = items[items.length - 1];
+  if (last) { last.focus(); document.execCommand('selectAll', false, null); }
+});
+
+$('btn-add-goal').addEventListener('click', () => {
+  ctx.goals.push({ title: 'New goal', owner: 'Thomas', deadline: 'Dec 2026' });
+  renderGoals();
+  const rows = $('goals-tbody').querySelectorAll('.goal-cell-edit');
+  const last = rows[rows.length - 3]; // title cell of last row
+  if (last) { last.focus(); document.execCommand('selectAll', false, null); }
+});
+
+$('btn-share-send').addEventListener('click', () => {
+  const email = $('share-email').value.trim();
+  if (!email || !email.includes('@')) { showToast('Enter a valid email address'); return; }
+  $('share-sent-note').classList.add('show');
+  $('share-email').value = '';
+  setTimeout(() => $('share-sent-note').classList.remove('show'), 3000);
+});
+
+// ─── Boot ──────────────────────────────────────────────────────────────────────
+loadContext();
+renderFields();
+renderSummaryCard();
+renderFeedbackCard();
+</script>
+</body>
+</html>

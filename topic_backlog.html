@@ -1072,7 +1072,7 @@ $('btn-analyse').addEventListener('click', async () => {
   const btn = $('btn-analyse');
   btn.disabled = true;
 
-  const SYSTEM = COMPANY_CONTEXT;
+  const SYSTEM = buildCompanyContextString();
 
   async function callAPI(userPrompt, maxTokens = 1000) {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1303,7 +1303,7 @@ async function autoGatherInfo() {
         body: JSON.stringify({
           model: 'claude-sonnet-4-5',
           max_tokens: DEFAULT_MAX_TOKENS,
-          system: COMPANY_CONTEXT,
+          system: buildCompanyContextString(),
           messages: [{ role: 'user', content: `For this topic: '${t.topic}' with this context: '${t.desc}', generate 3-4 specific questions to ask ${t.owner} to gather the missing information needed to act on this topic. Questions should be direct and answerable in 1-2 sentences each. Respond in JSON only: { "questions": ["...", "..."], "emailSubject": "...", "emailBody": "..." } — emailBody should be a complete email from Thomas (CEO) to ${t.owner}, signed 'Catalyze for Thomas'` }],
         }),
       });

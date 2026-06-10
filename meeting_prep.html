@@ -956,7 +956,7 @@ Respond with JSON only (no markdown fences):
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
         max_tokens: DEFAULT_MAX_TOKENS,
-        system: COMPANY_CONTEXT,
+        system: buildCompanyContextString(),
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -1068,7 +1068,7 @@ async function triggerAiSuggestion(meeting, hadPriorState) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
         max_tokens: DEFAULT_MAX_TOKENS,
-        system: COMPANY_CONTEXT,
+        system: buildCompanyContextString(),
         messages: [{ role: 'user', content: prompt }]
       })
     });

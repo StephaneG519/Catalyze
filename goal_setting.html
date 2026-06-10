@@ -1039,7 +1039,7 @@ async function draftCheckinEmail(g, kr, krIdx, isFollowUp) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
         max_tokens: DEFAULT_MAX_TOKENS,
-        system: COMPANY_CONTEXT,
+        system: buildCompanyContextString(),
         messages: [{ role: 'user', content: userPrompt }],
       }),
     });
@@ -1237,7 +1237,7 @@ async function openSimReply(goalId, krIdx) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
         max_tokens: 200,
-        system: COMPANY_CONTEXT,
+        system: buildCompanyContextString(),
         messages: [{ role: 'user', content: userPrompt }],
       }),
     });
@@ -1403,7 +1403,7 @@ ${staleKRs.length ? `\nStale KRs (not updated relative to deadline): ${staleKRs.
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
         max_tokens: DEFAULT_MAX_TOKENS,
-        system: COMPANY_CONTEXT,
+        system: buildCompanyContextString(),
         messages: [{ role: 'user', content: prompt }]
       })
     });

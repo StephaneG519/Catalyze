@@ -62,3 +62,47 @@ function getSettings() {
 function saveSettings(settings) {
   try { localStorage.setItem('catalyze_settings', JSON.stringify(settings)); } catch(e) { console.warn('localStorage error:', e); }
 }
+
+const COMPANY_CONTEXT_DEFAULTS = {
+  businessModel: 'Meriaux & Fils is a B2B distributor serving industrial and construction clients across France. Revenue of ~€18M comes primarily from product margins (typically 12–18%) on a catalogue of 4,000+ SKUs sourced from 35 European suppliers.',
+  vision: 'Become the most operationally reliable B2B distributor in our region by 2028. Grow revenue to €25M while improving EBITDA from current 6–7% toward 10%.',
+  priorities: [
+    'Fix Q2 pipeline shortfall — recover €700k by end of June',
+    'Improve decision quality in leadership meetings',
+    'Resolve CRM configuration for new reps',
+    'Renegotiate or exit Technic Pro contract before July renewal',
+  ],
+  goals: [
+    { title: 'Reach €18.5M revenue', owner: 'Thomas', deadline: 'Dec 2026' },
+    { title: 'EBITDA ≥ 7%', owner: 'Julie', deadline: 'Dec 2026' },
+  ],
+  constraints: 'Cash position is tight — investment decisions above €50k require board sign-off. Key risk: top 3 clients represent 38% of revenue.',
+};
+
+function getCompanyContext() {
+  try {
+    const stored = localStorage.getItem('catalyze_company_context');
+    const c = stored ? { ...COMPANY_CONTEXT_DEFAULTS, ...JSON.parse(stored) } : { ...COMPANY_CONTEXT_DEFAULTS };
+    return [
+      `Business model: ${c.businessModel}`,
+      `Vision: ${c.vision}`,
+      `Strategic priorities: ${Array.isArray(c.priorities) ? c.priorities.join('; ') : ''}`,
+      `Annual goals: ${Array.isArray(c.goals) ? c.goals.map(g => `${g.title} (${g.owner}, ${g.deadline})`).join('; ') : ''}`,
+      `Constraints: ${c.constraints}`,
+    ].join('\n');
+  } catch(e) { return ''; }
+}
+
+function buildCompanyContextString() {
+  const HEADER = 'You are Catalyze, an AI consultant for SME executive teams. Leadership: Thomas (CEO), Sarah (COO), Marc (Sales Director), Julie (Finance Director), Pierre (Ops Director). Be direct, name specific people and deadlines.';
+  const live = getCompanyContext();
+  if (live) return HEADER + '\n' + live;
+  const c = COMPANY_CONTEXT_DEFAULTS;
+  return HEADER + '\n' + [
+    `Business model: ${c.businessModel}`,
+    `Vision: ${c.vision}`,
+    `Strategic priorities: ${c.priorities.join('; ')}`,
+    `Annual goals: ${c.goals.map(g => `${g.title} (${g.owner}, ${g.deadline})`).join('; ')}`,
+    `Constraints: ${c.constraints}`,
+  ].join('\n');
+}

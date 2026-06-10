@@ -894,6 +894,7 @@ function saveBacklogTopics(newMeeting) {
           forum: t.forum,
           rationale: t.rationale,
           source: `${newMeeting.forum} #${newMeeting.iteration} — ${newMeeting.date}`,
+          meetingId: newMeeting.id,
           status: 'Not started',
           tags: [],
           _new: true,
@@ -925,6 +926,7 @@ function saveGoalsFromTopics(newMeeting) {
         objective: t.assignmentContext || t.title,
         keyResults: [],
         autoCreated: true,
+        meetingId: newMeeting.id,
       });
       existingTitles.add(t.title);
       added++;
@@ -988,13 +990,11 @@ function openDeleteModal(meetingId) {
   // Gather related content
   let backlogTopics = [], relatedGoals = [], relatedCommitments = [];
   try {
-    const sourceKey = `${m.forum} #${m.iteration}`;
     const allTopics = JSON.parse(localStorage.getItem('catalyze_backlog_topics') || '[]');
-    backlogTopics = allTopics.filter(t => t.source && t.source.includes(m.forum) && t.source.includes(m.date));
+    backlogTopics = allTopics.filter(t => t.meetingId === meetingId);
 
     const allGoals = JSON.parse(localStorage.getItem('catalyze_goals') || '[]');
-    const deletedTitles = new Set(backlogTopics.map(t => t.title));
-    relatedGoals = allGoals.filter(g => g.autoCreated && deletedTitles.has(g.title));
+    relatedGoals = allGoals.filter(g => g.autoCreated && g.meetingId === meetingId);
 
     const allCommitments = JSON.parse(localStorage.getItem('catalyze_commitments') || '[]');
     relatedCommitments = allCommitments.filter(c => c.meetingId === meetingId);
@@ -1039,14 +1039,11 @@ function confirmDeleteMeeting() {
   // Remove from catalyze_backlog_topics
   try {
     const allTopics = JSON.parse(localStorage.getItem('catalyze_backlog_topics') || '[]');
-    const toDelete = allTopics.filter(t => t.source && t.source.includes(m.forum) && t.source.includes(m.date));
-    const kept = allTopics.filter(t => !toDelete.includes(t));
-    deletedCount += toDelete.length;
+    const kept = allTopics.filter(t => t.meetingId !== m.id);
+    deletedCount += allTopics.length - kept.length;
 
-    // Remove matching goals (autoCreated + title match)
-    const deletedTitles = new Set(toDelete.map(t => t.title));
     const allGoals = JSON.parse(localStorage.getItem('catalyze_goals') || '[]');
-    const keptGoals = allGoals.filter(g => !(g.autoCreated && deletedTitles.has(g.title)));
+    const keptGoals = allGoals.filter(g => !(g.autoCreated && g.meetingId === m.id));
     deletedCount += allGoals.length - keptGoals.length;
 
     localStorage.setItem('catalyze_backlog_topics', JSON.stringify(kept));
@@ -1419,7 +1416,7 @@ async function draftActionPlanEmail(apiKey, owner, assignmentContext) {
     body: JSON.stringify({
       model: 'claude-sonnet-4-5',
       max_tokens: 400,
-      system: COMPANY_CONTEXT,
+      system: buildCompanyContextString(),
       messages: [{ role: 'user', content: `Draft a short email from Thomas (CEO) to ${owner} about this topic: '${assignmentContext}'. The email should: reference exactly what they are expected to do, propose 3 concrete next steps with suggested deadlines, state that if they don't reply within 48 hours this plan will be considered accepted. Max 150 words. Sign the email 'Catalyze for Thomas'. Tone: ${getSettings().emailTone}. Respond in JSON only (no markdown fences): { "subject": "...", "body": "..." }` }]
     })
   });
@@ -1774,7 +1771,7 @@ document.getElementById('modal-add-save').addEventListener('click', async () => 
 
   let newMeeting;
   try {
-    const systemPrompt = COMPANY_CONTEXT;
+    const systemPrompt = buildCompanyContextString();
     const userPrompt = `Analyse these meeting notes and respond with JSON only (no markdown fences).\n\nExtract:\n- forum: string (meeting forum name)\n- date: string (ISO date if found, else null)\n- attendees: string[] (list of attendee names)\n- topics: array of 3-5 objects each with { title, category ("Strategic"|"Tactical"), priority ("High"|"Medium"|"Low"), owner, forum, rationale, assignmentContext (string — one sentence describing what the owner is expected to do; empty string if no clear owner) }\n- decisionFlags: array of 2-3 objects each with { topic, flagType ("no-decision"|"no-owner"|"no-deadline"), remediation }\n- scorecard: object with four keys — meetingHealth, structure, outputQuality, dynamics — each with { rating ("Poor"|"Fair"|"Good"|"Excellent"), confidence (0-100, your certainty given available data), tooltip (1-2 sentence explanation) }. If confidence < 85 for a dimension, set rating to "n/a" and tooltip to "Insufficient data in transcript." For structure, only give a real rating if the transcript contains explicit timing data per agenda item. For dynamics, only give a real rating if the transcript contains explicit speaking time percentages or turn counts. Otherwise you MUST return rating: "n/a" and confidence below 85.\n\nMeeting notes:\n${notes || '(no notes provided)'}`;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1859,7 +1856,12 @@ document.getElementById('modal-add-save').addEventListener('click', async () => 
         turns: 10 - i * 2, interruptions: 0, interrupted: 0
       })),
       topics: aiTopics,
-      decisions: flags.map(f => ({ topic: f.topic, flag: f.flagType, remediation: f.remediation })),
+      decisions: flags.map(f => ({
+        topic: f.topic,
+        flag: f.flagType === 'no-decision' ? 'No decision' : f.flagType === 'no-owner' ? 'No owner' : 'No deadline',
+        flagType: f.flagType === 'no-deadline' ? 'amber' : 'red',
+        remediation: f.remediation
+      })),
       notes: notes || `${forum} — ${date}\nAttendees: ${aiAttendees.join(', ')}\n\nNo notes provided.`
     };
   } catch (err) {
