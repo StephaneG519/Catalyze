@@ -71,48 +71,47 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .goals-table tr:hover .goal-del-btn { opacity: 1; }
 .goal-del-btn:hover { color: #A32D2D; }
 
+/* Deduce block */
+.deduce-block { background: #EBF3FD; border: 1px solid #C5D9F2; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
+.deduce-block.collapsed { padding: 7px 12px; }
+.deduce-title { font-size: 11px; font-weight: 700; color: #185FA5; display: flex; align-items: center; gap: 5px; margin-bottom: 4px; }
+.deduce-block.collapsed .deduce-title { margin-bottom: 0; cursor: pointer; }
+.deduce-desc { font-size: 11px; color: #4A6FA5; margin-bottom: 8px; line-height: 1.5; }
+.deduce-row { display: flex; gap: 6px; }
+.deduce-input { flex: 1; font-size: 11px; padding: 6px 8px; border: 1px solid #C5D9F2; border-radius: 6px; color: #111; background: #fff; font-family: inherit; outline: none; transition: border-color 0.15s; }
+.deduce-input:focus { border-color: #185FA5; }
+.btn-deduce { font-size: 11px; padding: 6px 11px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; background: #185FA5; border: 1px solid #185FA5; color: #fff; font-family: inherit; font-weight: 500; white-space: nowrap; }
+.btn-deduce:hover { opacity: 0.85; }
+.btn-deduce:disabled { opacity: 0.6; cursor: not-allowed; }
+.deduce-source { font-size: 10px; color: #185FA5; display: flex; align-items: center; gap: 5px; }
+.deduce-redo { color: #185FA5; text-decoration: underline; cursor: pointer; background: none; border: none; font-size: 10px; font-family: inherit; padding: 0; }
+
 /* Right column cards */
 .right-card { border: 1px solid #ebebeb; border-radius: 10px; flex-shrink: 0; }
-.right-card-header { padding: 9px 12px 7px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f0f0f0; }
-.right-card-title { font-size: 11px; font-weight: 700; color: #444; }
+.right-card-header { padding: 9px 12px 7px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f0f0f0; border-radius: 10px 10px 0 0; }
+.right-card-title { font-size: 11px; font-weight: 700; color: #444; display: flex; align-items: center; gap: 5px; }
 .right-card-body { padding: 10px 12px; }
-.right-card.blue-tint { background: #F0F6FF; border-color: #C5D9F2; }
-.right-card.blue-tint .right-card-header { background: #E6F0FA; border-color: #C5D9F2; }
-.right-card.green-tint { background: #F0FBF5; border-color: #B6E4CC; }
-.right-card.green-tint .right-card-header { background: #E1F5EE; border-color: #B6E4CC; }
-.right-card-text { font-size: 11px; color: #444; line-height: 1.7; }
-.right-card-subtext { font-size: 10px; color: #999; margin-top: 5px; line-height: 1.5; }
+.right-card.amber-tint { background: #FAEEDA; border-color: #FAC775; }
+.right-card.amber-tint .right-card-header { background: #F5E0B5; border-color: #FAC775; }
+.right-card.green-tint { background: #EAF3DE; border-color: #C0DD97; }
+.right-card.green-tint .right-card-header { background: #D8ECBE; border-color: #C0DD97; }
+.right-card-subtext { font-size: 10px; color: #999; line-height: 1.5; }
 .right-card-loading { font-size: 11px; color: #aaa; font-style: italic; display: flex; align-items: center; gap: 6px; }
 .right-card-loading i { font-size: 13px; animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .right-card-error { font-size: 11px; color: #A32D2D; }
 
-/* Correction input */
-.correction-wrap { margin-top: 8px; display: none; }
-.correction-wrap.open { display: block; }
-.correction-input { font-size: 11px; padding: 6px 8px; border: 1px solid #C5D9F2; border-radius: 6px; color: #333; background: #fff; font-family: inherit; line-height: 1.5; resize: none; height: 60px; width: 100%; outline: none; transition: border-color 0.15s; }
-.correction-input:focus { border-color: #185FA5; }
-.correction-actions { display: flex; gap: 6px; margin-top: 6px; justify-content: flex-end; }
-.btn-tiny { font-size: 10px; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-family: inherit; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
-.btn-tiny-outline { background: #fff; border: 1px solid #C5D9F2; color: #185FA5; }
-.btn-tiny-outline:hover { background: #E6F0FA; }
-.btn-tiny-filled { background: #185FA5; border: 1px solid #185FA5; color: #fff; }
-.btn-tiny-filled:hover { opacity: 0.85; }
+/* Observation items */
+.obs-list { display: flex; flex-direction: column; gap: 8px; }
+.obs-item { display: flex; align-items: flex-start; gap: 7px; }
+.obs-icon { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+.obs-icon.ok { color: #1D9E75; }
+.obs-icon.warn { color: #E8971A; }
+.obs-text { font-size: 11px; color: #333; line-height: 1.6; }
 
-/* Feedback observations */
-.feedback-list { display: flex; flex-direction: column; gap: 8px; }
-.feedback-item { display: flex; align-items: flex-start; gap: 7px; }
-.feedback-icon { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
-.feedback-icon.ok { color: #1D9E75; }
-.feedback-icon.warn { color: #E8971A; }
-.feedback-text { font-size: 11px; color: #333; line-height: 1.6; }
-
-/* Share card */
-.share-row { display: flex; gap: 6px; margin-top: 4px; }
-.share-input { flex: 1; font-size: 11px; padding: 6px 8px; border: 1px solid #ddd; border-radius: 6px; color: #333; background: #fff; font-family: inherit; outline: none; transition: border-color 0.15s; }
-.share-input:focus { border-color: #999; }
-.share-sent-note { font-size: 10px; color: #1D9E75; margin-top: 5px; display: none; }
-.share-sent-note.show { display: block; }
+/* Refresh button for right cards */
+.btn-card-refresh { background: none; border: none; cursor: pointer; font-size: 13px; color: #bbb; padding: 2px; border-radius: 4px; display: flex; align-items: center; transition: color 0.1s; }
+.btn-card-refresh:hover { color: #555; }
 
 /* Modal */
 .modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.35); display: none; align-items: center; justify-content: center; z-index: 100; }
@@ -155,6 +154,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div class="topbar-actions">
       <button class="btn btn-outline" id="btn-settings"><i class="ti ti-settings"></i></button>
+      <button class="btn btn-outline" id="btn-share"><i class="ti ti-share"></i> Share &amp; get feedback</button>
       <button class="btn btn-outline" id="btn-inform-ai"><i class="ti ti-message-bolt"></i> Inform AI</button>
       <button class="btn btn-filled" id="btn-save"><i class="ti ti-device-floppy"></i> Save</button>
     </div>
@@ -172,6 +172,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
           <div class="section-title">Business model <span class="section-hint">— click to edit</span></div>
         </div>
         <div class="section-body">
+          <!-- Deduce block -->
+          <div class="deduce-block" id="deduce-block">
+            <div class="deduce-title"><i class="ti ti-wand"></i> Let Catalyze deduce</div>
+            <div class="deduce-desc">Paste your website URL — Catalyze will write a structured business model you can edit directly.</div>
+            <div class="deduce-row">
+              <input type="url" class="deduce-input" id="deduce-url" placeholder="https://www.yourcompany.com">
+              <button class="btn-deduce" id="btn-deduce"><i class="ti ti-wand"></i> Deduce</button>
+            </div>
+          </div>
           <div class="editable-text" id="field-business-model" contenteditable="true" data-field="businessModel"></div>
         </div>
       </div>
@@ -230,53 +239,28 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
     </div>
 
-    <!-- Right column: AI cards -->
+    <!-- Right column: AI observation cards -->
     <div class="right-col" id="right-col">
 
-      <!-- Card 1: How Catalyze understands this -->
-      <div class="right-card blue-tint" id="card-summary">
+      <!-- Card 1: Business model observations -->
+      <div class="right-card amber-tint" id="card-bm-obs">
         <div class="right-card-header">
-          <div class="right-card-title"><i class="ti ti-brain" style="font-size:12px;color:#185FA5;margin-right:4px"></i>How Catalyze sees this</div>
-          <button class="btn-tiny btn-tiny-outline" id="btn-refresh-summary" title="Refresh summary"><i class="ti ti-refresh" style="font-size:11px"></i></button>
+          <div class="right-card-title" style="color:#633806"><i class="ti ti-building-store" style="font-size:12px"></i> Business model observations</div>
+          <button class="btn-card-refresh" id="btn-refresh-bm" title="Refresh observations"><i class="ti ti-refresh"></i></button>
         </div>
         <div class="right-card-body">
-          <div id="summary-content" class="right-card-text"></div>
-          <div class="correction-wrap" id="correction-wrap">
-            <textarea class="correction-input" id="correction-input" placeholder="Correct anything Catalyze got wrong…"></textarea>
-            <div class="correction-actions">
-              <button class="btn-tiny btn-tiny-outline" id="btn-correction-cancel">Cancel</button>
-              <button class="btn-tiny btn-tiny-filled" id="btn-correction-apply"><i class="ti ti-sparkles" style="font-size:10px"></i> Apply</button>
-            </div>
-          </div>
-          <div style="margin-top:8px">
-            <button class="btn-tiny btn-tiny-outline" id="btn-open-correction" style="font-size:10px;color:#666;border-color:#ddd"><i class="ti ti-pencil" style="font-size:10px"></i> Correct</button>
-          </div>
+          <div id="bm-obs-content"></div>
         </div>
       </div>
 
-      <!-- Card 2: Share & get feedback -->
-      <div class="right-card" id="card-share">
+      <!-- Card 2: Vision & strategy observations -->
+      <div class="right-card green-tint" id="card-vs-obs">
         <div class="right-card-header">
-          <div class="right-card-title"><i class="ti ti-share" style="font-size:12px;color:#888;margin-right:4px"></i>Share &amp; get feedback</div>
+          <div class="right-card-title" style="color:#27500A"><i class="ti ti-eye" style="font-size:12px"></i> Vision &amp; strategy observations</div>
+          <button class="btn-card-refresh" id="btn-refresh-vs" title="Refresh observations"><i class="ti ti-refresh"></i></button>
         </div>
         <div class="right-card-body">
-          <div class="right-card-subtext">Send this context to a colleague for a quick sanity check.</div>
-          <div class="share-row">
-            <input type="email" class="share-input" id="share-email" placeholder="colleague@company.com">
-            <button class="btn-tiny btn-tiny-filled" id="btn-share-send" style="background:#555;border-color:#555"><i class="ti ti-send" style="font-size:10px"></i> Send</button>
-          </div>
-          <div class="share-sent-note" id="share-sent-note"><i class="ti ti-check" style="font-size:10px"></i> Sent — simulated</div>
-        </div>
-      </div>
-
-      <!-- Card 3: AI feedback -->
-      <div class="right-card green-tint" id="card-feedback">
-        <div class="right-card-header">
-          <div class="right-card-title"><i class="ti ti-bulb" style="font-size:12px;color:#1D9E75;margin-right:4px"></i>AI observations</div>
-          <button class="btn-tiny" id="btn-refresh-feedback" style="background:none;border:1px solid #B6E4CC;color:#1D9E75" title="Refresh feedback"><i class="ti ti-refresh" style="font-size:11px"></i></button>
-        </div>
-        <div class="right-card-body">
-          <div id="feedback-content"></div>
+          <div id="vs-obs-content"></div>
         </div>
       </div>
 
@@ -370,11 +354,33 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
           <div class="field-label">Share context the AI doesn't have</div>
           <textarea style="font-size:11px;padding:9px 10px;border:1px solid #ddd;border-radius:7px;color:#111;background:#fff;font-family:inherit;line-height:1.6;resize:none;height:100px;width:100%;outline:none;" id="inform-text" placeholder="A context shift, a recent decision, something that changed…"></textarea>
         </div>
-        <div style="font-size:11px;color:#999;line-height:1.6;">This context will be used the next time the AI generates a summary or observations.</div>
+        <div style="font-size:11px;color:#999;line-height:1.6;">This context will be used the next time the AI generates observations.</div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-outline" id="modal-inform-cancel">Cancel</button>
         <button class="btn btn-filled" id="modal-inform-save"><i class="ti ti-check"></i> Save context</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Share & get feedback Modal -->
+  <div class="modal-overlay" id="modal-share">
+    <div class="modal inform-modal">
+      <div class="modal-header">
+        <div class="modal-title">Share &amp; get feedback</div>
+        <button class="modal-close" id="modal-share-close"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <div class="field-label">Recipients</div>
+          <input type="text" class="field-input" id="share-emails" placeholder="colleague@company.com, other@company.com">
+          <div class="field-hint">Comma-separated email addresses.</div>
+        </div>
+        <div style="font-size:11px;color:#999;line-height:1.6;">Their feedback will be processed by the AI and reflected in observations.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="modal-share-cancel">Cancel</button>
+        <button class="btn btn-filled" id="modal-share-send"><i class="ti ti-send"></i> Send</button>
       </div>
     </div>
   </div>
@@ -411,8 +417,8 @@ const LS_KEY = 'catalyze_company_context';
 // ─── State ────────────────────────────────────────────────────────────────────
 let ctx = {};
 let informNote = '';
-let summaryCache = null; // null = not loaded, 'loading', or {text, correctedAt}
-let feedbackCache = null;
+let bmObsCache = null;  // null | 'loading' | { observations: [] } | { error: '' }
+let vsObsCache = null;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function $(id) { return document.getElementById(id); }
@@ -427,9 +433,19 @@ function showToast(msg, duration = 2500) {
 function loadContext() {
   try {
     const stored = localStorage.getItem(LS_KEY);
-    ctx = stored ? { ...DEFAULT_CONTEXT, ...JSON.parse(stored) } : { ...DEFAULT_CONTEXT };
+    const parsed = stored ? JSON.parse(stored) : {};
+    ctx = { ...DEFAULT_CONTEXT, ...parsed };
     if (!Array.isArray(ctx.priorities)) ctx.priorities = [...DEFAULT_CONTEXT.priorities];
     if (!Array.isArray(ctx.goals)) ctx.goals = [...DEFAULT_CONTEXT.goals];
+    // restore cached observations
+    if (parsed.businessModelObservations) bmObsCache = { observations: parsed.businessModelObservations };
+    if (parsed.visionStrategyObservations) vsObsCache = { observations: parsed.visionStrategyObservations };
+    // restore deduce state
+    if (parsed.deduceSource) renderDeduceCollapsed(parsed.deduceSource);
+    // restore business model HTML if available (injected after renderFields runs)
+    if (parsed.businessModelHtml) {
+      requestAnimationFrame(() => { $('field-business-model').innerHTML = parsed.businessModelHtml; });
+    }
   } catch(e) {
     console.warn('localStorage error:', e);
     ctx = { ...DEFAULT_CONTEXT };
@@ -438,7 +454,21 @@ function loadContext() {
 
 function saveContext() {
   try {
-    localStorage.setItem(LS_KEY, JSON.stringify(ctx));
+    const toStore = {
+      businessModel: ctx.businessModel,
+      vision: ctx.vision,
+      priorities: ctx.priorities,
+      goals: ctx.goals,
+      constraints: ctx.constraints,
+    };
+    if (bmObsCache && bmObsCache.observations) toStore.businessModelObservations = bmObsCache.observations;
+    if (vsObsCache && vsObsCache.observations) toStore.visionStrategyObservations = vsObsCache.observations;
+    // preserve deduceSource if set
+    try {
+      const existing = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+      if (existing.deduceSource) toStore.deduceSource = existing.deduceSource;
+    } catch(e) {}
+    localStorage.setItem(LS_KEY, JSON.stringify(toStore));
     const now = new Date();
     $('last-saved').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     showToast('Saved');
@@ -448,7 +478,23 @@ function saveContext() {
   }
 }
 
-function getCompanyContext() {
+function persistDeduceSource(domain) {
+  try {
+    const existing = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+    existing.deduceSource = domain;
+    localStorage.setItem(LS_KEY, JSON.stringify(existing));
+  } catch(e) {}
+}
+
+function clearDeduceSource() {
+  try {
+    const existing = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+    delete existing.deduceSource;
+    localStorage.setItem(LS_KEY, JSON.stringify(existing));
+  } catch(e) {}
+}
+
+function getCompanyContextLocal() {
   return [
     `Business model: ${ctx.businessModel}`,
     `Vision: ${ctx.vision}`,
@@ -515,18 +561,70 @@ function renderGoals() {
   });
 }
 
+function renderDeduceCollapsed(domain) {
+  const block = $('deduce-block');
+  block.classList.add('collapsed');
+  block.innerHTML = `
+    <div class="deduce-title" id="deduce-collapsed-title">
+      <i class="ti ti-wand"></i>
+      <span class="deduce-source">Deduced from ${escHtml(domain)}</span>
+      <button class="deduce-redo" id="btn-deduce-redo">· redo</button>
+    </div>
+  `;
+  $('deduce-collapsed-title').addEventListener('click', expandDeduce);
+  $('btn-deduce-redo').addEventListener('click', e => { e.stopPropagation(); expandDeduce(); });
+}
+
+function expandDeduce() {
+  const block = $('deduce-block');
+  block.classList.remove('collapsed');
+  block.innerHTML = `
+    <div class="deduce-title"><i class="ti ti-wand"></i> Let Catalyze deduce</div>
+    <div class="deduce-desc">Paste your website URL — Catalyze will write a structured business model you can edit directly.</div>
+    <div class="deduce-row">
+      <input type="url" class="deduce-input" id="deduce-url" placeholder="https://www.yourcompany.com">
+      <button class="btn-deduce" id="btn-deduce"><i class="ti ti-wand"></i> Deduce</button>
+    </div>
+  `;
+  $('btn-deduce').addEventListener('click', runDeduce);
+  clearDeduceSource();
+}
+
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// ─── Observation card renderers ───────────────────────────────────────────────
+function renderObsCard(elId, cache) {
+  const el = $(elId);
+  if (!cache) {
+    el.innerHTML = '<span class="right-card-subtext">Save your context to generate observations.</span>';
+  } else if (cache === 'loading') {
+    el.innerHTML = '<div class="right-card-loading"><i class="ti ti-loader-2"></i> Analysing…</div>';
+  } else if (cache.error) {
+    el.innerHTML = `<span class="right-card-error">${escHtml(cache.error)}</span>`;
+  } else if (Array.isArray(cache.observations)) {
+    const items = cache.observations.map(o => {
+      const isWarn = o.type === 'warning';
+      return `<div class="obs-item"><i class="ti ${isWarn ? 'ti-alert-triangle obs-icon warn' : 'ti-check obs-icon ok'}"></i><div class="obs-text">${escHtml(o.text)}</div></div>`;
+    }).join('');
+    el.innerHTML = `<div class="obs-list">${items}</div>`;
+  } else {
+    el.innerHTML = '<span class="right-card-subtext">Save your context to generate observations.</span>';
+  }
+}
+
+function renderBmObs() { renderObsCard('bm-obs-content', bmObsCache); }
+function renderVsObs() { renderObsCard('vs-obs-content', vsObsCache); }
+
 // ─── AI calls ──────────────────────────────────────────────────────────────────
-async function callAI(userPrompt, maxTokens) {
+async function callAI(userPrompt, maxTokens, systemOverride) {
   const key = getApiKey();
   if (!key) { showToast('Add an API key in Settings'); return null; }
   const body = {
     model: 'claude-sonnet-4-5',
     max_tokens: maxTokens,
-    system: buildCompanyContextString(),
+    system: systemOverride || buildCompanyContextString(),
     messages: [{ role: 'user', content: userPrompt }]
   };
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -544,108 +642,138 @@ async function callAI(userPrompt, maxTokens) {
   return data.content?.[0]?.text || '';
 }
 
-async function loadSummary() {
-  summaryCache = 'loading';
-  renderSummaryCard();
-  const contextText = getCompanyContext();
-  const noteAppend = informNote ? `\n\nAdditional context: ${informNote}` : '';
-  const prompt = `Based on the company context below, write 2–3 sentences summarising how Catalyze understands this company: its situation, main challenge, and what matters most right now. Be specific, not generic.\n\n${contextText}${noteAppend}`;
+function parseObsJson(text) {
+  const clean = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  return JSON.parse(clean);
+}
+
+function persistObservations() {
   try {
-    const text = await callAI(prompt, 200);
-    if (text) {
-      summaryCache = { text };
-      renderSummaryCard();
+    const existing = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+    if (bmObsCache && bmObsCache.observations) existing.businessModelObservations = bmObsCache.observations;
+    if (vsObsCache && vsObsCache.observations) existing.visionStrategyObservations = vsObsCache.observations;
+    localStorage.setItem(LS_KEY, JSON.stringify(existing));
+  } catch(e) {}
+}
+
+async function loadBmObservations() {
+  bmObsCache = 'loading';
+  renderBmObs();
+  try {
+    const text = await callAI(PROMPTS.businessModelObservations(ctx.businessModel), 400);
+    if (!text) { bmObsCache = null; renderBmObs(); return; }
+    const parsed = parseObsJson(text);
+    bmObsCache = { observations: parsed.observations };
+  } catch(e) {
+    console.warn('BM obs error:', e);
+    bmObsCache = { error: 'Could not load — check API key.' };
+  }
+  renderBmObs();
+  persistObservations();
+}
+
+async function loadVsObservations() {
+  vsObsCache = 'loading';
+  renderVsObs();
+  try {
+    const priorities = ctx.priorities.join('; ');
+    const goals = ctx.goals.map(g => `${g.title} (${g.owner}, ${g.deadline})`).join('; ');
+    const text = await callAI(PROMPTS.visionStrategyObservations(ctx.vision, priorities, goals, ctx.constraints), 400);
+    if (!text) { vsObsCache = null; renderVsObs(); return; }
+    const parsed = parseObsJson(text);
+    vsObsCache = { observations: parsed.observations };
+  } catch(e) {
+    console.warn('VS obs error:', e);
+    vsObsCache = { error: 'Could not load — check API key.' };
+  }
+  renderVsObs();
+  persistObservations();
+}
+
+function formatBusinessModel(text) {
+  const labels = ['Activity', 'Revenue streams', 'Value proposition', 'Customer segments', 'Channels', 'Key resources', 'Key activities', 'Cost structure'];
+  const parts = [];
+  let remaining = text.trim();
+  for (let i = 0; i < labels.length; i++) {
+    const label = labels[i];
+    const nextLabel = labels[i + 1];
+    const startIdx = remaining.search(new RegExp(label + ':?', 'i'));
+    if (startIdx === -1) continue;
+    const contentStart = remaining.indexOf(':', startIdx) + 1;
+    const endIdx = nextLabel ? remaining.search(new RegExp(nextLabel + ':?', 'i')) : remaining.length;
+    const content = remaining.substring(contentStart, endIdx !== -1 ? endIdx : remaining.length).trim();
+    parts.push({ label, content });
+  }
+  return parts.map(({ label, content }) =>
+    `<div style="margin-bottom:14px"><strong>${label}:</strong> ${content}</div>`
+  ).join('');
+}
+
+async function fetchWebsiteText(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`fetch ${res.status}`);
+  const html = await res.text();
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  // remove script/style noise
+  div.querySelectorAll('script, style, noscript').forEach(el => el.remove());
+  return (div.innerText || div.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 6000);
+}
+
+async function runDeduce() {
+  const urlVal = $('deduce-url').value.trim();
+  if (!urlVal || !urlVal.startsWith('http')) { showToast('Enter a valid URL starting with https://'); return; }
+  const btn = $('btn-deduce');
+  const setLabel = (html) => { btn.innerHTML = `<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> ${html}`; };
+  btn.disabled = true;
+  setLabel('Fetching website…');
+
+  let rawContent;
+  try {
+    rawContent = await fetchWebsiteText(urlVal);
+    showToast('Website fetched — extracting signals…', 2000);
+  } catch(e) {
+    rawContent = `URL: ${urlVal}\n\nThe website content could not be fetched automatically. Use your knowledge of this company or domain if available. If you have no knowledge of it, fill each component with "Not specified".`;
+    showToast('Could not fetch website — using AI knowledge…', 2500);
+  }
+
+  try {
+    setLabel('Extracting business signals…');
+    const signals = await callAI(PROMPTS.extractBusinessSignals(rawContent), 600, buildCompanyContextString());
+    if (!signals) throw new Error('empty signals response');
+
+    setLabel('Writing business model…');
+    const raw = await callAI(PROMPTS.deduceBusinessModel(signals), 600, buildCompanyContextString());
+    if (raw) {
+      const componentLabels = ['Activity:', 'Revenue streams:', 'Value proposition:', 'Customer segments:', 'Channels:', 'Key resources:', 'Key activities:', 'Cost structure:'];
+      let result = raw;
+      componentLabels.forEach(label => {
+        result = result.replace(new RegExp('\\s*' + label, 'g'), '\n\n' + label);
+      });
+      result = result.trim();
+      ctx.businessModel = result;
+      const bmHtml = formatBusinessModel(result);
+      $('field-business-model').innerHTML = bmHtml;
+      try {
+        const existing = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+        existing.businessModelHtml = bmHtml;
+        localStorage.setItem(LS_KEY, JSON.stringify(existing));
+      } catch(e) {}
+      let domain = urlVal;
+      try { domain = new URL(urlVal).hostname.replace(/^www\./, ''); } catch(e) {}
+      persistDeduceSource(domain);
+      renderDeduceCollapsed(domain);
     } else {
-      summaryCache = null;
-      renderSummaryCard();
+      showToast('Could not deduce — try again.');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-wand"></i> Deduce';
     }
   } catch(e) {
-    console.warn('Summary AI error:', e);
-    summaryCache = { error: 'Could not load — check API key.' };
-    renderSummaryCard();
+    console.warn('Deduce error:', e);
+    showToast('Could not deduce — check API key.');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-wand"></i> Deduce';
   }
-}
-
-async function applyCorrectionToSummary(correction) {
-  if (!summaryCache || summaryCache === 'loading') return;
-  const currentText = summaryCache.text || '';
-  const prompt = `You wrote this summary of a company:\n\n"${currentText}"\n\nThe user wants to correct it:\n"${correction}"\n\nRewrite the summary incorporating their correction. Keep it 2–3 sentences, specific and direct.`;
-  $('btn-correction-apply').disabled = true;
-  $('btn-correction-apply').textContent = '…';
-  try {
-    const text = await callAI(prompt, 200);
-    if (text) {
-      summaryCache = { text };
-      renderSummaryCard();
-      closeCorrectionWrap();
-    }
-  } catch(e) {
-    console.warn('Correction AI error:', e);
-    showToast('Could not apply — check API key.');
-  } finally {
-    const btn = $('btn-correction-apply');
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-sparkles" style="font-size:10px"></i> Apply'; }
-  }
-}
-
-async function loadFeedback() {
-  feedbackCache = 'loading';
-  renderFeedbackCard();
-  const contextText = getCompanyContext();
-  const noteAppend = informNote ? `\n\nAdditional context: ${informNote}` : '';
-  const prompt = `Review the company context below for a CEO. Give exactly 3 observations: 1 or 2 should flag a concern (use ⚠), the rest should confirm something solid (use ✓). Each observation must be one sentence, specific to this company's data. No generic advice.\n\n${contextText}${noteAppend}`;
-  try {
-    const text = await callAI(prompt, 400);
-    if (text) {
-      feedbackCache = { text };
-      renderFeedbackCard();
-    } else {
-      feedbackCache = null;
-      renderFeedbackCard();
-    }
-  } catch(e) {
-    console.warn('Feedback AI error:', e);
-    feedbackCache = { error: 'Could not load — check API key.' };
-    renderFeedbackCard();
-  }
-}
-
-function renderSummaryCard() {
-  const el = $('summary-content');
-  if (!summaryCache || summaryCache === null) {
-    el.innerHTML = '<span class="right-card-subtext">Save your context, then click refresh to get an AI summary.</span>';
-  } else if (summaryCache === 'loading') {
-    el.innerHTML = '<div class="right-card-loading"><i class="ti ti-loader-2"></i> Generating summary…</div>';
-  } else if (summaryCache.error) {
-    el.innerHTML = `<span class="right-card-error">${summaryCache.error}</span>`;
-  } else {
-    el.innerHTML = `<span class="right-card-text">${escHtml(summaryCache.text)}</span>`;
-  }
-}
-
-function renderFeedbackCard() {
-  const el = $('feedback-content');
-  if (!feedbackCache || feedbackCache === null) {
-    el.innerHTML = '<span class="right-card-subtext">Save your context, then click refresh for AI observations.</span>';
-  } else if (feedbackCache === 'loading') {
-    el.innerHTML = '<div class="right-card-loading"><i class="ti ti-loader-2"></i> Analysing…</div>';
-  } else if (feedbackCache.error) {
-    el.innerHTML = `<span class="right-card-error">${feedbackCache.error}</span>`;
-  } else {
-    const lines = feedbackCache.text.split('\n').filter(l => l.trim());
-    const items = lines.map(l => {
-      const isWarn = l.includes('⚠');
-      const clean = l.replace(/^[⚠✓\s\d\.\-]+/, '').trim();
-      return `<div class="feedback-item"><i class="ti ${isWarn ? 'ti-alert-triangle feedback-icon warn' : 'ti-check feedback-icon ok'}"></i><div class="feedback-text">${escHtml(clean)}</div></div>`;
-    }).join('');
-    el.innerHTML = `<div class="feedback-list">${items}</div>`;
-  }
-}
-
-function closeCorrectionWrap() {
-  $('correction-wrap').classList.remove('open');
-  $('correction-input').value = '';
-  $('btn-open-correction').style.display = '';
 }
 
 // ─── Settings modal ────────────────────────────────────────────────────────────
@@ -684,6 +812,8 @@ $('btn-save').addEventListener('click', () => {
   ctx.vision = $('field-vision').textContent.trim();
   ctx.constraints = $('field-constraints').textContent.trim();
   saveContext();
+  loadBmObservations();
+  loadVsObservations();
 });
 
 $('btn-settings').addEventListener('click', openSettings);
@@ -703,19 +833,23 @@ $('modal-inform-save').addEventListener('click', () => {
   showToast('Context saved for this session');
 });
 
-$('btn-refresh-summary').addEventListener('click', loadSummary);
-$('btn-refresh-feedback').addEventListener('click', loadFeedback);
+$('btn-share').addEventListener('click', () => {
+  $('share-emails').value = '';
+  $('modal-share').classList.add('open');
+});
+$('modal-share-close').addEventListener('click', () => $('modal-share').classList.remove('open'));
+$('modal-share-cancel').addEventListener('click', () => $('modal-share').classList.remove('open'));
+$('modal-share-send').addEventListener('click', () => {
+  const emails = $('share-emails').value.trim();
+  if (!emails || !emails.includes('@')) { showToast('Enter at least one valid email address'); return; }
+  $('modal-share').classList.remove('open');
+  showToast('Feedback request sent.');
+});
 
-$('btn-open-correction').addEventListener('click', () => {
-  $('correction-wrap').classList.add('open');
-  $('btn-open-correction').style.display = 'none';
-  $('correction-input').focus();
-});
-$('btn-correction-cancel').addEventListener('click', closeCorrectionWrap);
-$('btn-correction-apply').addEventListener('click', () => {
-  const val = $('correction-input').value.trim();
-  if (val) applyCorrectionToSummary(val);
-});
+$('btn-refresh-bm').addEventListener('click', loadBmObservations);
+$('btn-refresh-vs').addEventListener('click', loadVsObservations);
+
+$('btn-deduce').addEventListener('click', runDeduce);
 
 $('btn-add-priority').addEventListener('click', () => {
   ctx.priorities.push('New priority');
@@ -733,19 +867,20 @@ $('btn-add-goal').addEventListener('click', () => {
   if (last) { last.focus(); document.execCommand('selectAll', false, null); }
 });
 
-$('btn-share-send').addEventListener('click', () => {
-  const email = $('share-email').value.trim();
-  if (!email || !email.includes('@')) { showToast('Enter a valid email address'); return; }
-  $('share-sent-note').classList.add('show');
-  $('share-email').value = '';
-  setTimeout(() => $('share-sent-note').classList.remove('show'), 3000);
-});
-
 // ─── Boot ──────────────────────────────────────────────────────────────────────
 loadContext();
 renderFields();
-renderSummaryCard();
-renderFeedbackCard();
+renderBmObs();
+renderVsObs();
+
+$('field-business-model').addEventListener('blur', () => {
+  ctx.businessModel = $('field-business-model').innerText.trim();
+  try {
+    const existing = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+    delete existing.businessModelHtml;
+    localStorage.setItem(LS_KEY, JSON.stringify(existing));
+  } catch(e) {}
+});
 </script>
 </body>
 </html>

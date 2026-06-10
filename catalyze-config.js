@@ -1,8 +1,6 @@
 // Shared configuration for all Catalyze modules.
 // Loaded via <script src="catalyze-config.js"></script> before each module's own <script>.
 
-const COMPANY_CONTEXT = 'You are Catalyze, an AI consultant for SME executive teams. Company: Meriaux & Fils, B2B distribution, 85 employees. Leadership: Thomas (CEO), Sarah (COO), Marc (Sales Director), Julie (Finance Director), Pierre (Ops Director). Revenue ~€18M. Be direct, name specific people and deadlines.';
-
 const DEFAULT_MAX_TOKENS = 1000;
 
 const COLORS = {
@@ -106,3 +104,58 @@ function buildCompanyContextString() {
     `Constraints: ${c.constraints}`,
   ].join('\n');
 }
+
+const PROMPTS = {
+  deduceBusinessModel: (websiteContent) => `CRITICAL: You must put each component on a separate line. If your response does not have line breaks between components, it is wrong.
+
+Respond in plain text only. No markdown, no bold, no asterisks. Each component must be on its own line, separated by a blank line. Use exactly this structure:
+
+Activity: [one sentence]
+
+Revenue streams: [max 2 lines]
+
+Value proposition: [max 2 lines]
+
+Customer segments: [max 2 lines]
+
+Channels: [max 1-2 lines]
+
+Key resources: [max 2 lines]
+
+Key activities: [max 2 lines]
+
+Cost structure: [max 2 lines]
+
+You are analysing a company website to extract a structured business model. Use quantified language where possible ("primary", "mainly", "~X%"). If information is missing or cannot be inferred, write "Not specified" — do not invent.
+
+Website content:
+${websiteContent}`,
+
+  extractBusinessSignals: (rawContent) => `You are a business analyst. From the raw website content below, extract only the information relevant to understanding this company's business model. Ignore: product catalogues, brand lists, promotional offers, prices, navigation menus, contact details, and marketing slogans.
+
+Extract and return only:
+- What the company does (core activity)
+- Who their customers are (sectors, types, size if mentioned)
+- How they make money (sales, services, contracts, rentals...)
+- How they reach customers (direct sales, distributors, online...)
+- What makes them different from competitors
+- What their main costs likely are
+- Any key resources, partnerships, or capabilities mentioned
+
+Be concise. Plain text only. If something is not mentioned, omit it — do not invent.
+
+Website content:
+${rawContent}`,
+
+  businessModelObservations: (businessModel) => `You are reviewing the business model description of an SME CEO. Identify 2-3 observations about its quality. Flag gaps, vague language, or missing components that would limit AI analysis. Also acknowledge what is clear and well-quantified. Be direct and specific — no generic advice. Respond in JSON only: { "observations": [ { "type": "ok" | "warning", "text": "..." } ] }
+
+Business model:
+${businessModel}`,
+
+  visionStrategyObservations: (vision, priorities, goals, constraints) => `You are reviewing the vision, strategic priorities, annual goals, and constraints of an SME CEO. Identify 2-3 observations about coherence, completeness, and actionability. Flag contradictions, missing elements, or priorities that are too vague. Also acknowledge what is strong. Be direct. Respond in JSON only: { "observations": [ { "type": "ok" | "warning", "text": "..." } ] }
+
+Vision: ${vision}
+Strategic priorities: ${priorities}
+Annual goals: ${goals}
+Constraints: ${constraints}`,
+};
