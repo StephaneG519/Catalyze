@@ -1098,20 +1098,7 @@ $('btn-analyse').addEventListener('click', async () => {
   for (const t of pending) {
     btn.innerHTML = `<i class="ti ti-loader-2 spin"></i> Analysing ${done + 1}/${total}…`;
     try {
-      const prompt = `Analyse this topic for the CEO of Meriaux & Fils and respond with JSON only (no markdown fences):
-{
-  "rootCause": "one sentence identifying the underlying cause",
-  "aiFlag": "one sentence describing what is missing or wrong, or null if no critical issue",
-  "aiRec": "2-3 sentence specific recommendation — name the person responsible, the action, and the deadline",
-  "aiRisk": "one sentence describing the consequence if nothing is done in the next 30 days, or null if low risk"
-}
-
-Topic: "${t.topic}"
-Category: ${t.category} | Priority: ${t.priority} | Owner: ${t.owner} | Status: ${t.status}
-Source: ${t.source}
-Description: ${t.desc}`;
-
-      const parsed = await callAPI(prompt, 1000);
+      const parsed = await callAPI(PROMPTS.topicBacklog_analyseTopic(t), 1000);
       t.rootCause = parsed.rootCause || t.rootCause;
       t.aiFlag    = parsed.aiFlag    || null;
       t.aiRec     = parsed.aiRec     || t.aiRec;
@@ -1129,15 +1116,7 @@ Description: ${t.desc}`;
   btn.innerHTML = `<i class="ti ti-loader-2 spin"></i> Finding matches…`;
   try {
     const topicList = topics.map(t => `${t.id}: ${t.topic}`).join('\n');
-    const matchPrompt = `Here is a list of topics from a company's strategic backlog. Which pairs likely share the same root cause or describe the same underlying problem? Only return pairs where confidence is high.
-
-Topics:
-${topicList}
-
-Respond with JSON only (no markdown fences):
-{ "matches": [ { "id1": number, "id2": number, "reason": "one sentence explaining the shared root cause" } ] }`;
-
-    const parsed = await callAPI(matchPrompt, 600);
+    const parsed = await callAPI(PROMPTS.topicBacklog_findMatches(topicList), 600);
     const pairs = Array.isArray(parsed.matches) ? parsed.matches : [];
 
     pairs.forEach(({ id1, id2, reason }) => {
@@ -1285,7 +1264,7 @@ async function autoGatherInfo() {
     }
 
     try {
-      const rawText = await callAI(`For this topic: '${t.topic}' with this context: '${t.desc}', generate 3-4 specific questions to ask ${t.owner} to gather the missing information needed to act on this topic. Questions should be direct and answerable in 1-2 sentences each. Respond in JSON only: { "questions": ["...", "..."], "emailSubject": "...", "emailBody": "..." } — emailBody should be a complete email from Thomas (CEO) to ${t.owner}, signed 'Catalyze for Thomas'`, DEFAULT_MAX_TOKENS);
+      const rawText = await callAI(PROMPTS.topicBacklog_gatherInfo(t.topic, t.desc, t.owner), DEFAULT_MAX_TOKENS);
       let raw = (rawText || '{}').replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
       const parsed = JSON.parse(raw);
 

@@ -1410,7 +1410,7 @@ async function draftActionPlanEmail(apiKey, owner, assignmentContext) {
       model: 'claude-sonnet-4-5',
       max_tokens: 400,
       system: buildCompanyContextString(),
-      messages: [{ role: 'user', content: `Draft a short email from Thomas (CEO) to ${owner} about this topic: '${assignmentContext}'. The email should: reference exactly what they are expected to do, propose 3 concrete next steps with suggested deadlines, state that if they don't reply within 48 hours this plan will be considered accepted. Max 150 words. Sign the email 'Catalyze for Thomas'. Tone: ${getSettings().emailTone}. Respond in JSON only (no markdown fences): { "subject": "...", "body": "..." }` }]
+      messages: [{ role: 'user', content: PROMPTS.meetingCapture_actionPlan(owner, assignmentContext, getSettings().emailTone) }]
     })
   });
   if (!res.ok) throw new Error(`API ${res.status}`);
@@ -1765,7 +1765,7 @@ document.getElementById('modal-add-save').addEventListener('click', async () => 
   let newMeeting;
   try {
     const systemPrompt = buildCompanyContextString();
-    const userPrompt = `Analyse these meeting notes and respond with JSON only (no markdown fences).\n\nExtract:\n- forum: string (meeting forum name)\n- date: string (ISO date if found, else null)\n- attendees: string[] (list of attendee names)\n- topics: array of 3-5 objects each with { title, category ("Strategic"|"Tactical"), priority ("High"|"Medium"|"Low"), owner, forum, rationale, assignmentContext (string — one sentence describing what the owner is expected to do; empty string if no clear owner) }\n- decisionFlags: array of 2-3 objects each with { topic, flagType ("no-decision"|"no-owner"|"no-deadline"), remediation }\n- scorecard: object with four keys — meetingHealth, structure, outputQuality, dynamics — each with { rating ("Poor"|"Fair"|"Good"|"Excellent"), confidence (0-100, your certainty given available data), tooltip (1-2 sentence explanation) }. If confidence < 85 for a dimension, set rating to "n/a" and tooltip to "Insufficient data in transcript." For structure, only give a real rating if the transcript contains explicit timing data per agenda item. For dynamics, only give a real rating if the transcript contains explicit speaking time percentages or turn counts. Otherwise you MUST return rating: "n/a" and confidence below 85.\n\nMeeting notes:\n${notes || '(no notes provided)'}`;
+    const userPrompt = PROMPTS.meetingCapture_analyseTranscript(notes);
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

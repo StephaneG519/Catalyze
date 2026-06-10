@@ -268,4 +268,91 @@ Strategy: ${priorities}
 Goals: ${goals}
 Constraints: ${constraints}
 Value proposition: ${businessModel}`,
+
+  // ── Meeting Capture ──────────────────────────────────────────────────────────
+
+  meetingCapture_actionPlan: (owner, assignmentContext, emailTone) =>
+    `Draft a short email from Thomas (CEO) to ${owner} about this topic: '${assignmentContext}'. The email should: reference exactly what they are expected to do, propose 3 concrete next steps with suggested deadlines, state that if they don't reply within 48 hours this plan will be considered accepted. Max 150 words. Sign the email 'Catalyze for Thomas'. Tone: ${emailTone}. Respond in JSON only (no markdown fences): { "subject": "...", "body": "..." }`,
+
+  meetingCapture_analyseTranscript: (notes) =>
+    `Analyse these meeting notes and respond with JSON only (no markdown fences).\n\nExtract:\n- forum: string (meeting forum name)\n- date: string (ISO date if found, else null)\n- attendees: string[] (list of attendee names)\n- topics: array of 3-5 objects each with { title, category ("Strategic"|"Tactical"), priority ("High"|"Medium"|"Low"), owner, forum, rationale, assignmentContext (string — one sentence describing what the owner is expected to do; empty string if no clear owner) }\n- decisionFlags: array of 2-3 objects each with { topic, flagType ("no-decision"|"no-owner"|"no-deadline"), remediation }\n- scorecard: object with four keys — meetingHealth, structure, outputQuality, dynamics — each with { rating ("Poor"|"Fair"|"Good"|"Excellent"), confidence (0-100, your certainty given available data), tooltip (1-2 sentence explanation) }. If confidence < 85 for a dimension, set rating to "n/a" and tooltip to "Insufficient data in transcript." For structure, only give a real rating if the transcript contains explicit timing data per agenda item. For dynamics, only give a real rating if the transcript contains explicit speaking time percentages or turn counts. Otherwise you MUST return rating: "n/a" and confidence below 85.\n\nMeeting notes:\n${notes || '(no notes provided)'}`,
+
+  // ── Topic Backlog ─────────────────────────────────────────────────────────────
+
+  topicBacklog_analyseTopic: (t) =>
+    `Analyse this topic for the CEO of Meriaux & Fils and respond with JSON only (no markdown fences):
+{
+  "rootCause": "one sentence identifying the underlying cause",
+  "aiFlag": "one sentence describing what is missing or wrong, or null if no critical issue",
+  "aiRec": "2-3 sentence specific recommendation — name the person responsible, the action, and the deadline",
+  "aiRisk": "one sentence describing the consequence if nothing is done in the next 30 days, or null if low risk"
+}
+
+Topic: "${t.topic}"
+Category: ${t.category} | Priority: ${t.priority} | Owner: ${t.owner} | Status: ${t.status}
+Source: ${t.source}
+Description: ${t.desc}`,
+
+  topicBacklog_findMatches: (topicList) =>
+    `Here is a list of topics from a company's strategic backlog. Which pairs likely share the same root cause or describe the same underlying problem? Only return pairs where confidence is high.
+
+Topics:
+${topicList}
+
+Respond with JSON only (no markdown fences):
+{ "matches": [ { "id1": number, "id2": number, "reason": "one sentence explaining the shared root cause" } ] }`,
+
+  topicBacklog_gatherInfo: (topic, desc, owner) =>
+    `For this topic: '${topic}' with this context: '${desc}', generate 3-4 specific questions to ask ${owner} to gather the missing information needed to act on this topic. Questions should be direct and answerable in 1-2 sentences each. Respond in JSON only: { "questions": ["...", "..."], "emailSubject": "...", "emailBody": "..." } — emailBody should be a complete email from Thomas (CEO) to ${owner}, signed 'Catalyze for Thomas'`,
+
+  // ── Goal Setting ──────────────────────────────────────────────────────────────
+
+  goalSetting_checkin: (owner, krText, krDeadline, daysStale, followUpNote, emailTone) =>
+    `Draft a short follow-up email from Thomas (CEO) to ${owner} about this key result: '${krText}'. The KR deadline was ${krDeadline} and it has not been updated in ${daysStale} days. ${followUpNote} Reference what was originally agreed, ask for a status update, and state that if no reply comes within 48 hours the KR will be flagged as at risk and escalated. Max 120 words. Sign the email as "Catalyze for Thomas". Tone: ${emailTone}. Respond in JSON only: { subject, body }`,
+
+  goalSetting_simulateReply: (owner, krText) =>
+    `Write a short realistic reply email from ${owner} to Thomas (CEO) about this key result: '${krText}'. The reply should give a brief status update — either progress made, a blocker encountered, or a revised timeline. Keep it under 60 words. Casual but professional tone. Plain text only, no subject line.`,
+
+  goalSetting_extractProgress: (reply, krText) =>
+    `Based on this update: '${reply}', what percentage complete is this key result: '${krText}'? Respond with a single integer 0-100, nothing else.`,
+
+  goalSetting_analyseGoal: (g, pct, staleKRs, ctxNotes) =>
+    `${ctxNotes.length ? `Context from CEO: ${ctxNotes.join(' | ')}\n\n` : ''}Analyse this goal and respond with JSON only (no markdown fences):
+{
+  "flag": "string or null — one specific red-flag sentence, or null if no critical issue",
+  "recommendation": "string — 2-3 sentence specific recommendation for the CEO"
+}
+
+Goal: "${g.title}"
+Type: ${g.type}
+Owner: ${g.owner}
+Status: ${g.status}
+Overall progress: ${pct}%
+Deadline: ${g.deadline}
+Objective: ${g.objective}
+${g.keyResults.length ? `Key results:\n${g.keyResults.map(kr => `- ${kr.text}: ${kr.progress}% (due ${kr.deadline}, last updated: ${kr.lastUpdated}${kr.stale ? ' — STALE' : ''})`).join('\n')}` : ''}
+${staleKRs.length ? `\nStale KRs (not updated relative to deadline): ${staleKRs.map(kr => kr.text).join(', ')}` : ''}`,
+
+  // ── Meeting Prep ──────────────────────────────────────────────────────────────
+
+  meetingPrep_preread: (meeting, topicLines, attendeeLines, ctxNotes) =>
+    `${ctxNotes.length ? `CEO context: ${ctxNotes.join(' | ')}\n\n` : ''}Meeting: ${meeting.forum} #${meeting.iteration} — ${meeting.date} at ${meeting.time}, ${meeting.duration} min
+Attendees: ${attendeeLines}
+
+Agenda topics for this meeting:
+${topicLines || '(no specific topics assigned)'}
+
+Generate a tailored pre-read section for EACH attendee. For each person, provide:
+- text: 1-2 sentence paragraph explaining their role in this meeting and what is at stake for them personally
+- items: 2-4 bullet points of specific things they need to prepare or be ready to answer (empty array if no owned topics)
+
+Tailor to each person's topics and role. Thomas (CEO) gets a facilitation brief — what decisions need to be made and where to push hard. Owners of high-priority topics get specific preparation instructions. Attendees with no owned topics get a brief noting this and asking them to come prepared to contribute.
+
+Respond with JSON only (no markdown fences):
+{
+  ${meeting.attendees.map(n => `"${n}": { "text": "...", "items": ["...", "..."] }`).join(',\n  ')}
+}`,
+
+  meetingPrep_suggestAgenda: (forum, date, topicBudgetMin, topicLines) =>
+    `For this meeting: '${forum}' on ${date} with ${topicBudgetMin} minutes available for discussion topics, review these candidate topics and suggest which to include. Select maximum 3-4 topics that are most urgent, most relevant to this forum, and most actionable in this meeting.\n\nTopics:\n${topicLines}\n\nRespond in JSON only: { "included": ["topic title 1", "topic title 2"], "reason": "one sentence explaining the selection" }`,
 };

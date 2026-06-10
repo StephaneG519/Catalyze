@@ -914,29 +914,11 @@ async function triggerPreread(meeting) {
   const topics = getTopicsForMeeting(meeting).filter(t => topicState[meeting.id]?.[t.id] !== false);
   const topicLines = topics.map(t => `- ${t.topic} (owner: ${t.owner}, priority: ${t.priority})`).join('\n');
   const attendeeLines = meeting.attendees.join(', ');
-  const ctxLine = ctxNotes.length ? `\nCEO context: ${ctxNotes.join(' | ')}` : '';
 
-  const prompt = `${ctxLine}
-
-Meeting: ${meeting.forum} #${meeting.iteration} — ${fmtDateFull(meeting.date)} at ${meeting.time}, ${meeting.duration} min
-Attendees: ${attendeeLines}
-
-Agenda topics for this meeting:
-${topicLines || '(no specific topics assigned)'}
-
-Generate a tailored pre-read section for EACH attendee. For each person, provide:
-- text: 1-2 sentence paragraph explaining their role in this meeting and what is at stake for them personally
-- items: 2-4 bullet points of specific things they need to prepare or be ready to answer (empty array if no owned topics)
-
-Tailor to each person's topics and role. Thomas (CEO) gets a facilitation brief — what decisions need to be made and where to push hard. Owners of high-priority topics get specific preparation instructions. Attendees with no owned topics get a brief noting this and asking them to come prepared to contribute.
-
-Respond with JSON only (no markdown fences):
-{
-  ${meeting.attendees.map(n => `"${n}": { "text": "...", "items": ["...", "..."] }`).join(',\n  ')}
-}`;
+  const meetingForPrompt = { ...meeting, date: fmtDateFull(meeting.date) };
 
   try {
-    const rawText = await callAI(prompt, DEFAULT_MAX_TOKENS);
+    const rawText = await callAI(PROMPTS.meetingPrep_preread(meetingForPrompt, topicLines, attendeeLines, ctxNotes), DEFAULT_MAX_TOKENS);
     let raw = (rawText || '').replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
     const parsed = JSON.parse(raw);
     prereadCache[meeting.id] = { status: 'done', data: parsed };
@@ -1028,10 +1010,8 @@ async function triggerAiSuggestion(meeting, hadPriorState) {
   const topics = getTopicsForMeeting(meeting);
   const topicLines = topics.map(t => `- "${t.topic}" (owner: ${t.owner}, priority: ${t.priority})`).join('\n');
 
-  const prompt = `For this meeting: '${meeting.forum}' on ${meeting.date} with ${meeting.topicBudgetMin} minutes available for discussion topics, review these candidate topics and suggest which to include. Select maximum 3-4 topics that are most urgent, most relevant to this forum, and most actionable in this meeting.\n\nTopics:\n${topicLines}\n\nRespond in JSON only: { "included": ["topic title 1", "topic title 2"], "reason": "one sentence explaining the selection" }`;
-
   try {
-    const rawText = await callAI(prompt, DEFAULT_MAX_TOKENS);
+    const rawText = await callAI(PROMPTS.meetingPrep_suggestAgenda(meeting.forum, meeting.date, meeting.topicBudgetMin, topicLines), DEFAULT_MAX_TOKENS);
     let raw = (rawText || '').replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
     const parsed = JSON.parse(raw);
     const included = Array.isArray(parsed.included) ? parsed.included : [];
