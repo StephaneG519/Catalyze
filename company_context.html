@@ -683,28 +683,13 @@ function renderBmObs() { renderObsCard('bm-obs-content', bmObsCache); }
 function renderVsObs() { renderObsCard('vs-obs-content', vsObsCache); }
 
 // ─── AI calls ──────────────────────────────────────────────────────────────────
+// callAI is provided by catalyze-config.js
+// Local wrapper adds API key toast on missing key
+const _callAI = callAI;
 async function callAI(userPrompt, maxTokens, systemOverride) {
   const key = getApiKey();
   if (!key) { showToast('Add an API key in Settings'); return null; }
-  const body = {
-    model: 'claude-sonnet-4-5',
-    max_tokens: maxTokens,
-    system: systemOverride || buildCompanyContextString(),
-    messages: [{ role: 'user', content: userPrompt }]
-  };
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-      'content-type': 'application/json'
-    },
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) throw new Error(`API ${res.status}`);
-  const data = await res.json();
-  return data.content?.[0]?.text || '';
+  return _callAI(userPrompt, maxTokens, systemOverride);
 }
 
 function parseObsJson(text) {

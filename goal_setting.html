@@ -1028,25 +1028,8 @@ async function draftCheckinEmail(g, kr, krIdx, isFollowUp) {
   const userPrompt = `Draft a short follow-up email from Thomas (CEO) to ${g.owner} about this key result: '${kr.text}'. The KR deadline was ${kr.deadline} and it has not been updated in ${daysStale} days. ${followUpNote} Reference what was originally agreed, ask for a status update, and state that if no reply comes within 48 hours the KR will be flagged as at risk and escalated. Max 120 words. Sign the email as "Catalyze for Thomas". Tone: ${getSettings().emailTone}. Respond in JSON only: { subject, body }`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: DEFAULT_MAX_TOKENS,
-        system: buildCompanyContextString(),
-        messages: [{ role: 'user', content: userPrompt }],
-      }),
-    });
-    if (!res.ok) throw new Error(`API ${res.status}`);
-    const data = await res.json();
-    let raw = data.content?.[0]?.text || '{}';
-    raw = raw.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+    const rawText = await callAI(userPrompt, DEFAULT_MAX_TOKENS);
+    let raw = (rawText || '{}').replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
     return JSON.parse(raw);
   } catch(err) {
     console.warn('Check-in draft failed:', err);
@@ -1226,24 +1209,7 @@ async function openSimReply(goalId, krIdx) {
   const userPrompt = `Write a short realistic reply email from ${g.owner} to Thomas (CEO) about this key result: '${kr.text}'. The reply should give a brief status update — either progress made, a blocker encountered, or a revised timeline. Keep it under 60 words. Casual but professional tone. Plain text only, no subject line.`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 200,
-        system: buildCompanyContextString(),
-        messages: [{ role: 'user', content: userPrompt }],
-      }),
-    });
-    if (!res.ok) throw new Error(`API ${res.status}`);
-    const data = await res.json();
-    const reply = data.content?.[0]?.text?.trim() || '';
+    const reply = (await callAI(userPrompt, 200))?.trim() || '';
     $('simreply-body').textContent = reply;
     simReplyContext.reply = reply;
 
@@ -1275,30 +1241,12 @@ async function applySimReply() {
   $('simreply-apply').disabled = true;
   $('simreply-apply').innerHTML = '<i class="ti ti-loader"></i> Extracting…';
 
-  const apiKey = getApiKey();
   let pct = null;
-  if (apiKey) {
+  if (getApiKey()) {
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-5',
-          max_tokens: 10,
-          messages: [{ role: 'user', content: `Based on this update: '${reply}', what percentage complete is this key result: '${kr.text}'? Respond with a single integer 0-100, nothing else.` }],
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const raw = data.content?.[0]?.text?.trim() || '';
-        const parsed = parseInt(raw);
-        if (!isNaN(parsed)) pct = Math.min(100, Math.max(0, parsed));
-      }
+      const raw = (await callAI(`Based on this update: '${reply}', what percentage complete is this key result: '${kr.text}'? Respond with a single integer 0-100, nothing else.`, 10, ' '))?.trim() || '';
+      const parsed = parseInt(raw);
+      if (!isNaN(parsed)) pct = Math.min(100, Math.max(0, parsed));
     } catch(err) {
       console.warn('Progress extraction failed:', err);
     }
@@ -1392,25 +1340,8 @@ ${g.keyResults.length ? `Key results:\n${g.keyResults.map(kr => `- ${kr.text}: $
 ${staleKRs.length ? `\nStale KRs (not updated relative to deadline): ${staleKRs.map(kr => kr.text).join(', ')}` : ''}`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: DEFAULT_MAX_TOKENS,
-        system: buildCompanyContextString(),
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-    if (!res.ok) throw new Error(`API ${res.status}`);
-    const data = await res.json();
-    let raw = data.content?.[0]?.text || '';
-    raw = raw.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+    const rawText = await callAI(prompt, DEFAULT_MAX_TOKENS);
+    let raw = (rawText || '').replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
     const parsed = JSON.parse(raw);
     setAIContent(goalId, parsed.flag || null, parsed.recommendation || 'No specific recommendation at this time.');
   } catch(err) {

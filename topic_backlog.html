@@ -1292,25 +1292,8 @@ async function autoGatherInfo() {
     }
 
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-5',
-          max_tokens: DEFAULT_MAX_TOKENS,
-          system: buildCompanyContextString(),
-          messages: [{ role: 'user', content: `For this topic: '${t.topic}' with this context: '${t.desc}', generate 3-4 specific questions to ask ${t.owner} to gather the missing information needed to act on this topic. Questions should be direct and answerable in 1-2 sentences each. Respond in JSON only: { "questions": ["...", "..."], "emailSubject": "...", "emailBody": "..." } — emailBody should be a complete email from Thomas (CEO) to ${t.owner}, signed 'Catalyze for Thomas'` }],
-        }),
-      });
-      if (!res.ok) throw new Error(`API ${res.status}`);
-      const data = await res.json();
-      let raw = data.content?.[0]?.text || '{}';
-      raw = raw.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+      const rawText = await callAI(`For this topic: '${t.topic}' with this context: '${t.desc}', generate 3-4 specific questions to ask ${t.owner} to gather the missing information needed to act on this topic. Questions should be direct and answerable in 1-2 sentences each. Respond in JSON only: { "questions": ["...", "..."], "emailSubject": "...", "emailBody": "..." } — emailBody should be a complete email from Thomas (CEO) to ${t.owner}, signed 'Catalyze for Thomas'`, DEFAULT_MAX_TOKENS);
+      let raw = (rawText || '{}').replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
       const parsed = JSON.parse(raw);
 
       const req = {

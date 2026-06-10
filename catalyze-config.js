@@ -105,6 +105,30 @@ function buildCompanyContextString() {
   ].join('\n');
 }
 
+async function callAI(userPrompt, maxTokens, systemOverride) {
+  const key = getApiKey();
+  if (!key) return null;
+  const body = {
+    model: 'claude-sonnet-4-5',
+    max_tokens: maxTokens || DEFAULT_MAX_TOKENS,
+    system: systemOverride || buildCompanyContextString(),
+    messages: [{ role: 'user', content: userPrompt }]
+  };
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  const data = await res.json();
+  return data.content?.[0]?.text || '';
+}
+
 const PROMPTS = {
   deduceBusinessModel: (websiteContent) => `CRITICAL: You must put each component on a separate line. If your response does not have line breaks between components, it is wrong.
 

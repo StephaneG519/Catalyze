@@ -945,25 +945,8 @@ Respond with JSON only (no markdown fences):
 }`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: DEFAULT_MAX_TOKENS,
-        system: buildCompanyContextString(),
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-    if (!res.ok) throw new Error(`API ${res.status}`);
-    const data = await res.json();
-    let raw = data.content?.[0]?.text || '';
-    raw = raw.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+    const rawText = await callAI(prompt, DEFAULT_MAX_TOKENS);
+    let raw = (rawText || '').replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
     const parsed = JSON.parse(raw);
     prereadCache[meeting.id] = { status: 'done', data: parsed };
 
@@ -1057,25 +1040,8 @@ async function triggerAiSuggestion(meeting, hadPriorState) {
   const prompt = `For this meeting: '${meeting.forum}' on ${meeting.date} with ${meeting.topicBudgetMin} minutes available for discussion topics, review these candidate topics and suggest which to include. Select maximum 3-4 topics that are most urgent, most relevant to this forum, and most actionable in this meeting.\n\nTopics:\n${topicLines}\n\nRespond in JSON only: { "included": ["topic title 1", "topic title 2"], "reason": "one sentence explaining the selection" }`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: DEFAULT_MAX_TOKENS,
-        system: buildCompanyContextString(),
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-    if (!res.ok) throw new Error(`API ${res.status}`);
-    const data = await res.json();
-    let raw = data.content?.[0]?.text || '';
-    raw = raw.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+    const rawText = await callAI(prompt, DEFAULT_MAX_TOKENS);
+    let raw = (rawText || '').replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
     const parsed = JSON.parse(raw);
     const included = Array.isArray(parsed.included) ? parsed.included : [];
     const reason = typeof parsed.reason === 'string' ? parsed.reason : '';
