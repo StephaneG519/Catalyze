@@ -84,8 +84,8 @@ function getCompanyContext() {
     return [
       `Business model: ${c.businessModel}`,
       `Vision: ${c.vision}`,
-      `Strategic priorities: ${Array.isArray(c.priorities) ? c.priorities.join('; ') : ''}`,
-      `Annual goals: ${Array.isArray(c.goals) ? c.goals.map(g => `${g.title} (${g.owner}, ${g.deadline})`).join('; ') : ''}`,
+      `Strategy: ${Array.isArray(c.priorities) ? c.priorities.join('; ') : ''}`,
+      `Goals: ${Array.isArray(c.goals) ? c.goals.map(g => `${g.title} (${g.owner}, ${g.deadline})`).join('; ') : ''}`,
       `Constraints: ${c.constraints}`,
     ].join('\n');
   } catch(e) { return ''; }
@@ -99,8 +99,8 @@ function buildCompanyContextString() {
   return HEADER + '\n' + [
     `Business model: ${c.businessModel}`,
     `Vision: ${c.vision}`,
-    `Strategic priorities: ${c.priorities.join('; ')}`,
-    `Annual goals: ${c.goals.map(g => `${g.title} (${g.owner}, ${g.deadline})`).join('; ')}`,
+    `Strategy: ${c.priorities.join('; ')}`,
+    `Goals: ${c.goals.map(g => `${g.title} (${g.owner}, ${g.deadline})`).join('; ')}`,
     `Constraints: ${c.constraints}`,
   ].join('\n');
 }
@@ -126,12 +126,16 @@ Key activities: [max 2 lines]
 
 Cost structure: [max 2 lines]
 
+Each component must be maximum 2 sentences. No lists, no exhaustive enumerations. Write the most important insight only. If something is not specified, write "Not specified" in one short clause — do not elaborate on what it might be.
+
 You are analysing a company website to extract a structured business model. Use quantified language where possible ("primary", "mainly", "~X%"). If information is missing or cannot be inferred, write "Not specified" — do not invent.
 
 Website content:
 ${websiteContent}`,
 
-  extractBusinessSignals: (rawContent) => `You are a business analyst. From the raw website content below, extract only the information relevant to understanding this company's business model. Ignore: product catalogues, brand lists, promotional offers, prices, navigation menus, contact details, and marketing slogans.
+  extractBusinessSignals: (rawContent) => `Be ruthlessly concise. Extract only the single most important fact for each dimension. Do not list exhaustively — synthesise. Max 2 sentences per dimension.
+
+You are a business analyst. From the raw website content below, extract only the information relevant to understanding this company's business model. Ignore: product catalogues, brand lists, promotional offers, prices, navigation menus, contact details, and marketing slogans.
 
 Extract and return only:
 - What the company does (core activity)
@@ -147,15 +151,19 @@ Be concise. Plain text only. If something is not mentioned, omit it — do not i
 Website content:
 ${rawContent}`,
 
-  businessModelObservations: (businessModel) => `You are reviewing the business model description of an SME CEO. Identify 2-3 observations about its quality. Flag gaps, vague language, or missing components that would limit AI analysis. Also acknowledge what is clear and well-quantified. Be direct and specific — no generic advice. Respond in JSON only: { "observations": [ { "type": "ok" | "warning", "text": "..." } ] }
+  businessModelObservations: (businessModel) => `2 to 4 observations total. Each observation must be one sentence only, maximum 15 words. Be blunt and specific.
+
+You are reviewing the business model description of an SME CEO. Identify 2-3 observations about its quality. Flag gaps, vague language, or missing components that would limit AI analysis. Also acknowledge what is clear and well-quantified. Be direct and specific — no generic advice. Respond in JSON only: { "observations": [ { "type": "ok" | "warning", "text": "..." } ] }
 
 Business model:
 ${businessModel}`,
 
-  visionStrategyObservations: (vision, priorities, goals, constraints) => `You are reviewing the vision, strategic priorities, annual goals, and constraints of an SME CEO. Identify 2-3 observations about coherence, completeness, and actionability. Flag contradictions, missing elements, or priorities that are too vague. Also acknowledge what is strong. Be direct. Respond in JSON only: { "observations": [ { "type": "ok" | "warning", "text": "..." } ] }
+  visionStrategyObservations: (vision, priorities, goals, constraints) => `2 to 4 observations total. Each observation must be one sentence only, maximum 15 words. Be blunt and specific.
+
+You are reviewing the vision, strategic priorities, annual goals, and constraints of an SME CEO. Identify 2-3 observations about coherence, completeness, and actionability. Flag contradictions, missing elements, or priorities that are too vague. Also acknowledge what is strong. Be direct. Respond in JSON only: { "observations": [ { "type": "ok" | "warning", "text": "..." } ] }
 
 Vision: ${vision}
-Strategic priorities: ${priorities}
-Annual goals: ${goals}
+Strategy: ${priorities}
+Goals: ${goals}
 Constraints: ${constraints}`,
 };

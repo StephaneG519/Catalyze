@@ -138,6 +138,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 /* Scrollbar */
 ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
 
+/* Optional section hint */
+.section-optional-hint { font-size: 10px; color: #bbb; margin-top: 10px; }
+.btn-hide-section { background: none; border: none; font-size: 10px; color: #bbb; text-decoration: underline; cursor: pointer; font-family: inherit; padding: 0; }
+.btn-hide-section:hover { color: #888; }
+.btn-section-toggle { background: none; border: none; font-size: 10px; color: #aaa; cursor: pointer; font-family: inherit; padding: 2px 6px; border-radius: 4px; }
+.btn-section-toggle:hover { color: #555; background: #f0f0f0; }
+.section-card.collapsed .section-header { border-bottom: none; border-radius: 10px; }
+[data-placeholder]:empty:before { content: attr(data-placeholder); color: #bbb; pointer-events: none; font-style: italic; }
+
 /* Save indicator */
 .save-dot { width: 7px; height: 7px; border-radius: 50%; background: #1D9E75; display: none; margin-top: 1px; }
 .save-dot.visible { display: inline-block; }
@@ -195,10 +204,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         </div>
       </div>
 
-      <!-- Strategic priorities -->
+      <!-- Strategy -->
       <div class="section-card">
         <div class="section-header">
-          <div class="section-title">Strategic priorities</div>
+          <div class="section-title">Strategy</div>
         </div>
         <div class="section-body">
           <div class="priority-list" id="priority-list"></div>
@@ -206,12 +215,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         </div>
       </div>
 
-      <!-- Annual goals -->
-      <div class="section-card">
+      <!-- Goals -->
+      <div class="section-card" id="section-goals">
         <div class="section-header">
-          <div class="section-title">Annual goals</div>
+          <div class="section-title">Goals</div>
+          <button class="btn-section-toggle" id="btn-toggle-goals" title="Hide section"></button>
         </div>
-        <div class="section-body">
+        <div class="section-body" id="section-goals-body">
           <table class="goals-table">
             <thead>
               <tr>
@@ -224,16 +234,19 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
             <tbody id="goals-tbody"></tbody>
           </table>
           <button class="btn-add-item" id="btn-add-goal" style="margin-top:8px"><i class="ti ti-plus"></i> Add goal</button>
+          <div class="section-optional-hint">Goals are optional — remove this section if not relevant. <button class="btn-hide-section" id="btn-hide-goals">Hide section</button></div>
         </div>
       </div>
 
-      <!-- Constraints & context -->
-      <div class="section-card">
+      <!-- Constraints -->
+      <div class="section-card" id="section-constraints">
         <div class="section-header">
-          <div class="section-title">Constraints &amp; context <span class="section-hint">— click to edit</span></div>
+          <div class="section-title">Constraints</div>
+          <button class="btn-section-toggle" id="btn-toggle-constraints" title="Hide section"></button>
         </div>
-        <div class="section-body">
-          <div class="editable-text" id="field-constraints" contenteditable="true" data-field="constraints"></div>
+        <div class="section-body" id="section-constraints-body">
+          <div class="editable-text" id="field-constraints" contenteditable="true" data-field="constraints" data-placeholder="Focus on macro-level constraints only — regulatory environment, market structure, structural limitations. Avoid operational detail."></div>
+          <div class="section-optional-hint">Constraints are optional — remove this section if not relevant. <button class="btn-hide-section" id="btn-hide-constraints">Hide section</button></div>
         </div>
       </div>
 
@@ -442,10 +455,11 @@ function loadContext() {
     if (parsed.visionStrategyObservations) vsObsCache = { observations: parsed.visionStrategyObservations };
     // restore deduce state
     if (parsed.deduceSource) renderDeduceCollapsed(parsed.deduceSource);
-    // restore business model HTML if available (injected after renderFields runs)
-    if (parsed.businessModelHtml) {
-      requestAnimationFrame(() => { $('field-business-model').innerHTML = parsed.businessModelHtml; });
-    }
+    // store HTML on ctx so renderFields can use it directly
+    ctx.businessModelHtml = parsed.businessModelHtml || null;
+    // restore optional section visibility
+    if (parsed.goalsHidden) requestAnimationFrame(() => setSectionHidden('goals', true, false));
+    if (parsed.constraintsHidden) requestAnimationFrame(() => setSectionHidden('constraints', true, false));
   } catch(e) {
     console.warn('localStorage error:', e);
     ctx = { ...DEFAULT_CONTEXT };
@@ -463,10 +477,14 @@ function saveContext() {
     };
     if (bmObsCache && bmObsCache.observations) toStore.businessModelObservations = bmObsCache.observations;
     if (vsObsCache && vsObsCache.observations) toStore.visionStrategyObservations = vsObsCache.observations;
-    // preserve deduceSource if set
+    // preserve keys that are written independently
     try {
       const existing = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
       if (existing.deduceSource) toStore.deduceSource = existing.deduceSource;
+      const htmlToKeep = ctx.businessModelHtml || existing.businessModelHtml;
+      if (htmlToKeep) toStore.businessModelHtml = htmlToKeep;
+      if (existing.goalsHidden) toStore.goalsHidden = existing.goalsHidden;
+      if (existing.constraintsHidden) toStore.constraintsHidden = existing.constraintsHidden;
     } catch(e) {}
     localStorage.setItem(LS_KEY, JSON.stringify(toStore));
     const now = new Date();
@@ -498,15 +516,19 @@ function getCompanyContextLocal() {
   return [
     `Business model: ${ctx.businessModel}`,
     `Vision: ${ctx.vision}`,
-    `Strategic priorities: ${ctx.priorities.join('; ')}`,
-    `Annual goals: ${ctx.goals.map(g => `${g.title} (${g.owner}, ${g.deadline})`).join('; ')}`,
-    `Constraints & context: ${ctx.constraints}`,
+    `Strategy: ${ctx.priorities.join('; ')}`,
+    `Goals: ${ctx.goals.map(g => `${g.title} (${g.owner}, ${g.deadline})`).join('; ')}`,
+    `Constraints: ${ctx.constraints}`,
   ].join('\n\n');
 }
 
 // ─── Render ───────────────────────────────────────────────────────────────────
 function renderFields() {
-  $('field-business-model').textContent = ctx.businessModel;
+  if (ctx.businessModelHtml) {
+    $('field-business-model').innerHTML = ctx.businessModelHtml;
+  } else {
+    $('field-business-model').textContent = ctx.businessModel;
+  }
   $('field-vision').textContent = ctx.vision;
   $('field-constraints').textContent = ctx.constraints;
   renderPriorities();
@@ -753,6 +775,7 @@ async function runDeduce() {
       result = result.trim();
       ctx.businessModel = result;
       const bmHtml = formatBusinessModel(result);
+      ctx.businessModelHtml = bmHtml;
       $('field-business-model').innerHTML = bmHtml;
       try {
         const existing = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
@@ -867,14 +890,53 @@ $('btn-add-goal').addEventListener('click', () => {
   if (last) { last.focus(); document.execCommand('selectAll', false, null); }
 });
 
+// ─── Optional sections ────────────────────────────────────────────────────────
+function setSectionHidden(name, hidden, persist = true) {
+  const body = $(`section-${name}-body`);
+  const card = $(`section-${name}`);
+  const toggle = $(`btn-toggle-${name}`);
+  if (hidden) {
+    body.style.display = 'none';
+    card.classList.add('collapsed');
+    toggle.textContent = 'Show';
+  } else {
+    body.style.display = '';
+    card.classList.remove('collapsed');
+    toggle.textContent = 'Hide';
+  }
+  if (persist) {
+    try {
+      const existing = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+      if (hidden) existing[`${name}Hidden`] = true;
+      else delete existing[`${name}Hidden`];
+      localStorage.setItem(LS_KEY, JSON.stringify(existing));
+    } catch(e) {}
+  }
+}
+
 // ─── Boot ──────────────────────────────────────────────────────────────────────
 loadContext();
 renderFields();
 renderBmObs();
 renderVsObs();
 
+setSectionHidden('goals', false, false);
+setSectionHidden('constraints', false, false);
+
+$('btn-hide-goals').addEventListener('click', () => setSectionHidden('goals', true));
+$('btn-toggle-goals').addEventListener('click', () => {
+  const hidden = $('section-goals-body').style.display === 'none';
+  setSectionHidden('goals', !hidden);
+});
+$('btn-hide-constraints').addEventListener('click', () => setSectionHidden('constraints', true));
+$('btn-toggle-constraints').addEventListener('click', () => {
+  const hidden = $('section-constraints-body').style.display === 'none';
+  setSectionHidden('constraints', !hidden);
+});
+
 $('field-business-model').addEventListener('blur', () => {
   ctx.businessModel = $('field-business-model').innerText.trim();
+  ctx.businessModelHtml = null;
   try {
     const existing = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
     delete existing.businessModelHtml;
