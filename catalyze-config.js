@@ -128,6 +128,16 @@ Cost structure: [max 2 lines]
 
 Each component must be maximum 2 sentences. No lists, no exhaustive enumerations. Write the most important insight only. If something is not specified, write "Not specified" in one short clause — do not elaborate on what it might be.
 
+For each segment of text, wrap it with source tags:
+- [W]text[/W] for content explicitly found on the website
+- [I]text[/I] for content inferred or deduced (not explicitly stated)
+
+Example:
+Activity: [W]SDEC distributes environmental monitoring equipment[/W] to [W]professional users across France.[/W]
+Revenue streams: [W]Primarily product sales.[/W] [I]Likely secondary revenue from services — not confirmed.[/I]
+
+Every sentence or clause must be wrapped in either [W] or [I]. No unwrapped text.
+
 You are analysing a company website to extract a structured business model. Use quantified language where possible ("primary", "mainly", "~X%"). If information is missing or cannot be inferred, write "Not specified" — do not invent.
 
 Website content:
@@ -151,19 +161,76 @@ Be concise. Plain text only. If something is not mentioned, omit it — do not i
 Website content:
 ${rawContent}`,
 
-  businessModelObservations: (businessModel) => `2 to 4 observations total. Each observation must be one sentence only, maximum 15 words. Be blunt and specific.
+  businessModelObservations: (businessModel) => `You are reviewing the business model description of an SME CEO. Follow this exact evaluation framework in order:
 
-You are reviewing the business model description of an SME CEO. Identify 2-3 observations about its quality. Flag gaps, vague language, or missing components that would limit AI analysis. Also acknowledge what is clear and well-quantified. Be direct and specific — no generic advice. Respond in JSON only: { "observations": [ { "type": "ok" | "warning", "text": "..." } ] }
+1. STRUCTURE: Check if all 8 components are present (Activity, Revenue streams, Value proposition, Customer segments, Channels, Key resources, Key activities, Cost structure). If any are missing, flag this first — it makes further analysis unreliable.
+
+2. COMPLETENESS: For each component present, check if it has meaningful content or is just a placeholder.
+
+3. ACTIVITY: Is it clear and understandable to someone outside the company?
+
+4. REVENUE STREAMS: Are they coherent with the stated activity?
+
+5. VALUE PROPOSITION & DIFFERENTIATORS: Is it clear and understandable? Are differentiators specific and non-generic (not just 'quality' or 'service')? Are they linked to a measurable competitive advantage or a reason clients demonstrably choose this company over competitors?
+
+6. CUSTOMER SEGMENTS: Are they well-defined and actionable (specific enough to target)?
+
+7. CHANNELS: Are they well-defined and actionable?
+
+8. KEY RESOURCES, PARTNERSHIPS & ACTIVITIES: Are these truly key/strategic, or just generic operational lists?
+
+9. COST STRUCTURE: Are these truly the main cost drivers, or just a generic list?
+
+Select the 2-4 most important observations from this evaluation. Each observation must be one sentence, maximum 20 words. Be direct and specific.
+
+STRICT RULES — violations are unacceptable:
+- Do NOT mention revenue mix, margins, percentages, or any financial ratios
+- Do NOT reference company goals, targets, or named people (Thomas, Julie, Pierre, Marc, Sarah)
+- Do NOT suggest adding quantitative data
+- ONLY evaluate the quality and coherence of what is written in the business model text below
+- Ignore any other context you may have about this company
+
+Respond in JSON only: { "observations": [ { "type": "ok" | "warning", "text": "..." } ] }
 
 Business model:
 ${businessModel}`,
 
-  visionStrategyObservations: (vision, priorities, goals, constraints) => `2 to 4 observations total. Each observation must be one sentence only, maximum 15 words. Be blunt and specific.
+  visionStrategyObservations: (vision, priorities, goals, constraints, businessModel) => `You are evaluating the strategic context of an SME CEO using a precise framework. Evaluate each dimension separately and select the 2-4 most important observations across all dimensions.
 
-You are reviewing the vision, strategic priorities, annual goals, and constraints of an SME CEO. Identify 2-3 observations about coherence, completeness, and actionability. Flag contradictions, missing elements, or priorities that are too vague. Also acknowledge what is strong. Be direct. Respond in JSON only: { "observations": [ { "type": "ok" | "warning", "text": "..." } ] }
+EVALUATION FRAMEWORK:
+
+VISION — evaluate against these criteria:
+- Specific outcomes: does it mention revenue target, geography, markets, product/service scope?
+- Time-bound: does it clearly state a time horizon of 5-10 years?
+- Aspirational yet credible: does it stretch the team without seeming impossible?
+Example of strong vision: "In 10 years, we'll be Europe's leading sustainable packaging provider with €100M+ revenue across 8 countries. Our proprietary materials will have transitioned 80% of our product line to fully biodegradable."
+Example of weak vision: "Become a leader in our market." (too vague, no outcomes, no horizon)
+
+STRATEGY — evaluate against these criteria:
+- Market specificity: are target markets clear with a concrete competitive approach?
+- Leverages differentiators: does the strategy explicitly use the differentiators described in the value proposition? Check the value proposition text provided below to verify.
+- Sequencing: are markets or segments prioritised with a clear rationale for which to pursue first?
+Example of strong strategy: "We'll focus on the EV supply chain — specifically battery management systems. We'll win by leveraging our thermal management expertise. Targeting European OEMs first (VW, Stellantis, Renault) where we have relationships, then Asian markets by 2027."
+Example of weak strategy: "We will grow by improving our products and targeting new markets." (generic, no sequencing, no link to differentiators)
+
+GOALS — evaluate against these criteria:
+- Measurable: are all goals specific with clear targets and timelines?
+- Logical progression: do goals form logical stepping stones toward the vision?
+Example of strong goals: "By end of 2028: reach €25M revenue, achieve 15% EBITDA margin, launch SaaS platform, reduce customer churn below 6%."
+Example of weak goals: "Grow revenue and improve profitability." (not measurable, no timeline)
+
+STRICT RULES:
+- Do NOT mention named people (Thomas, Julie, Pierre, Marc, Sarah)
+- Do NOT suggest adding financial ratios or metrics beyond what is relevant to the criteria above
+- ONLY evaluate what is explicitly written below
+- Ignore any other context you may have about this company
+
+Select the 2-4 most important observations across all three dimensions. Each observation must be one sentence, maximum 20 words. Prefix each with the dimension it refers to: "Vision:", "Strategy:", or "Goals:". Be direct and specific.
+Respond in JSON only: { "observations": [ { "type": "ok" | "warning", "text": "..." } ] }
 
 Vision: ${vision}
 Strategy: ${priorities}
 Goals: ${goals}
-Constraints: ${constraints}`,
+Constraints: ${constraints}
+Value proposition: ${businessModel}`,
 };

@@ -138,6 +138,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 /* Scrollbar */
 ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
 
+/* Source tagging */
+.bm-w { border-radius: 2px; transition: background 0.15s; }
+.bm-i { border-radius: 2px; transition: background 0.15s; }
+.bm-highlight-site .bm-w { background: #D0E8FA; }
+.bm-highlight-inferred .bm-i { background: #F0EDFF; font-style: italic; }
+.bm-meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 10px; color: #bbb; flex-wrap: wrap; }
+.badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; cursor: pointer; user-select: none; font-weight: 500; transition: opacity 0.15s; }
+.badge-site { background: #D0E8FA; color: #185FA5; }
+.badge-inferred { background: #F0EDFF; color: #534AB7; }
+.badge.active { outline: 2px solid currentColor; outline-offset: 1px; }
+
 /* Optional section hint */
 .section-optional-hint { font-size: 10px; color: #bbb; margin-top: 10px; }
 .btn-hide-section { background: none; border: none; font-size: 10px; color: #bbb; text-decoration: underline; cursor: pointer; font-family: inherit; padding: 0; }
@@ -454,7 +465,7 @@ function loadContext() {
     if (parsed.businessModelObservations) bmObsCache = { observations: parsed.businessModelObservations };
     if (parsed.visionStrategyObservations) vsObsCache = { observations: parsed.visionStrategyObservations };
     // restore deduce state
-    if (parsed.deduceSource) renderDeduceCollapsed(parsed.deduceSource);
+    if (parsed.deduceSource) renderDeduceCollapsed(parsed.deduceSource, parsed.inferredPct ?? null);
     // store HTML on ctx so renderFields can use it directly
     ctx.businessModelHtml = parsed.businessModelHtml || null;
     // restore optional section visibility
@@ -485,6 +496,7 @@ function saveContext() {
       if (htmlToKeep) toStore.businessModelHtml = htmlToKeep;
       if (existing.goalsHidden) toStore.goalsHidden = existing.goalsHidden;
       if (existing.constraintsHidden) toStore.constraintsHidden = existing.constraintsHidden;
+      if (existing.inferredPct !== undefined) toStore.inferredPct = existing.inferredPct;
     } catch(e) {}
     localStorage.setItem(LS_KEY, JSON.stringify(toStore));
     const now = new Date();
@@ -583,18 +595,49 @@ function renderGoals() {
   });
 }
 
-function renderDeduceCollapsed(domain) {
+function wireBadgeInteractions() {
+  const field = $('field-business-model');
+  const btnSite = $('btn-site');
+  const btnInferred = $('btn-inferred');
+  if (!field || !btnSite || !btnInferred) return;
+
+  let siteActive = false, inferredActive = false;
+
+  function applyHighlight() {
+    field.classList.toggle('bm-highlight-site', siteActive);
+    field.classList.toggle('bm-highlight-inferred', inferredActive);
+    btnSite.classList.toggle('active', siteActive);
+    btnInferred.classList.toggle('active', inferredActive);
+  }
+
+  btnSite.addEventListener('mouseenter', () => { if (!siteActive) { field.classList.add('bm-highlight-site'); } });
+  btnSite.addEventListener('mouseleave', () => { if (!siteActive) { field.classList.remove('bm-highlight-site'); } });
+  btnSite.addEventListener('click', () => { siteActive = !siteActive; if (siteActive) inferredActive = false; applyHighlight(); });
+
+  btnInferred.addEventListener('mouseenter', () => { if (!inferredActive) { field.classList.add('bm-highlight-inferred'); } });
+  btnInferred.addEventListener('mouseleave', () => { if (!inferredActive) { field.classList.remove('bm-highlight-inferred'); } });
+  btnInferred.addEventListener('click', () => { inferredActive = !inferredActive; if (inferredActive) siteActive = false; applyHighlight(); });
+}
+
+function renderDeduceCollapsed(domain, inferredPct) {
   const block = $('deduce-block');
   block.classList.add('collapsed');
+  const pctHtml = (inferredPct !== undefined && inferredPct !== null)
+    ? `<span style="margin-left:4px">${inferredPct}% inferred</span>
+       <span class="badge badge-site" id="btn-site">From website</span>
+       <span class="badge badge-inferred" id="btn-inferred">Inferred</span>`
+    : '';
   block.innerHTML = `
     <div class="deduce-title" id="deduce-collapsed-title">
       <i class="ti ti-wand"></i>
       <span class="deduce-source">Deduced from ${escHtml(domain)}</span>
       <button class="deduce-redo" id="btn-deduce-redo">· redo</button>
     </div>
+    ${pctHtml ? `<div class="bm-meta">${pctHtml}</div>` : ''}
   `;
   $('deduce-collapsed-title').addEventListener('click', expandDeduce);
   $('btn-deduce-redo').addEventListener('click', e => { e.stopPropagation(); expandDeduce(); });
+  if (pctHtml) wireBadgeInteractions();
 }
 
 function expandDeduce() {
@@ -682,7 +725,7 @@ async function loadBmObservations() {
   bmObsCache = 'loading';
   renderBmObs();
   try {
-    const text = await callAI(PROMPTS.businessModelObservations(ctx.businessModel), 400);
+    const text = await callAI(PROMPTS.businessModelObservations(ctx.businessModel), 400, 'You are a business model analyst. Evaluate only what is explicitly provided to you.');
     if (!text) { bmObsCache = null; renderBmObs(); return; }
     const parsed = parseObsJson(text);
     bmObsCache = { observations: parsed.observations };
@@ -700,7 +743,7 @@ async function loadVsObservations() {
   try {
     const priorities = ctx.priorities.join('; ');
     const goals = ctx.goals.map(g => `${g.title} (${g.owner}, ${g.deadline})`).join('; ');
-    const text = await callAI(PROMPTS.visionStrategyObservations(ctx.vision, priorities, goals, ctx.constraints), 400);
+    const text = await callAI(PROMPTS.visionStrategyObservations(ctx.vision, priorities, goals, ctx.constraints, ctx.businessModel || ''), 400);
     if (!text) { vsObsCache = null; renderVsObs(); return; }
     const parsed = parseObsJson(text);
     vsObsCache = { observations: parsed.observations };
@@ -710,6 +753,16 @@ async function loadVsObservations() {
   }
   renderVsObs();
   persistObservations();
+}
+
+function applySourceTags(text) {
+  return text
+    .replace(/\[W\](.*?)\[\/W\]/gs, '<span class="bm-w">$1</span>')
+    .replace(/\[I\](.*?)\[\/I\]/gs, '<span class="bm-i">$1</span>');
+}
+
+function stripSourceTags(text) {
+  return text.replace(/\[W\]|\[\/W\]|\[I\]|\[\/I\]/g, '');
 }
 
 function formatBusinessModel(text) {
@@ -727,7 +780,7 @@ function formatBusinessModel(text) {
     parts.push({ label, content });
   }
   return parts.map(({ label, content }) =>
-    `<div style="margin-bottom:14px"><strong>${label}:</strong> ${content}</div>`
+    `<div style="margin-bottom:14px"><strong>${label}:</strong> ${applySourceTags(content)}</div>`
   ).join('');
 }
 
@@ -773,19 +826,27 @@ async function runDeduce() {
         result = result.replace(new RegExp('\\s*' + label, 'g'), '\n\n' + label);
       });
       result = result.trim();
-      ctx.businessModel = result;
+
+      // calculate inferred percentage from tagged result
+      const totalChars = (result.match(/\[W\](.*?)\[\/W\]|\[I\](.*?)\[\/I\]/gs) || []).join('').length;
+      const inferredChars = (result.match(/\[I\](.*?)\[\/I\]/gs) || []).join('').length;
+      const inferredPct = totalChars > 0 ? Math.round((inferredChars / totalChars) * 100) : 0;
+
+      // store plain text without source tags
+      ctx.businessModel = stripSourceTags(result);
       const bmHtml = formatBusinessModel(result);
       ctx.businessModelHtml = bmHtml;
       $('field-business-model').innerHTML = bmHtml;
       try {
         const existing = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
         existing.businessModelHtml = bmHtml;
+        existing.inferredPct = inferredPct;
         localStorage.setItem(LS_KEY, JSON.stringify(existing));
       } catch(e) {}
       let domain = urlVal;
       try { domain = new URL(urlVal).hostname.replace(/^www\./, ''); } catch(e) {}
       persistDeduceSource(domain);
-      renderDeduceCollapsed(domain);
+      renderDeduceCollapsed(domain, inferredPct);
     } else {
       showToast('Could not deduce — try again.');
       btn.disabled = false;
