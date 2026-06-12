@@ -152,17 +152,22 @@ tbody tr.selected .chevron-icon { color: #888; }
 .msg-readonly-box { font-size: 11px; color: #333; background: #fafafa; border: 1px solid #ebebeb; border-radius: 7px; padding: 9px 11px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
 .msg-auto-note { font-size: 10px; color: #854F0B; background: #FEF3DA; border: 1px solid #D97706; border-radius: 6px; padding: 6px 9px; line-height: 1.5; }
 
-/* Decision quality */
-.dq-list { display: flex; flex-direction: column; gap: 6px; }
-.dq-card { padding: 9px 12px; border-radius: 9px; border: 1px solid #ebebeb; background: #fff; }
-.dq-card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
-.dq-flag { font-size: 10px; padding: 2px 7px; border-radius: 6px; font-weight: 600; white-space: nowrap; }
-.dq-flag-red { background: #FCEBEB; color: #A32D2D; }
-.dq-flag-amber { background: #FEF3DA; color: #854F0B; }
-.dq-topic { font-size: 12px; font-weight: 600; color: #111; flex: 1; }
-.dq-remediation { font-size: 11px; color: #666; line-height: 1.6; margin-bottom: 6px; }
-.dq-link { font-size: 11px; color: #185FA5; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight: 500; }
-.dq-link:hover { text-decoration: underline; }
+/* Issue badge inline with topic tags */
+.badge-issues { background: #FEF3DA; color: #854F0B; font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
+
+/* Issue cards inside topic detail */
+.issue-list { display: flex; flex-direction: column; gap: 5px; margin-top: 2px; }
+.issue-card { padding: 7px 10px; border-radius: 7px; border: 1px solid #ebebeb; background: #fff; }
+.issue-type { font-size: 10px; padding: 1px 6px; border-radius: 6px; font-weight: 600; white-space: nowrap; display: inline-block; margin-bottom: 4px; }
+.issue-type-no-owner { background: #FCEBEB; color: #A32D2D; }
+.issue-type-no-deadline { background: #FEF3DA; color: #854F0B; }
+.issue-type-no-decision { background: #FCEBEB; color: #A32D2D; }
+.issue-rec { font-size: 11px; color: #555; line-height: 1.5; }
+
+/* Topic detail action links */
+.topic-detail-actions { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+.topic-detail-link { font-size: 11px; color: #185FA5; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight: 500; background: none; border: none; padding: 0; font-family: inherit; text-decoration: none; }
+.topic-detail-link:hover { text-decoration: underline; }
 
 /* Notes */
 .notes-box { width: 100%; font-size: 11px; color: #333; background: #fafafa; border: 1px solid #ebebeb; border-radius: 9px; padding: 10px 12px; resize: none; font-family: inherit; line-height: 1.6; height: 110px; outline: none; }
@@ -604,11 +609,11 @@ const meetings = [
       { name: "Pierre", pct: 6,  turns: 4,  interruptions: 0, interrupted: 0 }
     ],
     topics: [
-      { checked: true,  title: "Sales pipeline Q2 below target by €700k", category: "Strategic", priority: "High", owner: "Marc", forum: "Weekly ELT", rationale: "Pipeline €700k short vs €2.8M target. Cash target at risk in June if unresolved." },
-      { checked: true,  title: "CRM not configured for new sales reps", category: "Tactical", priority: "High", owner: "Sarah", forum: "Weekly ELT", rationale: "Two new reps using spreadsheets since April. Slows onboarding and pipeline visibility." },
-      { checked: true,  title: "Technic Pro margin at 4% vs 12% target", category: "Strategic", priority: "High", owner: "Marc", forum: "Weekly ELT", rationale: "Contract renews July. Decision on renegotiate-or-exit needed before renewal." },
-      { checked: true,  title: "Q2 EBITDA forecast 6.2% vs 7% board target", category: "Strategic", priority: "High", owner: "Julie", forum: "Monthly Business Review", rationale: "0.8pt gap vs board expectation with no recovery levers identified." },
-      { checked: false, title: "Company day logistics", category: "Tactical", priority: "Low", owner: "Sarah", forum: "Weekly ELT", rationale: "Administrative task. Excluded from backlog by default." }
+      { checked: true,  title: "Sales pipeline Q2 below target by €700k", category: "Strategic", priority: "High", owner: "Marc", forum: "Weekly ELT", rationale: "Pipeline €700k short vs €2.8M target. Cash target at risk in June if unresolved.", issues: [{ type: "no-decision", recommendation: "Thomas to assign a recovery plan owner (Marc recommended) with a deadline before next Weekly ELT." }] },
+      { checked: true,  title: "CRM not configured for new sales reps", category: "Tactical", priority: "High", owner: "Sarah", forum: "Weekly ELT", rationale: "Two new reps using spreadsheets since April. Slows onboarding and pipeline visibility.", issues: [{ type: "no-owner", recommendation: "Sarah owns this — IT reports to her. Assign deadline: CRM access live by 23 May." }] },
+      { checked: true,  title: "Technic Pro margin at 4% vs 12% target", category: "Strategic", priority: "High", owner: "Marc", forum: "Weekly ELT", rationale: "Contract renews July. Decision on renegotiate-or-exit needed before renewal.", issues: [{ type: "no-deadline", recommendation: "Marc to submit margin proposal by 23 May — before next Weekly ELT." }] },
+      { checked: true,  title: "Q2 EBITDA forecast 6.2% vs 7% board target", category: "Strategic", priority: "High", owner: "Julie", forum: "Monthly Business Review", rationale: "0.8pt gap vs board expectation with no recovery levers identified.", issues: [{ type: "no-decision", recommendation: "Julie to present at least two cost levers at next MBR on 5 June." }] },
+      { checked: false, title: "Company day logistics", category: "Tactical", priority: "Low", owner: "Sarah", forum: "Weekly ELT", rationale: "Administrative task. Excluded from backlog by default.", issues: [] }
     ],
     decisions: [
       { flag: "No decision", flagType: "red", topic: "Sales pipeline Q2 shortfall", remediation: "Thomas to assign a recovery plan owner (Marc recommended) with a deadline before next Weekly ELT." },
@@ -650,9 +655,9 @@ Thomas reminded the team that the annual company day is in June. Sarah to organi
       { name: "Marc",   pct: 59, turns: 13, interruptions: 0, interrupted: 0 }
     ],
     topics: [
-      { checked: true,  title: "Durand SA deal stalling — no response for 3 weeks", category: "Strategic", priority: "High", owner: "Marc", forum: "Weekly Sales Review", rationale: "Key account. Decision deferred to Q3 without explanation. Revenue at risk." },
-      { checked: true,  title: "New sales rep pipeline activation below target", category: "Tactical", priority: "Medium", owner: "Marc", forum: "Weekly ELT", rationale: "New reps contributing <20% expected pipeline. CRM issue likely contributing factor." },
-      { checked: false, title: "Client event planned for June", category: "Tactical", priority: "Low", owner: "Marc", forum: "Weekly Sales Review", rationale: "Logistical. Not a priority for backlog." }
+      { checked: true,  title: "Durand SA deal stalling — no response for 3 weeks", category: "Strategic", priority: "High", owner: "Marc", forum: "Weekly Sales Review", rationale: "Key account. Decision deferred to Q3 without explanation. Revenue at risk.", issues: [{ type: "no-deadline", recommendation: "Marc to send re-engagement email to Durand SA by 16 May and report back at next Sales Review." }] },
+      { checked: true,  title: "New sales rep pipeline activation below target", category: "Tactical", priority: "Medium", owner: "Marc", forum: "Weekly ELT", rationale: "New reps contributing <20% expected pipeline. CRM issue likely contributing factor.", issues: [] },
+      { checked: false, title: "Client event planned for June", category: "Tactical", priority: "Low", owner: "Marc", forum: "Weekly Sales Review", rationale: "Logistical. Not a priority for backlog.", issues: [] }
     ],
     decisions: [
       { flag: "No deadline", flagType: "amber", topic: "Durand SA re-engagement plan", remediation: "Marc to send re-engagement email to Durand SA by 16 May and report back at next Sales Review." }
@@ -687,9 +692,9 @@ Marc mentioned a client networking event in June. Thomas approved in principle. 
       { name: "Pierre", pct: 6,  turns: 4,  interruptions: 0, interrupted: 0 }
     ],
     topics: [
-      { checked: true, title: "Sales pipeline Q2 below target by €700k", category: "Strategic", priority: "High", owner: "Marc", forum: "Weekly ELT", rationale: "Recurring issue. First flagged this session — context building for subsequent ELTs." },
-      { checked: true, title: "No structured account review for key accounts", category: "Strategic", priority: "Medium", owner: "Marc", forum: "Monthly Business Review", rationale: "Pattern of late-stage surprises across key accounts. Process fix needed." },
-      { checked: true, title: "New sales rep onboarding process undefined", category: "Tactical", priority: "Medium", owner: "Sarah", forum: "Weekly ELT", rationale: "Two new hires with no structured onboarding. Affects ramp time and pipeline quality." }
+      { checked: true, title: "Sales pipeline Q2 below target by €700k", category: "Strategic", priority: "High", owner: "Marc", forum: "Weekly ELT", rationale: "Recurring issue. First flagged this session — context building for subsequent ELTs.", issues: [{ type: "no-deadline", recommendation: "Marc to present a recovery plan at next ELT on 19 May with at least three specific actions." }] },
+      { checked: true, title: "No structured account review for key accounts", category: "Strategic", priority: "Medium", owner: "Marc", forum: "Monthly Business Review", rationale: "Pattern of late-stage surprises across key accounts. Process fix needed.", issues: [{ type: "no-owner", recommendation: "Thomas to assign ownership — Marc or Sarah — by end of week." }] },
+      { checked: true, title: "New sales rep onboarding process undefined", category: "Tactical", priority: "Medium", owner: "Sarah", forum: "Weekly ELT", rationale: "Two new hires with no structured onboarding. Affects ramp time and pipeline quality.", issues: [] }
     ],
     decisions: [
       { flag: "No deadline", flagType: "amber", topic: "Sales pipeline recovery plan", remediation: "Marc to present a recovery plan at next ELT on 19 May with at least three specific actions." },
@@ -715,8 +720,8 @@ Q2 pipeline first flagged as soft. Marc to present recovery plan next week. Key 
       { name: "Marc",   pct: 67, turns: 14, interruptions: 0, interrupted: 0 }
     ],
     topics: [
-      { checked: true, title: "Lefebvre Industries awaiting internal sign-off", category: "Strategic", priority: "High", owner: "Marc", forum: "Weekly Sales Review", rationale: "€400k deal. Stuck in client procurement. Need to escalate contact." },
-      { checked: true, title: "Q1 sales team performance — strong quarter", category: "Tactical", priority: "Low", owner: "Marc", forum: "Weekly ELT", rationale: "Positive signal worth noting for team morale and board reporting." }
+      { checked: true, title: "Lefebvre Industries awaiting internal sign-off", category: "Strategic", priority: "High", owner: "Marc", forum: "Weekly Sales Review", rationale: "€400k deal. Stuck in client procurement. Need to escalate contact.", issues: [{ type: "no-deadline", recommendation: "Marc to identify senior contact at Lefebvre and schedule call before 14 May." }] },
+      { checked: true, title: "Q1 sales team performance — strong quarter", category: "Tactical", priority: "Low", owner: "Marc", forum: "Weekly ELT", rationale: "Positive signal worth noting for team morale and board reporting.", issues: [] }
     ],
     decisions: [
       { flag: "No deadline", flagType: "amber", topic: "Lefebvre escalation contact", remediation: "Marc to identify senior contact at Lefebvre and schedule call before 14 May." }
@@ -744,9 +749,9 @@ Strong meeting. Q1 closed at €4.8M — above target. Lefebvre deal flagged as 
       { name: "Pierre", pct: 6,  turns: 4,  interruptions: 0, interrupted: 0 }
     ],
     topics: [
-      { checked: true, title: "IT access management process missing", category: "Tactical", priority: "Low", owner: "Sarah", forum: "Weekly ELT", rationale: "Raised as recurring friction. CRM issue is a symptom." },
-      { checked: true, title: "Q1 sales team performance — strong quarter", category: "Tactical", priority: "Low", owner: "Marc", forum: "Weekly ELT", rationale: "Q1 closed above target. Worth tracking as positive signal." },
-      { checked: true, title: "New sales rep onboarding process undefined", category: "Tactical", priority: "Medium", owner: "Sarah", forum: "Weekly ELT", rationale: "Onboarding gap first raised. Two new hires with no structured process." }
+      { checked: true, title: "IT access management process missing", category: "Tactical", priority: "Low", owner: "Sarah", forum: "Weekly ELT", rationale: "Raised as recurring friction. CRM issue is a symptom.", issues: [{ type: "no-decision", recommendation: "Sarah to own IT access process definition. First draft by 19 May." }] },
+      { checked: true, title: "Q1 sales team performance — strong quarter", category: "Tactical", priority: "Low", owner: "Marc", forum: "Weekly ELT", rationale: "Q1 closed above target. Worth tracking as positive signal.", issues: [] },
+      { checked: true, title: "New sales rep onboarding process undefined", category: "Tactical", priority: "Medium", owner: "Sarah", forum: "Weekly ELT", rationale: "Onboarding gap first raised. Two new hires with no structured process.", issues: [{ type: "no-owner", recommendation: "Thomas to confirm Sarah as owner by EOD. Deadline: process defined by 31 May." }] }
     ],
     decisions: [
       { flag: "No decision", flagType: "red", topic: "IT access management process", remediation: "Sarah to own IT access process definition. First draft by 19 May." },
@@ -775,9 +780,9 @@ Long meeting. Q1 results celebrated briefly. IT access issues raised by Pierre �
       { name: "Pierre", pct: 8,  turns: 5,  interruptions: 0, interrupted: 0 }
     ],
     topics: [
-      { checked: true, title: "April revenue at €1.4M — 7% below monthly target", category: "Strategic", priority: "High", owner: "Marc", forum: "Monthly Business Review", rationale: "Monthly revenue miss. Q2 trend starting to show." },
-      { checked: true, title: "EBITDA margin holding at 6.8% — below 7% target", category: "Strategic", priority: "High", owner: "Julie", forum: "Monthly Business Review", rationale: "Persistent margin gap. Cost review needed before Q2 close." },
-      { checked: true, title: "No structured account review process for key accounts", category: "Strategic", priority: "Medium", owner: "Marc", forum: "Monthly Business Review", rationale: "Board flagged absence of structured account reviews." }
+      { checked: true, title: "April revenue at €1.4M — 7% below monthly target", category: "Strategic", priority: "High", owner: "Marc", forum: "Monthly Business Review", rationale: "Monthly revenue miss. Q2 trend starting to show.", issues: [{ type: "no-deadline", recommendation: "Marc to define three specific actions to recover May revenue by 8 May." }] },
+      { checked: true, title: "EBITDA margin holding at 6.8% — below 7% target", category: "Strategic", priority: "High", owner: "Julie", forum: "Monthly Business Review", rationale: "Persistent margin gap. Cost review needed before Q2 close.", issues: [{ type: "no-owner", recommendation: "Julie to own cost review and present findings at next MBR on 5 June." }] },
+      { checked: true, title: "No structured account review process for key accounts", category: "Strategic", priority: "Medium", owner: "Marc", forum: "Monthly Business Review", rationale: "Board flagged absence of structured account reviews.", issues: [] }
     ],
     decisions: [
       { flag: "No deadline", flagType: "amber", topic: "Revenue recovery actions for May", remediation: "Marc to define three specific actions to recover May revenue by 8 May." },
@@ -803,7 +808,7 @@ April financials reviewed: revenue €1.4M vs €1.5M target. EBITDA 6.8% vs 7% 
       { name: "Marc",   pct: 72, turns: 15, interruptions: 0, interrupted: 0 }
     ],
     topics: [
-      { checked: true, title: "Q1 close — 3 deals signed in final week", category: "Tactical", priority: "Low", owner: "Marc", forum: "Weekly ELT", rationale: "Strong Q1 close. Good signal for team morale." }
+      { checked: true, title: "Q1 close — 3 deals signed in final week", category: "Tactical", priority: "Low", owner: "Marc", forum: "Weekly ELT", rationale: "Strong Q1 close. Good signal for team morale.", issues: [] }
     ],
     decisions: [],
     notes: `Weekly Sales Review — Wednesday 30 April 2026 — 45 min (ran 42 min)
@@ -829,7 +834,7 @@ Q1 end review. Three deals signed in final week. Q1 closed at target. Q2 pipelin
       { name: "Pierre", pct: 7,  turns: 5,  interruptions: 0, interrupted: 0 }
     ],
     topics: [
-      { checked: true, title: "April pipeline softer than expected", category: "Strategic", priority: "High", owner: "Marc", forum: "Weekly Sales Review", rationale: "Early signal on Q2 weakness." }
+      { checked: true, title: "April pipeline softer than expected", category: "Strategic", priority: "High", owner: "Marc", forum: "Weekly Sales Review", rationale: "Early signal on Q2 weakness.", issues: [{ type: "no-deadline", recommendation: "Marc to present detailed April pipeline at next Sales Review on 7 May." }] }
     ],
     decisions: [
       { flag: "No deadline", flagType: "amber", topic: "April pipeline review", remediation: "Marc to present detailed April pipeline at next Sales Review on 7 May." }
@@ -854,7 +859,7 @@ April pipeline first flagged as soft. Q1 results positive. Standard ELT — reas
       { name: "Marc",   pct: 71, turns: 16, interruptions: 0, interrupted: 0 }
     ],
     topics: [
-      { checked: true, title: "Q1 final week sprint — 3 deals to close", category: "Strategic", priority: "High", owner: "Marc", forum: "Weekly Sales Review", rationale: "Q1 close critical. Clear plan with owners and dates." }
+      { checked: true, title: "Q1 final week sprint — 3 deals to close", category: "Strategic", priority: "High", owner: "Marc", forum: "Weekly Sales Review", rationale: "Q1 close critical. Clear plan with owners and dates.", issues: [] }
     ],
     decisions: [],
     notes: `Weekly Sales Review — Thursday 23 April 2026 — 45 min (ran 44 min)
@@ -1201,6 +1206,31 @@ function renderDeepDive() {
         <div class="topic-list" id="topic-list">
           ${m.topics.map((t, i) => {
             const planSent = isPlanSent(m.id, t.title);
+            const issues = Array.isArray(t.issues) ? t.issues : [];
+            const issueCount = issues.length;
+            const issueBadge = issueCount > 0
+              ? `<span class="badge-issues">${issueCount} ${issueCount === 1 ? 'issue' : 'issues'}</span>`
+              : '';
+            const issueTypeLabel = { 'no-owner': 'No owner', 'no-deadline': 'No deadline', 'no-decision': 'No decision' };
+            const issuesHtml = issueCount > 0 ? `
+              <div class="topic-detail-row" style="margin-top:6px">
+                <span class="topic-detail-label" style="padding-top:0">Issues</span>
+                <div class="issue-list" style="flex:1">
+                  ${issues.map(iss => `
+                    <div class="issue-card">
+                      <span class="issue-type issue-type-${iss.type}">${issueTypeLabel[iss.type] || iss.type}</span>
+                      <div class="issue-rec">${iss.recommendation}</div>
+                    </div>`).join('')}
+                </div>
+              </div>` : '';
+            const backlogEntry = loadPendingBacklog().find(e => e.meetingId === m.id);
+            const sentToBacklog = backlogEntry && backlogEntry.status === 'sent';
+            const actionsHtml = (sentToBacklog || t.owner) ? `
+              <div class="topic-detail-actions">
+                ${sentToBacklog ? `<button class="topic-detail-link" onclick="viewInBacklog('${t.title.replace(/'/g, "\\'")}')"><i class="ti ti-arrow-right" style="font-size:11px"></i> View in backlog</button>` : ''}
+                ${t.owner ? `<button class="topic-detail-link" onclick="viewInGoals('${t.title.replace(/'/g, "\\'")}')"><i class="ti ti-target" style="font-size:11px"></i> Create goal</button>` : ''}
+              </div>` : '';
+            const description = (t.rationale || '').trim();
             return `
             <div class="topic-row" id="topic-row-${i}">
               <div class="topic-row-header" onclick="toggleTopic(${m.id}, ${i}, event)">
@@ -1209,40 +1239,24 @@ function renderDeepDive() {
                 <div class="topic-badges">
                   <span class="badge badge-${t.category.toLowerCase()}">${t.category}</span>
                   <span class="badge badge-${t.priority.toLowerCase()}">${t.priority}</span>
-                  ${t.assigned ? '<span class="badge-assigned">Assigned</span>' : ''}
+                  ${issueBadge}
                 </div>
                 <i class="ti ti-chevron-down topic-chevron" id="chev-${m.id}-${i}"></i>
               </div>
               <div class="topic-detail" id="detail-${m.id}-${i}">
-                <div class="topic-detail-row"><span class="topic-detail-label">Owner</span><span class="topic-detail-value">${t.owner}</span></div>
-                <div class="topic-detail-row"><span class="topic-detail-label">Forum</span><span class="topic-detail-value">${t.forum}</span></div>
-                <div class="topic-detail-row"><span class="topic-detail-label">Rationale</span><span class="topic-detail-value">${t.rationale}</span></div>
+                <div class="topic-detail-row"><span class="topic-detail-label">Owner</span><span class="topic-detail-value">${t.owner || '—'}</span></div>
+                <div class="topic-detail-row"><span class="topic-detail-label">Description</span><span class="topic-detail-value">${description || '—'}</span></div>
+                ${issuesHtml}
                 ${t.assigned ? buildTopicActionStatus(m.id, t.title, i, t) : ''}
                 ${t.assigned ? `<div style="font-size:10px;color:#aaa;font-style:italic;margin-top:4px">Goal auto-created in Goal setting</div>` : ''}
+                ${actionsHtml}
               </div>
             </div>`;
           }).join('')}
         </div>
       </div>
 
-      <!-- Section 3: Decision quality -->
-      ${m.decisions.length > 0 ? `
-      <div class="dd-section">
-        <div class="dd-section-title"><i class="ti ti-alert-triangle"></i> Decision quality feedback</div>
-        <div class="dq-list">
-          ${m.decisions.map((d, i) => `
-            <div class="dq-card">
-              <div class="dq-card-top">
-                <span class="dq-flag dq-flag-${d.flagType}">${d.flag}</span>
-                <span class="dq-topic">${d.topic}</span>
-              </div>
-              <div class="dq-remediation">${d.remediation}</div>
-              <a class="dq-link" onclick="viewInBacklog('${d.topic}')"><i class="ti ti-arrow-right"></i> View in backlog</a>
-            </div>`).join('')}
-        </div>
-      </div>` : ''}
-
-      <!-- Section 4: Notes -->
+      <!-- Section 3: Notes -->
       <div class="dd-section">
         <div class="dd-section-title"><i class="ti ti-notes"></i> Meeting notes</div>
         <textarea class="notes-box" readonly>${m.notes}</textarea>
@@ -1693,6 +1707,10 @@ function viewInBacklog(topic) {
   window.parent.postMessage({ type: 'navigate', src: 'topic_backlog.html', highlight: topic }, '*');
 }
 
+function viewInGoals(topicTitle) {
+  window.parent.postMessage({ type: 'navigate', src: 'goal_setting.html' }, '*');
+}
+
 // ─── Filters ──────────────────────────────────────────────────────────────────
 document.querySelectorAll('.filter-chip').forEach(chip => {
   chip.addEventListener('click', () => {
@@ -1818,11 +1836,15 @@ document.getElementById('modal-add-save').addEventListener('click', async () => 
       forum: t.forum || forum,
       rationale: t.rationale || '',
       assignmentContext: t.assignmentContext || '',
-      assigned: !!(t.owner || aiAttendees[0])
+      assigned: !!(t.owner || aiAttendees[0]),
+      issues: Array.isArray(t.issues) ? t.issues.map(iss => ({
+        type: iss.type || 'no-decision',
+        recommendation: iss.recommendation || ''
+      })) : []
     })) : staticFallback('Fair').topics;
 
-    const flags = Array.isArray(parsed.decisionFlags) ? parsed.decisionFlags : [];
-    const health = flags.length === 0 ? 'Good' : flags.length <= 2 ? 'Fair' : 'Poor';
+    const totalIssues = aiTopics.reduce((sum, t) => sum + (t.issues ? t.issues.length : 0), 0);
+    const health = totalIssues === 0 ? 'Good' : totalIssues <= 2 ? 'Fair' : 'Poor';
 
     const aiScorecard = parsed.scorecard || {};
     const scDim = (key, fallbackRating, fallbackTooltip) => {
@@ -1839,9 +1861,9 @@ document.getElementById('modal-add-save').addEventListener('click', async () => 
       duration, actual, health,
       attendees: aiAttendees,
       scorecard: {
-        meetingHealth: scDim('meetingHealth', health, `AI analysis: ${flags.length} decision flag(s) found.`),
+        meetingHealth: scDim('meetingHealth', health, `AI analysis: ${totalIssues} decision issue(s) found.`),
         structure: scDim('structure', 'n/a', 'Insufficient data — full transcript with timestamps required.'),
-        outputQuality: scDim('outputQuality', health, flags.length ? flags.map(f => f.remediation).join(' | ') : 'No decision quality issues detected.'),
+        outputQuality: scDim('outputQuality', health, totalIssues ? aiTopics.flatMap(t => (t.issues||[]).map(i => i.recommendation)).join(' | ') : 'No decision quality issues detected.'),
         dynamics: scDim('dynamics', 'n/a', 'Participation data not available for manually-entered meetings.')
       },
       participation: aiAttendees.slice(0, 3).map((name, i) => ({
@@ -1849,12 +1871,12 @@ document.getElementById('modal-add-save').addEventListener('click', async () => 
         turns: 10 - i * 2, interruptions: 0, interrupted: 0
       })),
       topics: aiTopics,
-      decisions: flags.map(f => ({
-        topic: f.topic,
-        flag: f.flagType === 'no-decision' ? 'No decision' : f.flagType === 'no-owner' ? 'No owner' : 'No deadline',
-        flagType: f.flagType === 'no-deadline' ? 'amber' : 'red',
-        remediation: f.remediation
-      })),
+      decisions: aiTopics.flatMap(t => (t.issues || []).map(iss => ({
+        topic: t.title,
+        flag: iss.type === 'no-decision' ? 'No decision' : iss.type === 'no-owner' ? 'No owner' : 'No deadline',
+        flagType: iss.type === 'no-deadline' ? 'amber' : 'red',
+        remediation: iss.recommendation
+      }))),
       notes: notes || `${forum} — ${date}\nAttendees: ${aiAttendees.join(', ')}\n\nNo notes provided.`
     };
   } catch (err) {
@@ -2022,9 +2044,9 @@ function generateExpertBriefing(m) {
   return `CATALYZE EXPERT BRIEFING — ${m.forum} #${m.iteration}
 Date: ${fmtFull(m.date)} | Duration: ${m.actual}/${m.duration} min | Attendees: ${m.attendees.join(', ')}
 
-MEETING HEALTH: ${m.scorecard.overall.rating}
+MEETING HEALTH: ${(m.scorecard.meetingHealth || m.scorecard.overall || {}).rating || 'n/a'}
 • Structure: ${m.scorecard.structure.rating} — ${m.scorecard.structure.tooltip}
-• Output quality: ${m.scorecard.output.rating} — ${m.scorecard.output.tooltip}
+• Output quality: ${(m.scorecard.outputQuality || m.scorecard.output || {}).rating || 'n/a'} — ${(m.scorecard.outputQuality || m.scorecard.output || {}).tooltip || ''}
 • Dynamics: ${m.scorecard.dynamics.rating} — ${m.scorecard.dynamics.tooltip}
 
 DECISION QUALITY FLAGS (${m.decisions.length} flags):
