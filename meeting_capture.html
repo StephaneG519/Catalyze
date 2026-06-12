@@ -885,29 +885,37 @@ function loadMeetings() {
   } catch(e) { console.warn('localStorage error:', e); }
 }
 
-function saveBacklogTopics(newMeeting) {
+// topics: array already filtered to those the caller wants written.
+// realMeetingId: the id to stamp on each stored entry (may differ from meeting.id
+//   when called via flushBacklogEntry, which passes a proxy with id:'pending').
+// Returns the number of new topics actually written (0 if all duplicates).
+function saveBacklogTopics(meeting, topics, realMeetingId) {
   try {
+    const storedId = realMeetingId ?? meeting.id;
     const existing = JSON.parse(localStorage.getItem('catalyze_backlog_topics') || '[]');
     const existingTitles = new Set(existing.map(t => t.title));
-    newMeeting.topics.forEach((t, i) => {
-      if (topicStates[newMeeting.id]?.[i] !== false && !existingTitles.has(t.title)) {
-        existing.push({
-          title: t.title,
-          category: t.category,
-          priority: t.priority,
-          owner: t.owner,
-          forum: t.forum,
-          rationale: t.rationale,
-          source: `${newMeeting.forum} #${newMeeting.iteration} — ${newMeeting.date}`,
-          meetingId: newMeeting.id,
-          status: 'Not started',
-          tags: [],
-          _new: true,
-        });
-      }
+    let written = 0;
+    topics.forEach(t => {
+      if (existingTitles.has(t.title)) return;
+      existing.push({
+        title: t.title,
+        category: t.category,
+        priority: t.priority,
+        owner: t.owner,
+        forum: t.forum,
+        rationale: t.rationale,
+        source: `${meeting.forum} #${meeting.iteration} — ${meeting.date}`,
+        meetingId: storedId,
+        status: 'Not started',
+        tags: [],
+        _new: true,
+      });
+      existingTitles.add(t.title);
+      written++;
     });
     localStorage.setItem('catalyze_backlog_topics', JSON.stringify(existing));
-  } catch(e) { console.warn('localStorage error:', e); }
+    return written;
+  } catch(e) { console.warn('localStorage error:', e); return 0; }
 }
 
 function saveGoalsFromTopics(newMeeting) {
@@ -1054,6 +1062,13 @@ function confirmDeleteMeeting() {
     const keptCommitments = allCommitments.filter(c => c.meetingId !== pendingDeleteId);
     deletedCount += allCommitments.length - keptCommitments.length;
     localStorage.setItem('catalyze_commitments', JSON.stringify(keptCommitments));
+  } catch(e) { console.warn('localStorage error:', e); }
+
+  // Remove from catalyze_pending_backlog
+  try {
+    const allPending = loadPendingBacklog();
+    const keptPending = allPending.filter(e => e.meetingId !== pendingDeleteId);
+    savePendingBacklog(keptPending);
   } catch(e) { console.warn('localStorage error:', e); }
 
   // Remove from meetings array and localStorage
@@ -1334,7 +1349,7 @@ function schedulePendingBacklog(newMeeting) {
   const checkedTopics = newMeeting.topics.filter((_, i) => topicStates[newMeeting.id]?.[i] !== false);
   if (!checkedTopics.length) return;
   const arr = loadPendingBacklog();
-  if (arr.find(e => e.meetingId === newMeeting.id)) return;
+  if (arr.find(e => e.meetingId === newMeeting.id && e.status === 'scheduled')) return;
   arr.push({
     meetingId: newMeeting.id,
     topics: checkedTopics,
@@ -1344,12 +1359,14 @@ function schedulePendingBacklog(newMeeting) {
   savePendingBacklog(arr);
 }
 
+// Returns { written: n } on success, or { written: 0, reason: 'meeting_missing' | 'all_duplicates' }.
 function flushBacklogEntry(entry) {
   const m = meetings.find(x => x.id === entry.meetingId);
-  if (!m) return;
-  // Use a synthetic id that has no topicStates entry so all pre-filtered topics pass through
-  const proxy = Object.assign({}, m, { id: 'pending', topics: entry.topics });
-  saveBacklogTopics(proxy);
+  if (!m) return { written: 0, reason: 'meeting_missing' };
+  // entry.topics is already the pre-filtered set saved at schedule time;
+  // pass the real meetingId separately so stored topics carry the correct id.
+  const written = saveBacklogTopics(m, entry.topics, entry.meetingId);
+  return written > 0 ? { written } : { written: 0, reason: 'all_duplicates' };
 }
 
 function checkPendingBacklog() {
@@ -1358,8 +1375,13 @@ function checkPendingBacklog() {
   let changed = false;
   arr.forEach(entry => {
     if (entry.status === 'scheduled' && entry.scheduledAt <= now) {
-      flushBacklogEntry(entry);
-      entry.status = 'sent';
+      const result = flushBacklogEntry(entry);
+      if (result.reason === 'meeting_missing') {
+        console.warn(`checkPendingBacklog: meeting ${entry.meetingId} not found — marking entry orphaned.`);
+        entry.status = 'orphaned';
+      } else {
+        entry.status = 'sent';
+      }
       changed = true;
     }
   });
@@ -1370,11 +1392,16 @@ function sendBacklogNow(meetingId) {
   const arr = loadPendingBacklog();
   const entry = arr.find(e => e.meetingId === meetingId);
   if (!entry || entry.status !== 'scheduled') return;
-  flushBacklogEntry(entry);
-  entry.status = 'sent';
+  const result = flushBacklogEntry(entry);
+  if (result.reason === 'meeting_missing') {
+    console.warn(`sendBacklogNow: meeting ${meetingId} not found — marking entry orphaned.`);
+    entry.status = 'orphaned';
+  } else {
+    entry.status = 'sent';
+  }
   savePendingBacklog(arr);
   renderDeepDive();
-  showToast('Topics sent to backlog.');
+  showToast(result.reason === 'meeting_missing' ? 'Could not send — meeting no longer exists.' : 'Topics sent to backlog.');
 }
 
 function cancelPendingBacklog(meetingId) {
@@ -1758,7 +1785,7 @@ document.getElementById('modal-add-save').addEventListener('click', async () => 
   const existingIterations = meetings.filter(m => m.forum === forum).map(m => m.iteration);
   const nextIter = existingIterations.length > 0 ? Math.max(...existingIterations) + 1 : 1;
   const overrun = actual - duration;
-  const newId = Math.max(...meetings.map(m => m.id)) + 1;
+  const newId = Date.now();
 
   const staticFallback = (health) => ({
     id: newId,

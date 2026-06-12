@@ -191,6 +191,29 @@ tbody td { padding: 9px 10px; vertical-align: middle; }
 /* ── New badge ── */
 .b-new { background: #1D9E75; color: #fff; font-size: 9px; padding: 1px 5px; border-radius: 8px; font-weight: 700; margin-left: 4px; vertical-align: middle; cursor: default; }
 
+/* ── Score badge ── */
+.score-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; white-space: nowrap; position: relative; cursor: default; }
+.score-high   { background: #FCEBEB; color: #A32D2D; }
+.score-medium { background: #FEF3DA; color: #854F0B; }
+.score-low    { background: #f5f5f5; color: #888; border: 1px solid #e8e8e8; }
+.score-unscored { background: #f5f5f5; color: #ccc; border: 1px solid #ebebeb; }
+
+/* ── Score tooltip ── */
+.score-tip { position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: #1a1a1a; color: #f0f0f0; font-size: 10px; font-weight: 400; line-height: 1.6; padding: 7px 10px; border-radius: 7px; white-space: pre-line; max-width: 280px; width: max-content; pointer-events: none; opacity: 0; transition: opacity .12s; z-index: 50; }
+.score-badge:hover .score-tip { opacity: 1; }
+.score-tip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: #1a1a1a; }
+
+/* ── Priority score deep-dive section ── */
+.ps-row { display: flex; align-items: baseline; gap: 6px; font-size: 12px; color: #333; line-height: 1.6; }
+.ps-label { font-weight: 600; min-width: 110px; flex-shrink: 0; }
+.ps-rat { color: #666; flex: 1; }
+.ps-edit-btn { font-size: 10px; color: #bbb; background: none; border: none; cursor: pointer; padding: 0 2px; line-height: 1; flex-shrink: 0; }
+.ps-edit-btn:hover { color: #555; }
+.ps-input { font-size: 12px; padding: 2px 6px; border: 1px solid #ddd; border-radius: 5px; width: 54px; font-family: inherit; outline: none; }
+.ps-input:focus { border-color: #999; }
+.ps-confirm { font-size: 10px; padding: 2px 8px; background: #111; color: #fff; border: none; border-radius: 5px; cursor: pointer; font-family: inherit; margin-left: 4px; }
+.ps-manual-tag { font-size: 9px; color: #999; background: #f0f0f0; border-radius: 4px; padding: 1px 5px; margin-left: 4px; vertical-align: middle; }
+
 /* ── Info-request status line ── */
 .info-status-line { font-size: 10px; color: #999; display: flex; align-items: center; gap: 5px; margin-top: 6px; line-height: 1.5; }
 .info-status-line i { font-size: 11px; color: #bbb; flex-shrink: 0; }
@@ -248,7 +271,7 @@ tbody td { padding: 9px 10px; vertical-align: middle; }
           <tr>
             <th class="col-topic"  data-sort="topic">Topic <i class="ti ti-selector si"></i></th>
             <th class="col-cat"    data-sort="category">Category <i class="ti ti-selector si"></i></th>
-            <th class="col-pri"    data-sort="priority">Priority <i class="ti ti-selector si"></i></th>
+            <th class="col-pri"    data-sort="score">Score <i class="ti ti-selector si"></i></th>
             <th class="col-owner"  data-sort="owner">Owner <i class="ti ti-selector si"></i></th>
             <th class="col-tags">Tags</th>
             <th class="col-status" data-sort="status">Status <i class="ti ti-selector si"></i></th>
@@ -517,6 +540,8 @@ function tagHTML(name) {
 }
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
+const SEED_SCORED_AT = 1717200000000; // fixed past timestamp for all seed scores
+
 const topics = [
   {
     id:1, topic:'Sales pipeline Q2 below target by €700k',
@@ -534,6 +559,7 @@ const topics = [
       { id:-1, title:'Q3 pipeline recovery — Durand SA', open:false, reason:'Similar account slippage resolved in Q3 2025 — recovery plan and owner defined at Weekly ELT.' },
     ],
     matchState:{},
+    priorityScore:{ alignment:9, alignmentRationale:'Directly addresses the €700k Q2 pipeline recovery priority.', delayCost:8, delayCostRationale:'Measurable revenue loss accumulates every week accounts stay stalled.', effortHours:25, score:8.6, scoredAt:SEED_SCORED_AT, contextSavedAt:null, manual:false },
   },
   {
     id:2, topic:'CRM not configured for new sales reps',
@@ -550,6 +576,7 @@ const topics = [
       { id:8, title:'IT access management process missing', open:true, reason:'The CRM issue is a direct symptom of the same absent IT onboarding process.' },
     ],
     matchState:{},
+    priorityScore:{ alignment:7, alignmentRationale:'Supports CRM configuration priority for new reps, enabling pipeline execution.', delayCost:6, delayCostRationale:'Situation degrades as reps continue using spreadsheets but remains recoverable.', effortHours:12, score:6.6, scoredAt:SEED_SCORED_AT, contextSavedAt:null, manual:false },
   },
   {
     id:3, topic:'Technic Pro margin at 4% vs 12% target',
@@ -564,6 +591,7 @@ const topics = [
     analysed:true,
     matches:[],
     matchState:{},
+    priorityScore:{ alignment:8, alignmentRationale:'Directly tied to the stated priority of renegotiating or exiting the Technic Pro contract before July.', delayCost:10, delayCostRationale:'Hard July renewal deadline with irreversible consequence — contract auto-renews at 4% margin.', effortHours:12, score:8.8, scoredAt:SEED_SCORED_AT, contextSavedAt:null, manual:false },
   },
   {
     id:4, topic:'Q2 EBITDA forecast 6.2% vs 7% board target',
@@ -580,6 +608,7 @@ const topics = [
       { id:1, title:'Sales pipeline Q2 below target by €700k', open:true, reason:'The pipeline revenue miss is a direct driver of the EBITDA shortfall.' },
     ],
     matchState:{},
+    priorityScore:{ alignment:9, alignmentRationale:'Central to the EBITDA ≥7% goal and the €25M revenue vision for 2028.', delayCost:7, delayCostRationale:'Board credibility gap grows every month without a concrete recovery plan.', effortHours:35, score:8.2, scoredAt:SEED_SCORED_AT, contextSavedAt:null, manual:false },
   },
   {
     id:5, topic:'New sales rep onboarding process undefined',
@@ -596,6 +625,7 @@ const topics = [
       { id:2, title:'CRM not configured for new sales reps', open:true, reason:'CRM access is one unresolved component of the broader onboarding gap.' },
     ],
     matchState:{},
+    priorityScore:{ alignment:7, alignmentRationale:'Supports Q2 pipeline recovery by accelerating new rep ramp time.', delayCost:5, delayCostRationale:'Productivity loss accumulates but situation remains recoverable with Q3 reps.', effortHours:20, score:6.2, scoredAt:SEED_SCORED_AT, contextSavedAt:null, manual:false },
   },
   {
     id:6, topic:'No structured account review process for key accounts',
@@ -612,6 +642,7 @@ const topics = [
       { id:1, title:'Sales pipeline Q2 below target by €700k', open:true, reason:'Absence of account reviews is the structural root cause of the pipeline miss.' },
     ],
     matchState:{},
+    priorityScore:{ alignment:6, alignmentRationale:'Addresses commercial predictability, indirectly supporting the €25M revenue goal.', delayCost:5, delayCostRationale:'Pipeline risk degrades gradually each quarter without early-warning reviews.', effortHours:8, score:5.6, scoredAt:SEED_SCORED_AT, contextSavedAt:null, manual:false },
   },
   {
     id:7, topic:'Q1 sales team performance — strong quarter',
@@ -626,6 +657,7 @@ const topics = [
     analysed:true,
     matches:[],
     matchState:{},
+    priorityScore:{ alignment:4, alignmentRationale:'Useful for board reporting context but no active priority or goal it advances.', delayCost:2, delayCostRationale:'Completed topic — nothing material changes if further review is deferred.', effortHours:4, score:3.2, scoredAt:SEED_SCORED_AT, contextSavedAt:null, manual:false },
   },
   {
     id:8, topic:'IT access management process missing',
@@ -642,6 +674,7 @@ const topics = [
       { id:2, title:'CRM not configured for new sales reps', open:true, reason:'The CRM configuration gap is a direct instance of the missing IT access process.' },
     ],
     matchState:{},
+    priorityScore:{ alignment:3, alignmentRationale:'Not directly tied to any stated strategic priority or goal.', delayCost:4, delayCostRationale:'Security exposure and access friction grow slowly but remain manageable short-term.', effortHours:8, score:3.4, scoredAt:SEED_SCORED_AT, contextSavedAt:null, manual:false },
   },
 ];
 
@@ -672,7 +705,7 @@ function statRank(s) { return {'Not started':0,'In progress':1,'Completed':2}[s]
 function matchesFilter(t) {
   if (activeFilter === 'all') return true;
   if (activeFilter === 'Strategic' || activeFilter === 'Tactical') return t.category === activeFilter;
-  if (activeFilter === 'High') return t.priority === 'High';
+  if (activeFilter === 'High') return getPriorityBand(t.priorityScore?.score) === 'high';
   if (['Finance','Sales','IT','HR'].includes(activeFilter)) return t.tags.includes(activeFilter);
   if (['Thomas','Sarah','Marc','Julie','Pierre'].includes(activeFilter)) return t.owner === activeFilter;
   return true;
@@ -680,8 +713,19 @@ function matchesFilter(t) {
 
 function updateMeta() {
   const vis = topics.filter(matchesFilter);
-  const hi  = vis.filter(t => t.priority === 'High').length;
+  const hi  = vis.filter(t => getPriorityBand(t.priorityScore?.score) === 'high').length;
   $('meta-txt').textContent = `${vis.length} topic${vis.length !== 1 ? 's' : ''} · ${hi} high priority`;
+}
+
+function scoreBadgeHTML(ps) {
+  if (!ps || ps.score == null) {
+    return `<span class="score-badge score-unscored" title="Not yet scored">—</span>`;
+  }
+  const band = getPriorityBand(ps.score);
+  const cls  = `score-${band}`;
+  const effortLine = ps.effortHours != null ? `\nEffort: ~${ps.effortHours}h (not part of score)` : '';
+  const tip = `Alignment: ${ps.alignment}/10 — ${ps.alignmentRationale}\nCost of delay: ${ps.delayCost}/10 — ${ps.delayCostRationale}${effortLine}`;
+  return `<span class="score-badge ${cls}">${ps.score.toFixed(1)}<span class="score-tip">${tip}</span></span>`;
 }
 
 function hasActiveMatches(t) {
@@ -694,6 +738,15 @@ function renderTable() {
 
   if (sortCol) {
     rows.sort((a, b) => {
+      if (sortCol === 'score') {
+        const sa = a.priorityScore?.score ?? null;
+        const sb = b.priorityScore?.score ?? null;
+        // Unscored always sorts last regardless of direction
+        if (sa === null && sb === null) return 0;
+        if (sa === null) return 1;
+        if (sb === null) return -1;
+        return sortDir * (sb - sa); // descending = highest priority first
+      }
       let av = a[sortCol], bv = b[sortCol];
       if (sortCol === 'priority') { av = prioRank(av); bv = prioRank(bv); return sortDir * (av - bv); }
       if (sortCol === 'status')   { av = statRank(av); bv = statRank(bv); return sortDir * (av - bv); }
@@ -726,7 +779,7 @@ function renderTable() {
           ${t.category} <i class="ti ti-pencil pencil"></i>
         </span>
       </td>
-      <td><span class="badge b-${t.priority.toLowerCase()}">${t.priority}</span></td>
+      <td>${scoreBadgeHTML(t.priorityScore)}</td>
       <td><span class="owner-txt">${t.owner}</span></td>
       <td>${t.tags.map(tagHTML).join('')}</td>
       <td>
@@ -809,6 +862,8 @@ function renderDD() {
         <div class="dd-val">${t.owner} · ${t.forum}</div>
       </div>
 
+      ${renderPriorityScoreSection(t)}
+
       <div class="dd-sec">
         <div class="dd-lbl">Source</div>
         <div class="dd-val" style="color:#999;font-size:11px">${t.source}</div>
@@ -888,6 +943,90 @@ function renderDD() {
       </button>
     </div>
   `;
+}
+
+// ─── Priority score deep-dive section ────────────────────────────────────────
+function renderPriorityScoreSection(t) {
+  const ps = t.priorityScore;
+  if (!ps || ps.score == null) {
+    return `
+      <div class="dd-sec">
+        <div class="dd-lbl">Priority score</div>
+        <div class="dd-val" style="color:#bbb;font-size:11px">Not yet scored</div>
+      </div>`;
+  }
+  const band = getPriorityBand(ps.score);
+  const cls  = `score-${band}`;
+  const manualTag = ps.manual ? `<span class="ps-manual-tag">manual</span>` : '';
+  return `
+    <div class="dd-sec" id="ps-sec-${t.id}">
+      <div class="dd-lbl">Priority score ${manualTag}</div>
+      <div style="margin-bottom:4px">${scoreBadgeHTML(ps)}</div>
+      <div class="ps-row">
+        <span class="ps-label">Alignment</span>
+        <span class="ps-rat">${ps.alignment}/10 — ${ps.alignmentRationale}</span>
+        <button class="ps-edit-btn" title="Edit" onclick="startPsEdit(${t.id},'alignment')"><i class="ti ti-pencil"></i></button>
+      </div>
+      <div class="ps-row">
+        <span class="ps-label">Cost of delay</span>
+        <span class="ps-rat">${ps.delayCost}/10 — ${ps.delayCostRationale}</span>
+        <button class="ps-edit-btn" title="Edit" onclick="startPsEdit(${t.id},'delayCost')"><i class="ti ti-pencil"></i></button>
+      </div>
+      <div class="ps-row">
+        <span class="ps-label">Effort</span>
+        <span class="ps-rat">${ps.effortHours != null ? `~${ps.effortHours}h` : '—'} <span style="color:#bbb;font-size:10px">(not part of score)</span></span>
+        <button class="ps-edit-btn" title="Edit" onclick="startPsEdit(${t.id},'effortHours')"><i class="ti ti-pencil"></i></button>
+      </div>
+    </div>`;
+}
+
+function startPsEdit(tid, field) {
+  const t = byId(tid);
+  if (!t || !t.priorityScore) return;
+  const ps = t.priorityScore;
+
+  const rowMap = { alignment:0, delayCost:1, effortHours:2 };
+  const sec = document.getElementById(`ps-sec-${tid}`);
+  if (!sec) return;
+  const rows = sec.querySelectorAll('.ps-row');
+  const row = rows[rowMap[field]];
+  if (!row) return;
+
+  const current = ps[field] ?? '';
+  const isScore = field !== 'effortHours';
+  const placeholder = isScore ? '0–10' : 'hours';
+
+  row.innerHTML = `
+    <span class="ps-label">${field === 'alignment' ? 'Alignment' : field === 'delayCost' ? 'Cost of delay' : 'Effort'}</span>
+    <input class="ps-input" id="ps-input-${field}" type="number" min="0" ${isScore ? 'max="10"' : ''} step="${isScore ? '1' : '0.5'}" value="${current}" placeholder="${placeholder}">
+    <button class="ps-confirm" onclick="confirmPsEdit(${tid},'${field}')">Save</button>`;
+
+  const inp = document.getElementById(`ps-input-${field}`);
+  if (inp) { inp.focus(); inp.select(); }
+}
+
+function confirmPsEdit(tid, field) {
+  const t = byId(tid);
+  if (!t || !t.priorityScore) return;
+  const inp = document.getElementById(`ps-input-${field}`);
+  if (!inp) return;
+  const val = parseFloat(inp.value);
+  if (!Number.isFinite(val) || val < 0) { showToast('Enter a valid positive number.'); return; }
+  if (field !== 'effortHours' && val > 10) { showToast('Score must be 0–10.'); return; }
+
+  const ps = t.priorityScore;
+  ps[field] = val;
+  if (field !== 'effortHours') {
+    const newScore = computePriorityScore({ alignment: ps.alignment, delayCost: ps.delayCost });
+    ps.score = newScore;
+  }
+  ps.manual = true;
+  ps.scoredAt = Date.now();
+
+  savePriorityScoreToLocalStorage(t);
+  renderTable();
+  renderDD();
+  showToast('Priority score updated.');
 }
 
 // ─── Match actions ────────────────────────────────────────────────────────────
@@ -1155,7 +1294,7 @@ $('add-save').addEventListener('click', () => {
   const tags = $('add-tags').value.split(',').map(s => s.trim()).filter(Boolean);
   const newId = Math.max(...topics.map(t => t.id)) + 1;
 
-  topics.unshift({
+  const newTopic = {
     id: newId,
     topic: desc,
     category: $('add-cat').value,
@@ -1173,7 +1312,10 @@ $('add-save').addEventListener('click', () => {
     analysed: false,
     matches: [],
     matchState: {},
-  });
+    priorityScore: null,
+    _fromLocalStorage: true,
+  };
+  topics.unshift(newTopic);
 
   // Reset filter/sort so the new row is visible
   activeFilter = 'all';
@@ -1207,6 +1349,20 @@ $('add-save').addEventListener('click', () => {
   $('add-desc').value = '';
   $('add-tags').value = '';
   $('add-source').value = '';
+
+  // Score the new topic asynchronously
+  if (getApiKey()) {
+    (async () => {
+      const results = await scoreTopicsBatch([{ id: newId, title: newTopic.topic, desc: newTopic.desc }]);
+      if (results && results[newId]) {
+        newTopic.priorityScore = results[newId];
+        savePriorityScoreToLocalStorage(newTopic);
+        renderTable();
+        if (selId === newId) renderDD();
+        showToast('Topic scored.');
+      }
+    })();
+  }
 });
 
 // ─── Info-request localStorage ───────────────────────────────────────────────
@@ -1595,10 +1751,50 @@ function loadFromLocalStorage() {
         matches: [],
         matchState: {},
         _new: s._new || false,
+        priorityScore: s.priorityScore || null,
+        _fromLocalStorage: true,
       });
       existingTitles.add(s.title);
     });
   } catch(e) { console.warn('localStorage error:', e); }
+}
+
+function savePriorityScoreToLocalStorage(t) {
+  // Only persist scores for topics that came from localStorage (not seed topics)
+  if (!t._fromLocalStorage) return;
+  try {
+    const stored = JSON.parse(localStorage.getItem('catalyze_backlog_topics') || '[]');
+    const idx = stored.findIndex(s => s.title === t.topic);
+    if (idx !== -1) {
+      stored[idx].priorityScore = t.priorityScore;
+      localStorage.setItem('catalyze_backlog_topics', JSON.stringify(stored));
+    }
+  } catch(e) { console.warn('localStorage error:', e); }
+}
+
+async function scoreNewLocalStorageTopics() {
+  const unscored = topics.filter(t => t._fromLocalStorage && !t.priorityScore);
+  if (unscored.length === 0) return;
+  if (!getApiKey()) return;
+
+  showToast(`Scoring ${unscored.length} new topic${unscored.length !== 1 ? 's' : ''}…`);
+  const batch = unscored.map(t => ({ id: t.id, title: t.topic, desc: t.desc }));
+  const results = await scoreTopicsBatch(batch);
+  if (!results) return; // API error — leave unscored
+
+  let scored = 0;
+  for (const t of unscored) {
+    if (results[t.id]) {
+      t.priorityScore = results[t.id];
+      savePriorityScoreToLocalStorage(t);
+      scored++;
+    }
+  }
+  if (scored > 0) {
+    renderTable();
+    if (selId) renderDD();
+    showToast(`${scored} topic${scored !== 1 ? 's' : ''} scored.`);
+  }
 }
 
 function highlightFromURL() {
@@ -1705,6 +1901,7 @@ loadFromLocalStorage();
 renderTable();
 if (!highlightFromURL()) selectTopic(1);
 autoGatherInfo();
+scoreNewLocalStorageTopics();
 </script>
 </body>
 </html>

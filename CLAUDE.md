@@ -49,15 +49,16 @@ server.js               — Local dev server (Node.js, port 3000, no dependencie
 
 ---
 
-## localStorage schema (9 keys — all prefixed `catalyze_`)
+## localStorage schema (10 keys — all prefixed `catalyze_`)
 
 | Key | Writer | Reader | Shape |
 |-----|--------|--------|-------|
 | `catalyze_api_key` | `catalyze-config.js` (`setApiKey`) | all modules (`getApiKey`) | string (raw API key) |
-| `catalyze_meetings` | `meeting_capture.html` (`saveMeetings`) | `meeting_capture.html` (`loadMeetings`) | `Meeting[]` — only `_userAdded: true` meetings are persisted; seed data lives in code |
-| `catalyze_backlog_topics` | `meeting_capture.html` (`saveBacklogTopics`) | `topic_backlog.html` (`loadFromLocalStorage`), `meeting_prep.html` (`getTopicsForMeeting`) | `StoredTopic[]` — `{title, category, priority, owner, forum, rationale, source, status, tags, _new}` |
+| `catalyze_meetings` | `meeting_capture.html` (`saveMeetings`) | `meeting_capture.html` (`loadMeetings`) | `Meeting[]` — only `_userAdded: true` meetings are persisted; seed data lives in code; user-added meeting ids are `Date.now()`-based |
+| `catalyze_backlog_topics` | `meeting_capture.html` (`saveBacklogTopics`) | `topic_backlog.html` (`loadFromLocalStorage`), `meeting_prep.html` (`getTopicsForMeeting`) | `StoredTopic[]` — `{title, category, priority, owner, forum, rationale, source, status, tags, _new, meetingId}` |
 | `catalyze_goals` | `meeting_capture.html` (`saveGoalsFromTopics`), `topic_backlog.html` (`createGoalFromTopic`), `goal_setting.html` (`saveGoals`) | `goal_setting.html` (`loadGoals`) | `Goal[]` — only `autoCreated: true` goals from localStorage are merged into seed data |
 | `catalyze_commitments` | `meeting_capture.html` (action plan send) | `meeting_capture.html` (`isPlanSent`, `openDeleteModal`) | `{meetingId, topicTitle, owner, sentAt}[]` |
+| `catalyze_pending_backlog` | `meeting_capture.html` (`savePendingBacklog`) | `meeting_capture.html` (`loadPendingBacklog`, `checkPendingBacklog`, `sendBacklogNow`) | `{meetingId, topics[], scheduledAt, status: 'scheduled'\|'sent'\|'orphaned'}[]` — topics are pre-filtered at schedule time; `orphaned` means the source meeting was not found at flush time |
 | `catalyze_info_requests` | `topic_backlog.html` (`saveInfoRequest`) | `topic_backlog.html` (`getInfoRequest`, `renderDD`) | `{ [topicId]: {topicId, topicTitle, owner, generatedAt, questions[], emailSubject, emailBody, status, sentAt?} }` |
 | `catalyze_followups` | `goal_setting.html` (`appendFollowup`, `updateNextDraft`) | `goal_setting.html` (`loadFollowups`, `getKrHistory`) | `{ "goalId_krIdx": [{goalId, krId, owner, krText, sentAt, message:{subject,body}, status}], _nextDraft? }` |
 | `catalyze_agenda_topics` | `topic_backlog.html` (`doAction agenda`), `goal_setting.html` (`doAction agenda`) | `meeting_prep.html` (`getTopicsForMeeting`) | `{title, owner, priority, forum, topicId?, goalId?}[]` |
