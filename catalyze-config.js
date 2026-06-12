@@ -355,4 +355,95 @@ Respond with JSON only (no markdown fences):
 
   meetingPrep_suggestAgenda: (forum, date, topicBudgetMin, topicLines) =>
     `For this meeting: '${forum}' on ${date} with ${topicBudgetMin} minutes available for discussion topics, review these candidate topics and suggest which to include. Select maximum 3-4 topics that are most urgent, most relevant to this forum, and most actionable in this meeting.\n\nTopics:\n${topicLines}\n\nRespond in JSON only: { "included": ["topic title 1", "topic title 2"], "reason": "one sentence explaining the selection" }`,
+
+  // ── Priority Scoring ─────────────────────────────────────────────────────────
+
+  scorePriorityBatch: (topics) =>
+    `Score the following topics for the leadership team. Score them RELATIVE to each other — use the full 0-10 range, avoid clustering everything between 5 and 7.
+
+For each topic return:
+- alignment (0-10): how directly this topic serves the company's vision, strategy and goals described in your context. 10 = directly advances a stated priority or goal; 0 = unrelated to any of them.
+- alignmentRationale: one short sentence naming WHICH priority or goal it serves (or why none).
+- delayCost (0-10), anchored:
+  9-10 = hard, near-term deadline with irreversible consequence (contract renewal, legal deadline, cash rupture)
+  7-8  = measurable cost accumulating every month of delay
+  4-6  = situation degrades but remains recoverable
+  1-3  = nothing material changes if deferred a quarter
+- delayCostRationale: one short sentence justifying the level.
+- effortHours (number): realistic estimate of total work hours to resolve the topic. This does NOT affect priority — estimate it independently.
+
+Topics:
+${topics.map(t => `ID: ${t.id} | TITLE: ${t.title} | DESCRIPTION: ${t.desc}`).join('\n')}
+
+Respond in JSON only, no markdown fences:
+{ "scores": [ { "id": ..., "alignment": ..., "alignmentRationale": "...", "delayCost": ..., "delayCostRationale": "...", "effortHours": ... } ] }`,
 };
+
+// ── Priority Scoring ────────────────────────────────────────────────────────────
+
+const PRIORITY_WEIGHTS = { alignment: 0.6, delayCost: 0.4 };
+const PRIORITY_BANDS = { high: 7, medium: 4 }; // high: score>=7, medium: 4–6.9, low: <4
+
+function computePriorityScore({ alignment, delayCost } = {}) {
+  const clamp = v => {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return null;
+    return Math.max(0, Math.min(10, n));
+  };
+  const a = clamp(alignment);
+  const d = clamp(delayCost);
+  if (a === null || d === null) return null;
+  return Math.round((PRIORITY_WEIGHTS.alignment * a + PRIORITY_WEIGHTS.delayCost * d) * 10) / 10;
+}
+
+function getPriorityBand(score) {
+  if (score == null || !Number.isFinite(score)) return 'unscored';
+  if (score >= PRIORITY_BANDS.high)   return 'high';
+  if (score >= PRIORITY_BANDS.medium) return 'medium';
+  return 'low';
+}
+
+async function scoreTopicsBatch(topics) {
+  if (!topics || topics.length === 0) return null;
+  const maxTokens = Math.min(4000, 300 + topics.length * 150);
+  try {
+    const raw = await callAI(PROMPTS.scorePriorityBatch(topics), maxTokens, undefined);
+    if (!raw) return null;
+
+    // Strip markdown fences if present
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+    const parsed = JSON.parse(cleaned);
+
+    if (!parsed.scores || !Array.isArray(parsed.scores)) return null;
+
+    // Read contextSavedAt from stored company context if available
+    let contextSavedAt = null;
+    try {
+      const stored = localStorage.getItem('catalyze_company_context');
+      if (stored) {
+        const ctx = JSON.parse(stored);
+        contextSavedAt = ctx.savedAt || null;
+      }
+    } catch (_) {}
+
+    const result = {};
+    for (const entry of parsed.scores) {
+      const score = computePriorityScore({ alignment: entry.alignment, delayCost: entry.delayCost });
+      result[entry.id] = {
+        alignment:            entry.alignment,
+        alignmentRationale:   entry.alignmentRationale || '',
+        delayCost:            entry.delayCost,
+        delayCostRationale:   entry.delayCostRationale || '',
+        effortHours:          entry.effortHours ?? null,
+        score,
+        scoredAt:             Date.now(),
+        contextSavedAt,
+        manual:               false,
+      };
+    }
+    return result;
+  } catch (err) {
+    console.warn('scoreTopicsBatch error:', err);
+    return null;
+  }
+}
