@@ -130,4 +130,4 @@ Modules that trigger navigation:
 
 ## Current brief version
 
-See `Catalyze_Wedge_Prototype_Brief_v6_final.md` for the full handoff document.
+See `Catalyze_Wedge_Prototype_Brief_v7.md` for the full handoff document.
