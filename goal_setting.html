@@ -1543,7 +1543,7 @@ $('add-save').addEventListener('click', () => {
       })
     : [];
 
-  const newId = goals.length ? Math.max(...goals.map(g => g.id)) + 1 : 100;
+  const newId = Date.now();
   const newGoal = {
     id: newId,
     title: objective.length > 60 ? objective.slice(0, 60) + '…' : objective,

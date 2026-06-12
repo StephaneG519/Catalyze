@@ -152,6 +152,18 @@ tbody tr.selected .chevron-icon { color: #888; }
 .msg-readonly-box { font-size: 11px; color: #333; background: #fafafa; border: 1px solid #ebebeb; border-radius: 7px; padding: 9px 11px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
 .msg-auto-note { font-size: 10px; color: #854F0B; background: #FEF3DA; border: 1px solid #D97706; border-radius: 6px; padding: 6px 9px; line-height: 1.5; }
 
+/* Score badge (replaces category + priority badges) */
+.badge-score { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; white-space: nowrap; }
+.badge-score-high    { background: #FCEBEB; color: #A32D2D; }
+.badge-score-medium  { background: #FEF3DA; color: #854F0B; }
+.badge-score-low     { background: #f5f5f5; color: #888; border: 1px solid #e8e8e8; }
+.badge-score-unscored { background: #f5f5f5; color: #ccc; border: 1px solid #ebebeb; }
+
+/* Score breakdown in expanded detail */
+.score-detail-row { display: flex; gap: 6px; font-size: 11px; margin-bottom: 3px; }
+.score-detail-label { color: #aaa; width: 80px; flex-shrink: 0; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; padding-top: 1px; }
+.score-detail-value { color: #333; flex: 1; line-height: 1.5; }
+
 /* Issue badge inline with topic tags */
 .badge-issues { background: #FEF3DA; color: #854F0B; font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
 
@@ -473,7 +485,10 @@ tbody tr:hover .row-delete-btn { opacity: 1; }
         <div class="field">
           <div class="field-label">New API key</div>
           <input type="text" class="field-input" id="api-key-input" placeholder="sk-ant-…">
-          <div class="field-hint">Stored in localStorage and used for all AI features across modules.</div>
+          <div class="field-hint" style="display:flex;align-items:center;justify-content:space-between">
+            <span>Stored in localStorage and used for all AI features across modules.</span>
+            <button class="btn btn-outline" id="btn-remove-api-key" style="font-size:11px;padding:3px 8px;color:#c0392b;border-color:#e5b0aa">Remove key</button>
+          </div>
         </div>
         <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 10px">Automatic actions</div>
         <div class="field">
@@ -488,7 +503,7 @@ tbody tr:hover .row-delete-btn { opacity: 1; }
           <div class="field-label">Backlog delay</div>
           <div style="display:flex;align-items:center;gap:8px">
             <span style="font-size:12px;color:#555">Send topics to backlog after</span>
-            <input type="number" class="field-input" id="settings-backlog-delay" min="1" max="48" style="width:60px">
+            <input type="number" class="field-input" id="settings-backlog-delay" min="0" max="48" style="width:60px">
             <span style="font-size:12px;color:#555">hours</span>
           </div>
         </div>
@@ -909,6 +924,7 @@ function saveBacklogTopics(meeting, topics, realMeetingId) {
         status: 'Not started',
         tags: [],
         _new: true,
+        priorityScore: t.priorityScore || null,
       });
       existingTitles.add(t.title);
       written++;
@@ -940,6 +956,7 @@ function saveGoalsFromTopics(newMeeting) {
         keyResults: [],
         autoCreated: true,
         meetingId: newMeeting.id,
+        priorityScore: t.priorityScore || null,
       });
       existingTitles.add(t.title);
       added++;
@@ -1041,6 +1058,7 @@ function confirmDeleteMeeting() {
   if (!m) { closeModal('modal-delete'); return; }
 
   let deletedCount = 0;
+  const deletedGoalIds = new Set();
 
   // Remove from catalyze_backlog_topics
   try {
@@ -1050,6 +1068,7 @@ function confirmDeleteMeeting() {
 
     const allGoals = JSON.parse(localStorage.getItem('catalyze_goals') || '[]');
     const keptGoals = allGoals.filter(g => !(g.autoCreated && g.meetingId === m.id));
+    allGoals.filter(g => g.autoCreated && g.meetingId === m.id).forEach(g => deletedGoalIds.add(g.id));
     deletedCount += allGoals.length - keptGoals.length;
 
     localStorage.setItem('catalyze_backlog_topics', JSON.stringify(kept));
@@ -1070,6 +1089,19 @@ function confirmDeleteMeeting() {
     const keptPending = allPending.filter(e => e.meetingId !== pendingDeleteId);
     savePendingBacklog(keptPending);
   } catch(e) { console.warn('localStorage error:', e); }
+
+  // Remove catalyze_followups entries keyed to deleted goals
+  if (deletedGoalIds.size > 0) {
+    try {
+      const followups = JSON.parse(localStorage.getItem('catalyze_followups') || '{}');
+      let changed = false;
+      for (const key of Object.keys(followups)) {
+        const goalId = parseInt(key.split('_')[0], 10);
+        if (deletedGoalIds.has(goalId)) { delete followups[key]; changed = true; }
+      }
+      if (changed) localStorage.setItem('catalyze_followups', JSON.stringify(followups));
+    } catch(e) { console.warn('localStorage error:', e); }
+  }
 
   // Remove from meetings array and localStorage
   const idx = meetings.findIndex(x => x.id === pendingDeleteId);
@@ -1246,14 +1278,27 @@ function renderDeepDive() {
                 ${t.owner ? `<button class="topic-detail-link" onclick="viewInGoals('${t.title.replace(/'/g, "\\'")}')"><i class="ti ti-target" style="font-size:11px"></i> Create goal</button>` : ''}
               </div>` : '';
             const description = (t.rationale || '').trim();
+            const ps = t.priorityScore;
+            const scoreBand = ps && ps.score != null ? getPriorityBand(ps.score) : 'unscored';
+            const scoreBadge = ps && ps.score != null
+              ? `<span class="badge-score badge-score-${scoreBand}">${ps.score.toFixed(1)}</span>`
+              : `<span class="badge-score badge-score-unscored" title="Not yet scored">—</span>`;
+            const scoreDetailHtml = ps && ps.score != null ? `
+              <div class="topic-detail-row" style="margin-top:6px;margin-bottom:2px">
+                <span class="topic-detail-label" style="padding-top:0">Score</span>
+                <div style="flex:1">
+                  <div class="score-detail-row"><span class="score-detail-label">Alignment</span><span class="score-detail-value">${ps.alignment}/10 — ${ps.alignmentRationale || ''}</span></div>
+                  <div class="score-detail-row"><span class="score-detail-label">Cost of delay</span><span class="score-detail-value">${ps.delayCost}/10 — ${ps.delayCostRationale || ''}</span></div>
+                  ${ps.effortHours != null ? `<div class="score-detail-row"><span class="score-detail-label">Effort</span><span class="score-detail-value">~${ps.effortHours}h <span style="color:#bbb;font-size:10px">(not part of score)</span></span></div>` : ''}
+                </div>
+              </div>` : '';
             return `
             <div class="topic-row" id="topic-row-${i}">
               <div class="topic-row-header" onclick="toggleTopic(${m.id}, ${i}, event)">
                 <input type="checkbox" class="topic-check" id="chk-${m.id}-${i}" ${topicStates[m.id][i] ? 'checked' : ''} onclick="event.stopPropagation(); toggleCheck(${m.id}, ${i})">
                 <span class="topic-label">${t.title}${planSent ? '<span class="badge-plan-sent">Plan sent</span>' : ''}</span>
                 <div class="topic-badges">
-                  <span class="badge badge-${t.category.toLowerCase()}">${t.category}</span>
-                  <span class="badge badge-${t.priority.toLowerCase()}">${t.priority}</span>
+                  ${scoreBadge}
                   ${issueBadge}
                 </div>
                 <i class="ti ti-chevron-down topic-chevron" id="chev-${m.id}-${i}"></i>
@@ -1261,6 +1306,7 @@ function renderDeepDive() {
               <div class="topic-detail" id="detail-${m.id}-${i}">
                 <div class="topic-detail-row"><span class="topic-detail-label">Owner</span><span class="topic-detail-value">${t.owner || '—'}</span></div>
                 <div class="topic-detail-row"><span class="topic-detail-label">Description</span><span class="topic-detail-value">${description || '—'}</span></div>
+                ${scoreDetailHtml}
                 ${issuesHtml}
                 ${t.assigned ? buildTopicActionStatus(m.id, t.title, i, t) : ''}
                 ${t.assigned ? `<div style="font-size:10px;color:#aaa;font-style:italic;margin-top:4px">Goal auto-created in Goal setting</div>` : ''}
@@ -1385,7 +1431,10 @@ function checkPendingBacklog() {
       changed = true;
     }
   });
-  if (changed) savePendingBacklog(arr);
+  if (changed) {
+    savePendingBacklog(arr);
+    renderDeepDive();
+  }
 }
 
 function sendBacklogNow(meetingId) {
@@ -1418,8 +1467,11 @@ function buildBacklogStatus(meetingId) {
   if (entry.status === 'sent') {
     return `<div class="bl-status" style="font-size:10px;color:#888;margin-top:4px"><i class="ti ti-stack" style="font-size:10px;color:#bbb;margin-right:3px"></i>Topics sent to backlog</div>`;
   }
+  if (entry.status === 'orphaned') {
+    return `<div class="bl-status" style="font-size:10px;color:#c0392b;margin-top:4px"><i class="ti ti-alert-triangle" style="font-size:10px;margin-right:3px"></i>Backlog send failed — meeting no longer exists</div>`;
+  }
   const countdown = fmtCountdown(entry.scheduledAt - Date.now());
-  return `<div class="bl-status" style="font-size:10px;color:#888;margin-top:4px" id="bl-status-${meetingId}"><i class="ti ti-stack" style="font-size:10px;color:#bbb;margin-right:3px"></i>Topics send to backlog in <span class="bl-countdown" data-scheduleat="${entry.scheduledAt}" data-meetingid="${meetingId}">${countdown}</span> · <button class="kr-auto-link" onclick="sendBacklogNow(${meetingId})">Send now</button> · <button class="kr-auto-link" onclick="cancelPendingBacklog(${meetingId})">Cancel</button></div>`;
+  return `<div class="bl-status" style="font-size:10px;color:#888;margin-top:4px" id="bl-status-${meetingId}"><i class="ti ti-stack" style="font-size:10px;color:#bbb;margin-right:3px"></i>Topics sent to backlog in <span class="bl-countdown" data-scheduleat="${entry.scheduledAt}" data-meetingid="${meetingId}">${countdown}</span> · <button class="kr-auto-link" onclick="sendBacklogNow(${meetingId})">Send now</button> · <button class="kr-auto-link" onclick="cancelPendingBacklog(${meetingId})">Cancel</button></div>`;
 }
 
 // ─── checkScheduledCommitments — runs on page load ────────────────────────────
@@ -1791,8 +1843,8 @@ document.getElementById('modal-add-save').addEventListener('click', async () => 
     id: newId,
     forum, iteration: nextIter, date, duration, actual, health, attendees: attendeesFallback,
     scorecard: {
-      meetingHealth: { rating: health, tooltip: 'Computed from meeting data.' },
-      structure: { rating: overrun > 5 ? 'Fair' : 'Good', tooltip: overrun > 0 ? `Meeting ran ${overrun} min over target.` : `Meeting ended ${-overrun} min early.` },
+      meetingHealth: { rating: 'n/a', tooltip: 'AI analysis unavailable — re-save with a valid API key to score.' },
+      structure: { rating: 'n/a', tooltip: 'AI analysis unavailable — re-save with a valid API key to score.' },
       outputQuality: { rating: 'n/a', tooltip: 'Decision quality not yet assessed — add via AI analysis.' },
       dynamics: { rating: 'n/a', tooltip: 'Participation data not available for manually-entered meetings.' }
     },
@@ -1801,7 +1853,7 @@ document.getElementById('modal-add-save').addEventListener('click', async () => 
       turns: 10 - i * 2, interruptions: 0, interrupted: 0
     })),
     topics: notes ? [
-      { checked: true, title: `Key topics from ${forum} — to be extracted`, category: 'Strategic', priority: 'High', owner: attendeesFallback[0] || 'Thomas', forum, rationale: 'Manually entered meeting — topics pending AI extraction.' }
+      { checked: false, title: `Key topics from ${forum} — to be extracted`, category: 'Strategic', priority: 'High', owner: attendeesFallback[0] || 'Thomas', forum, rationale: 'Manually entered meeting — topics pending AI extraction.' }
     ] : [],
     decisions: [],
     notes: notes || `${forum} — ${date}\nAttendees: ${attendeesFallback.join(', ')}\n\nNo notes provided.`
@@ -1914,6 +1966,7 @@ document.getElementById('modal-add-save').addEventListener('click', async () => 
     if (overrunFallback > 10) healthFallback = 'Poor';
     if (overrunFallback <= -5 && notes.length > 200) healthFallback = 'Good';
     newMeeting = staticFallback(healthFallback);
+    newMeeting._staticFallback = true;
     showToast('AI analysis unavailable — meeting saved with basic data.', 3500);
   } finally {
     saveBtn.textContent = originalLabel;
@@ -1925,9 +1978,35 @@ document.getElementById('modal-add-save').addEventListener('click', async () => 
   topicStates[newId] = {};
   newMeeting.topics.forEach((_, i) => { topicStates[newId][i] = true; });
 
+  // Score topics before persisting so the pending queue entry carries priorityScore
+  if (getApiKey() && newMeeting.topics.length > 0) {
+    saveBtn.textContent = 'Scoring topics…';
+    saveBtn.disabled = true;
+    try {
+      const batchInput = newMeeting.topics.map((t, i) => ({
+        id: i,
+        title: t.title,
+        desc: t.rationale || t.assignmentContext || t.title,
+      }));
+      const scores = await scoreTopicsBatch(batchInput, getScoringAnchors());
+      if (scores) {
+        newMeeting.topics.forEach((t, i) => {
+          if (scores[i]) t.priorityScore = scores[i];
+        });
+      }
+    } catch (err) {
+      console.warn('Topic scoring failed, proceeding without scores:', err);
+    } finally {
+      saveBtn.textContent = originalLabel;
+      saveBtn.disabled = false;
+    }
+  }
+
   saveMeetings();
-  schedulePendingBacklog(newMeeting);
-  saveGoalsFromTopics(newMeeting);
+  if (!newMeeting._staticFallback) {
+    schedulePendingBacklog(newMeeting);
+    saveGoalsFromTopics(newMeeting);
+  }
 
   closeModal('modal-add');
   renderList();
@@ -2111,14 +2190,24 @@ document.getElementById('btn-api-key').addEventListener('click', () => {
 });
 document.getElementById('modal-api-key-close').addEventListener('click', () => closeModal('modal-api-key'));
 document.getElementById('modal-api-key-cancel').addEventListener('click', () => closeModal('modal-api-key'));
+document.getElementById('btn-remove-api-key').addEventListener('click', () => {
+  setApiKey('');
+  document.getElementById('api-key-display').textContent = 'No key saved';
+  document.getElementById('api-key-input').value = '';
+  showToast('API key removed.');
+});
 document.getElementById('modal-api-key-save').addEventListener('click', () => {
   const val = document.getElementById('api-key-input').value.trim();
   if (val) setApiKey(val);
+  const apDelay = parseInt(document.getElementById('settings-ap-delay').value);
+  const blDelay = parseInt(document.getElementById('settings-backlog-delay').value);
+  const ciInterval = parseInt(document.getElementById('settings-checkin-interval').value);
+  const escThresh = parseInt(document.getElementById('settings-escalation-threshold').value);
   saveSettings({
-    actionPlanDelay: parseInt(document.getElementById('settings-ap-delay').value) || 12,
-    backlogDelay: parseInt(document.getElementById('settings-backlog-delay').value) || 12,
-    checkinIntervalDays: parseInt(document.getElementById('settings-checkin-interval').value) || 3,
-    escalationThreshold: parseInt(document.getElementById('settings-escalation-threshold').value) || 3,
+    actionPlanDelay: Number.isFinite(apDelay) ? apDelay : 12,
+    backlogDelay: Number.isFinite(blDelay) ? blDelay : 12,
+    checkinIntervalDays: Number.isFinite(ciInterval) ? ciInterval : 3,
+    escalationThreshold: Number.isFinite(escThresh) ? escThresh : 3,
     emailTone: document.getElementById('settings-email-tone').value || 'direct',
   });
   closeModal('modal-api-key');

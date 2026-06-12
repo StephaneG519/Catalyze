@@ -129,6 +129,40 @@ Modules that trigger navigation:
 
 ---
 
+## Testing & debugging protocol
+
+Rules derived from bugs found in production use of this prototype.
+
+### Test plans for write operations
+Any test plan for a feature that writes data (localStorage or future backend)
+must include a **delete → re-add cycle** of the parent entity. Verify that
+the re-added entity gets a fresh id and that all id-keyed mechanisms
+(cascade delete, pending queues, foreign keys) work correctly on the new
+entry. Rationale: this cycle exposed the `meetingId` foreign key corruption
+caused by sequential id reuse (June 2026 incident).
+
+### Quoting code for diagnosis
+When inspecting code to answer a question or diagnose a bug, always
+**quote verbatim with exact line numbers** — copy directly from the file
+using a Read or Grep tool call. Never retype or paraphrase from memory.
+Paraphrasing has produced false typos and a false "no bug" conclusion in
+this codebase.
+
+### Reproduce before fixing
+Never modify code to fix a bug without a reproduction path first. Instrument
+the live system (console monkey-patching, localStorage reads in DevTools)
+to confirm the failure before touching any file.
+
+### Entity id generation
+Entity ids must be generated with `Date.now()`, never sequentially
+(`max + 1` or `array.length + 1`). Sequential ids are silently reused after
+deletion and corrupt every id-keyed mechanism: cascade delete, pending
+queues, and foreign key lookups. The meeting id in `meeting_capture.html`
+was migrated to `Date.now()` after the June 2026 incident; apply the same
+rule to any new entity type introduced in future steps.
+
+---
+
 ## Current brief version
 
 See `Catalyze_Wedge_Prototype_Brief_v7.md` for the full handoff document.

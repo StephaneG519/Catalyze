@@ -358,8 +358,11 @@ Respond with JSON only (no markdown fences):
 
   // ── Priority Scoring ─────────────────────────────────────────────────────────
 
-  scorePriorityBatch: (topics) =>
-    `Score the following topics for the leadership team. Score them RELATIVE to each other — use the full 0-10 range, avoid clustering everything between 5 and 7.
+  scorePriorityBatch: (topics, anchors) => {
+    const anchorBlock = anchors && anchors.length
+      ? `CALIBRATION — these topics are already scored on the scale you must use. Do not re-score them; score the new topics CONSISTENTLY with them:\n${anchors.map(a => `"${a.title}" → alignment ${a.alignment}, delayCost ${a.delayCost}`).join('\n')}\n\n`
+      : '';
+    return `${anchorBlock}Score the following topics for the leadership team. Score them RELATIVE to each other — use the full 0-10 range, avoid clustering everything between 5 and 7.
 
 For each topic return:
 - alignment (0-10): how directly this topic serves the company's vision, strategy and goals described in your context. 10 = directly advances a stated priority or goal; 0 = unrelated to any of them.
@@ -376,13 +379,22 @@ Topics:
 ${topics.map(t => `ID: ${t.id} | TITLE: ${t.title} | DESCRIPTION: ${t.desc}`).join('\n')}
 
 Respond in JSON only, no markdown fences:
-{ "scores": [ { "id": ..., "alignment": ..., "alignmentRationale": "...", "delayCost": ..., "delayCostRationale": "...", "effortHours": ... } ] }`,
+{ "scores": [ { "id": ..., "alignment": ..., "alignmentRationale": "...", "delayCost": ..., "delayCostRationale": "...", "effortHours": ... } ] }`;
+  },
 };
 
 // ── Priority Scoring ────────────────────────────────────────────────────────────
 
 const PRIORITY_WEIGHTS = { alignment: 0.6, delayCost: 0.4 };
 const PRIORITY_BANDS = { high: 7, medium: 4 }; // high: score>=7, medium: 4–6.9, low: <4
+
+// Static calibration references matching the hardcoded seed scores in topic_backlog.html.
+// Included in scoring prompts to keep all batches on the same scale.
+const PRIORITY_ANCHORS = [
+  { title: 'Technic Pro contract', alignment: 8, delayCost: 10 },
+  { title: 'Account review',       alignment: 6, delayCost: 5  },
+  { title: 'Q1 performance',       alignment: 4, delayCost: 2  },
+];
 
 function computePriorityScore({ alignment, delayCost } = {}) {
   const clamp = v => {
@@ -403,11 +415,11 @@ function getPriorityBand(score) {
   return 'low';
 }
 
-async function scoreTopicsBatch(topics) {
+async function scoreTopicsBatch(topics, anchors) {
   if (!topics || topics.length === 0) return null;
   const maxTokens = Math.min(4000, 300 + topics.length * 150);
   try {
-    const raw = await callAI(PROMPTS.scorePriorityBatch(topics), maxTokens, undefined);
+    const raw = await callAI(PROMPTS.scorePriorityBatch(topics, anchors), maxTokens, undefined);
     if (!raw) return null;
 
     // Strip markdown fences if present
@@ -446,4 +458,50 @@ async function scoreTopicsBatch(topics) {
     console.warn('scoreTopicsBatch error:', err);
     return null;
   }
+}
+
+// Returns exactly 3 calibration anchors for scoring prompts.
+// Prefers live topics from catalyze_backlog_topics (spread across bands),
+// filling remaining slots from PRIORITY_ANCHORS for any band not represented.
+function getScoringAnchors() {
+  let live = [];
+  try {
+    const stored = JSON.parse(localStorage.getItem('catalyze_backlog_topics') || '[]');
+    const scored = stored.filter(t => t.priorityScore && t.priorityScore.score != null);
+
+    // Pick one representative per band: highest score overall, one medium, one low
+    const high   = scored.filter(t => getPriorityBand(t.priorityScore.score) === 'high')
+                         .sort((a, b) => b.priorityScore.score - a.priorityScore.score)[0];
+    const medium = scored.filter(t => getPriorityBand(t.priorityScore.score) === 'medium')
+                         .sort((a, b) => b.priorityScore.score - a.priorityScore.score)[0];
+    const low    = scored.filter(t => getPriorityBand(t.priorityScore.score) === 'low')
+                         .sort((a, b) => a.priorityScore.score - b.priorityScore.score)[0];
+
+    for (const pick of [high, medium, low]) {
+      if (pick) live.push({ title: pick.title, alignment: pick.priorityScore.alignment, delayCost: pick.priorityScore.delayCost });
+    }
+  } catch (_) {}
+
+  // Fill remaining slots from PRIORITY_ANCHORS, skipping bands already covered by live picks
+  const coveredBands = new Set(live.map(a => {
+    const s = computePriorityScore({ alignment: a.alignment, delayCost: a.delayCost });
+    return getPriorityBand(s);
+  }));
+
+  for (const anchor of PRIORITY_ANCHORS) {
+    if (live.length >= 3) break;
+    const band = getPriorityBand(computePriorityScore({ alignment: anchor.alignment, delayCost: anchor.delayCost }));
+    if (!coveredBands.has(band)) {
+      live.push(anchor);
+      coveredBands.add(band);
+    }
+  }
+
+  // If still short (e.g. live picks already cover all bands), pad with remaining static anchors
+  for (const anchor of PRIORITY_ANCHORS) {
+    if (live.length >= 3) break;
+    if (!live.some(a => a.title === anchor.title)) live.push(anchor);
+  }
+
+  return live.slice(0, 3);
 }

@@ -1871,7 +1871,7 @@ function createGoalFromTopic(t) {
 
   let existing = [];
   try { existing = JSON.parse(localStorage.getItem('catalyze_goals') || '[]'); } catch(e) { console.warn('localStorage error:', e); }
-  const newId = existing.length ? Math.max(...existing.map(g => g.id || 0)) + 1 : 100;
+  const newId = Date.now();
 
   const newGoal = {
     id: newId,
