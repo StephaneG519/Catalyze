@@ -586,22 +586,20 @@ function loadTopicState() {
 
 // ─── Get topics for a meeting ─────────────────────────────────────────────────
 function getTopicsForMeeting(meeting) {
-  // Start from hardcoded backlog
-  let all = [...BACKLOG_TOPICS];
-
-  // Merge topics pushed from meeting capture
+  // Build backlog: localStorage is source of truth; BACKLOG_TOPICS is fallback only
+  let all = [];
   try {
     const stored = JSON.parse(localStorage.getItem('catalyze_backlog_topics') || '[]');
-    const existingTitles = new Set(all.map(t => t.topic));
-    stored.forEach(s => {
-      const title = s.title || s.topic;
-      if (!existingTitles.has(title)) {
+    if (stored.length > 0) {
+      stored.forEach(s => {
+        const title = s.title || s.topic;
         all.push({ id: s.id || ('bt-' + title), topic: title, category: s.category || 'Tactical',
-          priority: s.priority || 'Medium', owner: s.owner || 'Thomas', forum: s.forum || '', status: s.status || 'Not started' });
-        existingTitles.add(title);
-      }
-    });
-  } catch(e) { console.warn('localStorage error:', e); }
+          priority: s.priority || 'Medium', owner: s.owner || 'Thomas', forum: s.forum || '', status: s.status || 'Not started', priorityScore: s.priorityScore || null });
+      });
+    } else {
+      all = [...BACKLOG_TOPICS];
+    }
+  } catch(e) { console.warn('localStorage error:', e); all = [...BACKLOG_TOPICS]; }
 
   // Merge topics explicitly routed here via catalyze_agenda_topics
   try {
@@ -612,7 +610,7 @@ function getTopicsForMeeting(meeting) {
       if (!existingTitles.has(a.title)) {
         all.push({ id: a.topicId || a.goalId || ('ag-' + a.title), topic: a.title,
           category: 'Strategic', priority: a.priority || 'High', owner: a.owner || 'Thomas',
-          forum: a.forum || meeting.forum, status: 'Not started', _added: true });
+          forum: a.forum || meeting.forum, status: 'Not started', _added: true, priorityScore: a.priorityScore || null });
         existingTitles.add(a.title);
       } else {
         // Mark existing matching topic as _added so badge shows
@@ -635,7 +633,14 @@ function getTopicsForMeeting(meeting) {
   const seen = new Set();
   return matched.filter(t => { if (seen.has(t.topic)) return false; seen.add(t.topic); return true; })
     .filter(t => t.status !== 'Completed')
-    .sort((a, b) => { const r = {High:0,Medium:1,Low:2}; return (r[a.priority]??9)-(r[b.priority]??9); });
+    .sort((a, b) => {
+      const sa = (a.priorityScore && typeof a.priorityScore.score === 'number') ? a.priorityScore.score : null;
+      const sb = (b.priorityScore && typeof b.priorityScore.score === 'number') ? b.priorityScore.score : null;
+      if (sa !== null && sb !== null) return sb - sa;
+      if (sa !== null) return -1;
+      if (sb !== null) return 1;
+      return 0;
+    });
 }
 
 // ─── Init topic states for a meeting ─────────────────────────────────────────
@@ -754,12 +759,17 @@ function renderDD() {
       ? `<span class="may-not-fit">May not fit — consider deferring</span>` : '';
     const lastAndTight = i >= 4 && isIncluded
       ? `<span class="may-not-fit">May not fit within ${m.topicBudgetMin} min</span>` : '';
+    const hasScore = t.priorityScore && typeof t.priorityScore.score === 'number';
+    const scoreHTML = hasScore
+      ? `<span class="badge badge-low" style="background:#f0f0f0;color:#888;border:none">${t.priorityScore.score.toFixed(1)}</span>`
+      : `<span class="badge badge-low" style="background:#f7f7f7;color:#bbb;border:none;font-style:italic">Non scoré</span>`;
     return `
       <div class="topic-row" id="topic-row-${m.id}-${t.id}">
         <div class="topic-row-content">
           <div class="topic-row-title">${t.topic}${t._added ? '<span class="badge-added">Added</span>' : ''}</div>
           <div class="topic-row-meta">
             <span class="badge ${priClass}">${t.priority}</span>
+            ${scoreHTML}
             <span class="topic-owner">${t.owner}</span>
             <a class="topic-backlog-link" onclick="viewInBacklog('${t.topic.replace(/'/g,"\\'")}')"><i class="ti ti-stack-2"></i> Backlog</a>
           </div>
@@ -1121,11 +1131,15 @@ function openSendPreread(m) {
 // ─── Add topic from backlog modal ─────────────────────────────────────────────
 function openAddTopic(m) {
   const existingIds = new Set(getTopicsForMeeting(m).map(t => t.id));
-  let all = [...BACKLOG_TOPICS];
+  let all = [];
   try {
     const stored = JSON.parse(localStorage.getItem('catalyze_backlog_topics') || '[]');
-    stored.forEach(s => { if (!existingIds.has(s.id)) all.push({ id:s.id, topic:s.title||s.topic, priority:s.priority||'Medium', owner:s.owner||'Thomas', status:s.status||'Not started' }); });
-  } catch(e) { console.warn('localStorage error:', e); }
+    if (stored.length > 0) {
+      stored.forEach(s => { all.push({ id:s.id, topic:s.title||s.topic, priority:s.priority||'Medium', owner:s.owner||'Thomas', status:s.status||'Not started', priorityScore:s.priorityScore||null }); });
+    } else {
+      all = [...BACKLOG_TOPICS];
+    }
+  } catch(e) { console.warn('localStorage error:', e); all = [...BACKLOG_TOPICS]; }
 
   const available = all.filter(t => !existingIds.has(t.id) && t.status !== 'Completed');
 

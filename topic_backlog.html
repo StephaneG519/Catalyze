@@ -1897,7 +1897,31 @@ function createGoalFromTopic(t) {
   window.parent.postMessage({ type: 'navigate', src: 'goal_setting.html' }, '*');
 }
 
+// ─── Seed-once: persist seed topics to localStorage on first boot ─────────────
+function seedBacklogTopicsOnce() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('catalyze_backlog_topics') || '[]');
+    if (stored.length > 0) return;
+    const projection = topics.map(t => ({
+      id:           t.id,
+      title:        t.topic,
+      category:     t.category,
+      priority:     t.priority,
+      owner:        t.owner,
+      forum:        t.forum,
+      source:       t.source,
+      status:       t.status,
+      tags:         t.tags,
+      rationale:    t.desc,
+      _new:         false,
+      priorityScore: t.priorityScore || null,
+    }));
+    localStorage.setItem('catalyze_backlog_topics', JSON.stringify(projection));
+  } catch(e) { console.warn('seedBacklogTopicsOnce error:', e); }
+}
+
 // ─── Boot ─────────────────────────────────────────────────────────────────────
+seedBacklogTopicsOnce();
 loadFromLocalStorage();
 renderTable();
 if (!highlightFromURL()) selectTopic(1);
