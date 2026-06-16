@@ -3,6 +3,75 @@
 A running log of meaningful changes to the codebase. Format: what changed, which
 file(s), why. Dates are approximate where git history is unavailable.
 
+---
+
+## Open items (undecided — require product decision before implementation)
+
+#### Goals manuels non persistés au rechargement
+- **File:** `goal_setting.html`
+- `loadGoals` (line 698) only restores stored goals where `g.autoCreated === true`.
+  `add-save` (lines 1579–1593) builds `newGoal` without an `autoCreated` flag — so goals
+  created manually via « Add goal » are lost on page reload.
+- **Decision needed:** add `autoCreated: true` to `newGoal` in `add-save` to make manual
+  goals persistent (aligning them with auto-created goals from Meeting Capture), or
+  explicitly accept that manual goals are ephemeral by design.
+- Also note: `Catalyze_Wedge_Prototype_Brief_v7.md` line 373 documents the merge guard as
+  `max + 1` sequential id — this has since been corrected to `Date.now()` in the code but
+  the brief is stale on this point.
+
+---
+
+## [2026-06-16] — Step 4: Goal Setting priority scoring + delete + display
+
+#### Point 1 — Priority scoring on manual goal creation (`goal_setting.html`)
+- `add-save` listener made `async`; scores a single-item batch `[{ id: 0, title, desc: objective }]`
+  via `scoreTopicsBatch` + `getScoringAnchors()` before `goals.unshift()`, mirroring the
+  Meeting Capture pattern (lines 1981–2003 of `meeting_capture.html`).
+- Button shows « Scoring… » and is disabled during the API call; restored in `finally`.
+- Result written to `newGoal.priorityScore`; remains `null` if no API key or call fails.
+- Score badge added to `dd-hd` in `renderDD()`: conditional on `g.priorityScore?.score != null`,
+  uses `getPriorityBand()` + `.toFixed(1)`, same format as `meeting_capture.html` line 1284.
+
+#### Point 2 — Goal deletion from deep dive (`goal_setting.html`)
+- New button « Supprimer ce goal » (`.act-btn.act-danger`) appended to `dd-actions` in
+  `renderDD()`; uses `onclick="confirmDeleteGoal(${g.id})"` inline, consistent with other
+  action buttons.
+- New overlay `ov-confirm-delete` (`.modal.narrow`): title « Supprimer ce goal ? »,
+  body « Cette action est irréversible. », Cancel via `data-ov` (closed by global listener),
+  confirm button `#confirm-delete-btn` without `data-ov` (intentional — must not auto-close).
+- Module variable `let pendingDeleteId = null`; `confirmDeleteGoal(id)` sets it and opens overlay.
+- Single `addEventListener('click', …)` on `#confirm-delete-btn`, attached once at load:
+  purges followups (`for i in keyResults → clearKrFollowups(g.id, i)`, no-op for Simple goals
+  with empty `keyResults`), splices goal from `goals`, calls `saveGoals()`, resets deep dive
+  to empty state, calls `renderTable()`.
+- New CSS class `.act-danger` (5 rules, lines 174–178): border `#e8c8c8`, icon+text `#c0392b`,
+  hover `#fff5f5`. Defined locally in `goal_setting.html` — see CSS debt note below.
+
+#### CSS debt — `.act-danger` not centralised
+- **File:** `goal_setting.html` only
+- Destructive-action button style defined locally. To centralise at prototype→prod: move to
+  shared stylesheet alongside `.badge-score` consolidation.
+
+#### Point 3 — Fix affichage deadlines absentes (`goal_setting.html`)
+- **Goal level** (line 953): `${g.deadline || 'No deadline'}` — goals auto-created from
+  Meeting Capture have `deadline: null` (hardcoded in `saveGoalsFromTopics`,
+  `meeting_capture.html` line 949); previously rendered as the string « null ».
+- **KR level** (line 917): `${kr.deadline ? \`Due ${kr.deadline}\` : 'No deadline'}` —
+  a KR entered without `— by [date]` syntax gets `deadline: ''` (`topic_backlog.html`
+  line 1857); previously rendered as « Due » followed by blank.
+- Tests 1 (regression, goal with deadline) and 2 (goal `deadline: null` via Meeting Capture)
+  validated in UI.
+- Test 3 (KR with `deadline: ''` via Topic Backlog OKR creation) could not be verified in UI:
+  the « Create goal » flow from Topic Backlog produces no goal (separate bug, out of scope for
+  point 3). The KR fix is correct by code reading; UI verification of the KR case remains
+  pending until that bug is resolved.
+
+#### CSS debt — `.badge-score` duplicated across three files
+- **Files:** `meeting_capture.html`, `topic_backlog.html`, `goal_setting.html`
+- `.badge-score` and its band variants (`-high`, `-medium`, `-low`, `-unscored`) are
+  copy-pasted in each file. No shared CSS layer exists in this prototype. To
+  centralise at prototype→prod: extract into a shared stylesheet loaded by all modules.
+
 > **Note on history before this file existed:** Entries prior to the creation of
 > this CHANGELOG are reconstructed from the diff between Brief v5 (spec) and
 > Brief v6 (as-built), and from direct reading of the code. Exact commit dates are

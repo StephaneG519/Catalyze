@@ -85,6 +85,11 @@ tbody td { padding: 9px 10px; color: #111; vertical-align: middle; }
 .badge-offtrack   { background: #FCEBEB; color: #A32D2D; }
 .badge-notstarted { background: #f5f5f5; color: #888; border: 1px solid #e8e8e8; }
 .badge-completed  { background: #EAF3DE; color: #3B6D11; }
+/* Score badge — duplicated from meeting_capture.html; centralise at prototype→prod */
+.badge-score { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; white-space: nowrap; }
+.badge-score-high    { background: #FCEBEB; color: #A32D2D; }
+.badge-score-medium  { background: #FEF3DA; color: #854F0B; }
+.badge-score-low     { background: #f5f5f5; color: #888; border: 1px solid #e8e8e8; }
 .badge-aligned    { background: #EAF3DE; color: #3B6D11; }
 .badge-partial    { background: #FEF3DA; color: #854F0B; }
 .badge-noalign    { background: #f5f5f5; color: #888; border: 1px solid #e8e8e8; }
@@ -166,6 +171,11 @@ tbody td { padding: 9px 10px; color: #111; vertical-align: middle; }
 .act-expert i { color: #534AB7; }
 .act-expert .act-sub { color: #534AB7; opacity: 0.7; }
 .act-expert:hover { background: #f5f4ff; border-color: #7b74d6; }
+.act-danger { border-color: #e8c8c8; }
+.act-danger i { color: #c0392b; }
+.act-danger span:first-child { color: #c0392b; }
+.act-danger .act-sub { color: #c0392b; opacity: 0.7; }
+.act-danger:hover { background: #fff5f5; border-color: #c0392b; }
 
 /* Modals */
 .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.35); display: none; align-items: center; justify-content: center; z-index: 100; }
@@ -342,6 +352,23 @@ tbody td { padding: 9px 10px; color: #111; vertical-align: middle; }
     <div class="modal-ft">
       <button class="btn btn-outline" data-ov="ov-inform">Cancel</button>
       <button class="btn btn-filled" id="inform-save"><i class="ti ti-check"></i> Save context</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm delete goal -->
+<div class="overlay" id="ov-confirm-delete">
+  <div class="modal narrow">
+    <div class="modal-hd">
+      <div class="modal-title">Supprimer ce goal ?</div>
+      <button class="modal-x" data-ov="ov-confirm-delete"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:#333;line-height:1.6">Cette action est irréversible.</p>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-outline" data-ov="ov-confirm-delete">Cancel</button>
+      <button class="btn btn-filled" id="confirm-delete-btn" style="background:#c0392b;border-color:#c0392b"><i class="ti ti-trash"></i> Supprimer</button>
     </div>
   </div>
 </div>
@@ -667,10 +694,11 @@ function loadGoals() {
     const stored = JSON.parse(localStorage.getItem('catalyze_goals') || 'null');
     if (stored && Array.isArray(stored)) {
       const baseTitles = new Set(base.map(g => g.title));
+      const seenIds = new Set(base.map(g => g.id));
       stored.forEach(g => {
-        if (g.autoCreated && !baseTitles.has(g.title)) {
+        if ((g.autoCreated || g.userCreated) && !seenIds.has(g.id) && !baseTitles.has(g.title)) {
           base.push(g);
-          baseTitles.add(g.title);
+          seenIds.add(g.id);
         }
       });
     }
@@ -887,8 +915,8 @@ function renderDD() {
               <span class="kr-pct">${kr.progress}%</span>
             </div>
             <div class="kr-footer">
-              <span class="kr-deadline">Due ${kr.deadline}</span>
-              <span class="kr-updated ${kr.stale ? 'kr-updated-stale' : ''}">${kr.stale ? `Not updated — ${kr.lastUpdated}` : `Updated ${kr.lastUpdated}`}</span>
+              <span class="kr-deadline">${kr.deadline ? `Due ${kr.deadline}` : 'No deadline'}</span>
+              <span class="kr-updated ${kr.stale ? 'kr-updated-stale' : ''}">${kr.stale ? `Not updated — ${kr.lastUpdated}` : (kr.lastUpdated ? `Updated ${kr.lastUpdated}` : 'Never updated')}</span>
             </div>
             ${badgeRow}
           </div>`;
@@ -913,6 +941,7 @@ function renderDD() {
         <span class="badge badge-${g.type === 'OKR' ? 'okr' : 'simple'}">${g.type}</span>
         <span class="badge badge-${statusBadgeClass(g.status)}">${g.status}</span>
         <span class="badge badge-${alignBadgeClass(g.alignment)}">${g.alignment}</span>
+        ${g.priorityScore?.score != null ? `<span class="badge-score badge-score-${getPriorityBand(g.priorityScore.score)}">${g.priorityScore.score.toFixed(1)}</span>` : ''}
       </div>
     </div>
     <div class="dd-body" id="dd-body">
@@ -922,7 +951,7 @@ function renderDD() {
       </div>
       <div class="dd-sec">
         <div class="dd-lbl">Owner · Deadline</div>
-        <div class="dd-val">${g.owner} · ${g.deadline}</div>
+        <div class="dd-val">${g.owner} · ${g.deadline || 'No deadline'}</div>
         ${(() => {
           if (!g.keyResults || !g.keyResults.length) return '';
           let totalSent = 0, latestTs = 0;
@@ -958,6 +987,10 @@ function renderDD() {
       <button class="act-btn act-expert" onclick="doAction('expert',${g.id})">
         <i class="ti ti-user-star"></i>
         <div class="act-lbl"><span>Ask a Catalyze Expert</span><span class="act-sub">AI drafts your request · you review &amp; send</span></div>
+      </button>
+      <button class="act-btn act-danger" onclick="confirmDeleteGoal(${g.id})">
+        <i class="ti ti-trash"></i>
+        <div class="act-lbl"><span>Supprimer ce goal</span><span class="act-sub">Action irréversible</span></div>
       </button>
     </div>
   `;
@@ -1526,7 +1559,7 @@ $('btn-add-goal').addEventListener('click', () => {
   openOv('ov-add');
 });
 
-$('add-save').addEventListener('click', () => {
+$('add-save').addEventListener('click', async () => {
   const objective = $('add-objective').value.trim();
   if (!objective) { showToast('Please enter an objective.'); return; }
 
@@ -1557,7 +1590,28 @@ $('add-save').addEventListener('click', () => {
     objective,
     keyResults,
     progress: 0,
+    priorityScore: null,
+    userCreated: true,
   };
+
+  if (getApiKey()) {
+    const saveBtn = $('add-save');
+    const originalLabel = saveBtn.innerHTML;
+    saveBtn.innerHTML = 'Scoring…';
+    saveBtn.disabled = true;
+    try {
+      const scores = await scoreTopicsBatch(
+        [{ id: 0, title: newGoal.title, desc: objective }],
+        getScoringAnchors()
+      );
+      if (scores && scores[0]) newGoal.priorityScore = scores[0];
+    } catch (err) {
+      console.warn('Goal scoring failed, proceeding without score:', err);
+    } finally {
+      saveBtn.innerHTML = originalLabel;
+      saveBtn.disabled = false;
+    }
+  }
 
   goals.unshift(newGoal);
   saveGoals();
@@ -1597,6 +1651,34 @@ function renderNotesList() {
     </div>`).join('');
 }
 function removeNote(i) { ctxNotes.splice(i, 1); renderNotesList(); }
+
+// ─── Delete goal ──────────────────────────────────────────────────────────────
+let pendingDeleteId = null;
+
+function confirmDeleteGoal(id) {
+  pendingDeleteId = id;
+  openOv('ov-confirm-delete');
+}
+
+$('confirm-delete-btn').addEventListener('click', () => {
+  const g = goals.find(x => x.id === pendingDeleteId);
+  if (!g) { closeOv('ov-confirm-delete'); pendingDeleteId = null; return; }
+
+  if (g.keyResults && g.keyResults.length) {
+    for (let i = 0; i < g.keyResults.length; i++) clearKrFollowups(g.id, i);
+  }
+
+  goals.splice(goals.findIndex(x => x.id === g.id), 1);
+  saveGoals();
+
+  closeOv('ov-confirm-delete');
+  selectedId = null;
+  $('dd-empty').style.display = 'flex';
+  $('dd-inner').style.display = 'none';
+  renderTable();
+  pendingDeleteId = null;
+  showToast('Goal supprimé.');
+});
 
 // ─── View-next save button ────────────────────────────────────────────────────
 $('view-next-save').addEventListener('click', saveNextDraft);
