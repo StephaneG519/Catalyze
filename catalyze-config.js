@@ -381,6 +381,23 @@ ${topics.map(t => `ID: ${t.id} | TITLE: ${t.title} | DESCRIPTION: ${t.desc}`).jo
 Respond in JSON only, no markdown fences:
 { "scores": [ { "id": ..., "alignment": ..., "alignmentRationale": "...", "delayCost": ..., "delayCostRationale": "...", "effortHours": ... } ] }`;
   },
+
+  scoreAlignmentBatch: (topics, anchors) => {
+    const anchorBlock = anchors && anchors.length
+      ? `CALIBRATION — these topics are already scored on the alignment scale you must use. Do not re-score them; score the new topics CONSISTENTLY with them:\n${anchors.map(a => `"${a.title}" → alignment ${a.alignment}`).join('\n')}\n\n`
+      : '';
+    return `${anchorBlock}Re-evaluate ONLY the alignment of the following topics against the company's current vision, strategy and goals. The strategic context has changed since these topics were last scored.
+
+For each topic return:
+- alignment (0-10): how directly this topic serves the company's vision, strategy and goals described in your context. 10 = directly advances a stated priority or goal; 0 = unrelated to any of them.
+- alignmentRationale: one short sentence naming WHICH priority or goal it serves (or why none).
+
+Topics:
+${topics.map(t => `ID: ${t.id} | TITLE: ${t.title} | DESCRIPTION: ${t.desc}`).join('\n')}
+
+Respond in JSON only, no markdown fences:
+{ "scores": [ { "id": ..., "alignment": ..., "alignmentRationale": "..." } ] }`;
+  },
 };
 
 // ── Priority Scoring ────────────────────────────────────────────────────────────
@@ -456,6 +473,50 @@ async function scoreTopicsBatch(topics, anchors) {
     return result;
   } catch (err) {
     console.warn('scoreTopicsBatch error:', err);
+    return null;
+  }
+}
+
+async function recomputeAlignmentBatch(topics, anchors) {
+  if (!topics || topics.length === 0) return null;
+  const maxTokens = Math.min(2000, 200 + topics.length * 80);
+  try {
+    const raw = await callAI(PROMPTS.scoreAlignmentBatch(topics, anchors), maxTokens, undefined);
+    if (!raw) return null;
+
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+    const parsed = JSON.parse(cleaned);
+    if (!parsed.scores || !Array.isArray(parsed.scores)) return null;
+
+    let contextSavedAt = null;
+    try {
+      const stored = localStorage.getItem('catalyze_company_context');
+      if (stored) {
+        const ctx = JSON.parse(stored);
+        contextSavedAt = ctx.savedAt || null;
+      }
+    } catch (_) {}
+
+    const result = {};
+    for (const entry of parsed.scores) {
+      const topic = topics.find(t => t.id === entry.id);
+      if (!topic || !topic.existingScore) continue;
+      const existing = topic.existingScore;
+      const newAlignment = entry.alignment;
+      const newScore = computePriorityScore({ alignment: newAlignment, delayCost: existing.delayCost });
+      result[entry.id] = {
+        ...existing,
+        alignment:          newAlignment,
+        alignmentRationale: entry.alignmentRationale || '',
+        score:              newScore,
+        scoredAt:           Date.now(),
+        contextSavedAt,
+        prevAlignment:      existing.alignment,
+      };
+    }
+    return result;
+  } catch (err) {
+    console.warn('recomputeAlignmentBatch error:', err);
     return null;
   }
 }

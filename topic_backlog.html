@@ -1797,6 +1797,44 @@ async function scoreNewLocalStorageTopics() {
   }
 }
 
+async function recomputeStaleAlignment() {
+  let contextSavedAt = null;
+  try {
+    const stored = localStorage.getItem('catalyze_company_context');
+    if (stored) contextSavedAt = JSON.parse(stored).savedAt || null;
+  } catch (_) {}
+  if (!contextSavedAt) return;
+
+  const stale = topics.filter(t =>
+    t._fromLocalStorage &&
+    t.priorityScore &&
+    t.priorityScore.contextSavedAt !== contextSavedAt
+  );
+  if (stale.length === 0) return;
+  if (!getApiKey()) return;
+
+  const n = stale.length;
+  showToast(`Re-evaluating alignment for ${n} topic${n !== 1 ? 's' : ''}…`);
+  const anchors = getScoringAnchors();
+  const batch = stale.map(t => ({ id: t.id, title: t.topic, desc: t.desc, existingScore: t.priorityScore }));
+  const results = await recomputeAlignmentBatch(batch, anchors);
+  if (!results) return;
+
+  let updated = 0;
+  for (const t of stale) {
+    if (results[t.id]) {
+      t.priorityScore = results[t.id];
+      savePriorityScoreToLocalStorage(t);
+      updated++;
+    }
+  }
+  if (updated > 0) {
+    renderTable();
+    if (selId) renderDD();
+    showToast(`Catalyze re-scored ${updated} topic${updated !== 1 ? 's' : ''} after context update.`);
+  }
+}
+
 function highlightFromURL() {
   const param = new URLSearchParams(window.location.search).get('highlight');
   if (!param) return false;
@@ -1927,6 +1965,7 @@ renderTable();
 if (!highlightFromURL()) selectTopic(1);
 autoGatherInfo();
 scoreNewLocalStorageTopics();
+recomputeStaleAlignment();
 </script>
 </body>
 </html>

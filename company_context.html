@@ -490,6 +490,15 @@ function saveContext() {
       if (existing.goalsHidden) toStore.goalsHidden = existing.goalsHidden;
       if (existing.constraintsHidden) toStore.constraintsHidden = existing.constraintsHidden;
       if (existing.inferredPct !== undefined) toStore.inferredPct = existing.inferredPct;
+      // savedAt tracks last meaningful alignment change (vision/priorities/goals/constraints only)
+      const alignmentChanged =
+        existing.vision !== toStore.vision ||
+        JSON.stringify(existing.priorities) !== JSON.stringify(toStore.priorities) ||
+        JSON.stringify(existing.goals) !== JSON.stringify(toStore.goals) ||
+        existing.constraints !== toStore.constraints;
+      toStore.savedAt = (alignmentChanged || existing.savedAt == null)
+        ? Date.now()
+        : existing.savedAt;
     } catch(e) {}
     localStorage.setItem(LS_KEY, JSON.stringify(toStore));
     const now = new Date();
