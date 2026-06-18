@@ -1795,11 +1795,50 @@ $('api-key-save').addEventListener('click', () => {
   } catch(e) { console.warn('localStorage error:', e); }
 })();
 
+async function recomputeStaleAlignmentGoals() {
+  let contextSavedAt = null;
+  try {
+    const stored = localStorage.getItem('catalyze_company_context');
+    if (stored) contextSavedAt = JSON.parse(stored).savedAt || null;
+  } catch (_) {}
+  if (!contextSavedAt) return;
+  if (!getApiKey()) return;
+
+  const stale = goals.filter(g =>
+    (g.autoCreated || g.userCreated) &&
+    g.priorityScore &&
+    g.priorityScore.contextSavedAt !== contextSavedAt
+  );
+  if (stale.length === 0) return;
+
+  const n = stale.length;
+  showToast(`Re-evaluating alignment for ${n} goal${n !== 1 ? 's' : ''}…`);
+  const anchors = getScoringAnchors();
+  const batch = stale.map(g => ({ id: g.id, title: g.title, desc: g.objective || g.title, existingScore: g.priorityScore }));
+  const results = await recomputeAlignmentBatch(batch, anchors);
+  if (!results) return;
+
+  let updated = 0;
+  for (const g of stale) {
+    if (results[g.id]) {
+      g.priorityScore = results[g.id];
+      updated++;
+    }
+  }
+  if (updated > 0) {
+    saveGoals();
+    renderTable();
+    if (selectedId) renderDD();
+    showToast(`Catalyze re-scored ${updated} goal${updated !== 1 ? 's' : ''} after context update.`);
+  }
+}
+
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 renderSuggest();
 renderTable();
 selectGoal(1);
 autoSendCheckins();
+recomputeStaleAlignmentGoals();
 </script>
 </body>
 </html>
