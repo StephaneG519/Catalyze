@@ -203,6 +203,15 @@ tbody td { padding: 9px 10px; vertical-align: middle; }
 .score-badge:hover .score-tip { opacity: 1; }
 .score-tip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: #1a1a1a; }
 
+/* ── Delete topic button ── */
+.act-btn-delete { color: #A32D2D; border-color: #f5c6c6; }
+.act-btn-delete:hover { background: #FCEBEB; border-color: #e8a0a0; }
+
+/* ── Updated marker (alignment recompute badge) ── */
+.score-updated { display: inline-block; font-size: 9px; font-weight: 600; color: #999; margin-left: 4px; position: relative; cursor: default; vertical-align: middle; }
+.score-updated .score-tip { font-weight: 400; }
+.score-updated:hover .score-tip { opacity: 1; }
+
 /* ── Priority score deep-dive section ── */
 .ps-row { display: flex; align-items: baseline; gap: 6px; font-size: 12px; color: #333; line-height: 1.6; }
 .ps-label { font-weight: 600; min-width: 110px; flex-shrink: 0; }
@@ -521,6 +530,23 @@ tbody td { padding: 9px 10px; vertical-align: middle; }
   </div>
 </div>
 
+<!-- Delete topic confirmation -->
+<div class="overlay" id="ov-delete-topic">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-hd">
+      <div class="modal-title">Delete topic</div>
+      <button class="modal-x" data-ov="ov-delete-topic"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:13px;color:#333;line-height:1.5">Remove <strong id="delete-topic-title"></strong> from the backlog? This cannot be undone.</div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" data-ov="ov-delete-topic">Cancel</button>
+      <button class="btn act-btn-delete" id="delete-topic-confirm"><i class="ti ti-trash"></i> Delete</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"><i class="ti ti-check"></i><span id="toast-msg"></span></div>
 
@@ -725,7 +751,25 @@ function scoreBadgeHTML(ps) {
   const cls  = `score-${band}`;
   const effortLine = ps.effortHours != null ? `\nEffort: ~${ps.effortHours}h (not part of score)` : '';
   const tip = `Alignment: ${ps.alignment}/10 — ${ps.alignmentRationale}\nCost of delay: ${ps.delayCost}/10 — ${ps.delayCostRationale}${effortLine}`;
-  return `<span class="score-badge ${cls}">${ps.score}<span class="score-tip">${tip}</span></span>`;
+  const dir = getAlignmentChangeDirection(ps.score, ps.prevScore);
+  let updatedMarker = '';
+  if (dir !== null) {
+    const arrow = dir === 'up' ? '↑' : '↓';
+    let datePart = '';
+    if (ps.contextSavedAt) {
+      try {
+        const d = new Date(ps.contextSavedAt);
+        if (Number.isFinite(d.getTime())) {
+          const dd = String(d.getDate()).padStart(2, '0');
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          datePart = ` · ${dd}/${mm}`;
+        }
+      } catch (_) {}
+    }
+    const updatedTip = `Updated ${arrow}${datePart}`;
+    updatedMarker = `<span class="score-updated">Updated<span class="score-tip">${updatedTip}</span></span>`;
+  }
+  return `<span class="score-badge ${cls}">${ps.score}<span class="score-tip">${tip}</span></span>${updatedMarker}`;
 }
 
 function hasActiveMatches(t) {
@@ -941,6 +985,11 @@ function renderDD() {
         <i class="ti ti-user-star"></i>
         <div class="act-lbl"><span>Ask a Catalyze Expert</span><span class="act-sub">AI drafts · you review &amp; send</span></div>
       </button>
+      ${t._fromLocalStorage ? `
+      <button class="act-btn act-btn-delete" onclick="openDeleteTopicModal(${t.id})">
+        <i class="ti ti-trash"></i>
+        <div class="act-lbl"><span>Delete topic</span><span class="act-sub">Remove from backlog · cannot be undone</span></div>
+      </button>` : ''}
     </div>
   `;
 }
@@ -1284,6 +1333,43 @@ $('btn-analyse').addEventListener('click', async () => {
   showToast(`${total} topic${total !== 1 ? 's' : ''} analysed.`);
 });
 
+// ─── Delete topic ────────────────────────────────────────────────────────────
+let pendingDeleteTopicId = null;
+
+function openDeleteTopicModal(id) {
+  const t = byId(id);
+  if (!t || !t._fromLocalStorage) return;
+  pendingDeleteTopicId = id;
+  $('delete-topic-title').textContent = t.topic;
+  open('ov-delete-topic');
+}
+
+function confirmDeleteTopic() {
+  const t = byId(pendingDeleteTopicId);
+  if (!t) { close('ov-delete-topic'); return; }
+
+  // Remove from in-memory array
+  const idx = topics.findIndex(x => x.id === pendingDeleteTopicId);
+  if (idx !== -1) topics.splice(idx, 1);
+
+  // Remove from localStorage by title
+  try {
+    const stored = JSON.parse(localStorage.getItem('catalyze_backlog_topics') || '[]');
+    const filtered = stored.filter(s => s.title !== t.topic);
+    localStorage.setItem('catalyze_backlog_topics', JSON.stringify(filtered));
+  } catch(e) { console.warn('localStorage error:', e); }
+
+  close('ov-delete-topic');
+  pendingDeleteTopicId = null;
+
+  if (selId === t.id) { selId = null; }
+  renderTable();
+  renderDD();
+  showToast('Topic removed from backlog.');
+}
+
+$('delete-topic-confirm').addEventListener('click', confirmDeleteTopic);
+
 // ─── Add topic ────────────────────────────────────────────────────────────────
 $('btn-add').addEventListener('click', () => open('ov-add'));
 
@@ -1292,7 +1378,7 @@ $('add-save').addEventListener('click', () => {
   if (!desc) { showToast('Please enter a topic description.'); return; }
 
   const tags = $('add-tags').value.split(',').map(s => s.trim()).filter(Boolean);
-  const newId = Math.max(...topics.map(t => t.id)) + 1;
+  const newId = Date.now();
 
   const newTopic = {
     id: newId,
@@ -1316,6 +1402,26 @@ $('add-save').addEventListener('click', () => {
     _fromLocalStorage: true,
   };
   topics.unshift(newTopic);
+
+  // Persist the new topic to localStorage immediately (before scoring)
+  try {
+    const stored = JSON.parse(localStorage.getItem('catalyze_backlog_topics') || '[]');
+    stored.unshift({
+      id:            newTopic.id,
+      title:         newTopic.topic,
+      category:      newTopic.category,
+      priority:      newTopic.priority,
+      owner:         newTopic.owner,
+      forum:         newTopic.forum,
+      source:        newTopic.source,
+      status:        newTopic.status,
+      tags:          newTopic.tags,
+      rationale:     newTopic.desc,
+      _new:          false,
+      priorityScore: null,
+    });
+    localStorage.setItem('catalyze_backlog_topics', JSON.stringify(stored));
+  } catch(e) { console.warn('localStorage error:', e); }
 
   // Reset filter/sort so the new row is visible
   activeFilter = 'all';
@@ -1729,11 +1835,13 @@ function loadFromLocalStorage() {
   try {
     const stored = JSON.parse(localStorage.getItem('catalyze_backlog_topics') || '[]');
     const existingTitles = new Set(topics.map(t => t.topic));
-    let nextId = Math.max(...topics.map(t => t.id)) + 1;
+    let fallbackBase = Date.now();
+    let fallbackOffset = 0;
     stored.forEach(s => {
       if (existingTitles.has(s.title)) return;
+      const id = (s.id != null) ? s.id : (fallbackBase + fallbackOffset++);
       topics.unshift({
-        id: nextId++,
+        id,
         topic: s.title,
         category: s.category || 'Tactical',
         priority: s.priority || 'Medium',
