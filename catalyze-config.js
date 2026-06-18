@@ -432,6 +432,12 @@ function getPriorityBand(score) {
   return 'low';
 }
 
+function getAlignmentChangeDirection(currentScore, prevScore) {
+  if (prevScore == null || !Number.isFinite(prevScore)) return null;
+  if (currentScore === prevScore) return null;
+  return currentScore > prevScore ? 'up' : 'down';
+}
+
 async function scoreTopicsBatch(topics, anchors) {
   if (!topics || topics.length === 0) return null;
   const maxTokens = Math.min(4000, 300 + topics.length * 150);
@@ -512,6 +518,7 @@ async function recomputeAlignmentBatch(topics, anchors) {
         scoredAt:           Date.now(),
         contextSavedAt,
         prevAlignment:      existing.alignment,
+        prevScore:          existing.score,
       };
     }
     return result;
