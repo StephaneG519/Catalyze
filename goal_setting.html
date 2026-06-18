@@ -941,7 +941,7 @@ function renderDD() {
         <span class="badge badge-${g.type === 'OKR' ? 'okr' : 'simple'}">${g.type}</span>
         <span class="badge badge-${statusBadgeClass(g.status)}">${g.status}</span>
         <span class="badge badge-${alignBadgeClass(g.alignment)}">${g.alignment}</span>
-        ${g.priorityScore?.score != null ? `<span class="badge-score badge-score-${getPriorityBand(g.priorityScore.score)}">${g.priorityScore.score.toFixed(1)}</span>` : ''}
+        ${g.priorityScore?.score != null ? `<span class="badge-score badge-score-${getPriorityBand(g.priorityScore.score)}">${g.priorityScore.score}</span>` : ''}
       </div>
     </div>
     <div class="dd-body" id="dd-body">

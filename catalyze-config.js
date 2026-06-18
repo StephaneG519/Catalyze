@@ -422,7 +422,7 @@ function computePriorityScore({ alignment, delayCost } = {}) {
   const a = clamp(alignment);
   const d = clamp(delayCost);
   if (a === null || d === null) return null;
-  return Math.round((PRIORITY_WEIGHTS.alignment * a + PRIORITY_WEIGHTS.delayCost * d) * 10) / 10;
+  return Math.round(PRIORITY_WEIGHTS.alignment * a + PRIORITY_WEIGHTS.delayCost * d);
 }
 
 function getPriorityBand(score) {

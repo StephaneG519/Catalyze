@@ -725,7 +725,7 @@ function scoreBadgeHTML(ps) {
   const cls  = `score-${band}`;
   const effortLine = ps.effortHours != null ? `\nEffort: ~${ps.effortHours}h (not part of score)` : '';
   const tip = `Alignment: ${ps.alignment}/10 — ${ps.alignmentRationale}\nCost of delay: ${ps.delayCost}/10 — ${ps.delayCostRationale}${effortLine}`;
-  return `<span class="score-badge ${cls}">${ps.score.toFixed(1)}<span class="score-tip">${tip}</span></span>`;
+  return `<span class="score-badge ${cls}">${ps.score}<span class="score-tip">${tip}</span></span>`;
 }
 
 function hasActiveMatches(t) {
