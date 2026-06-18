@@ -568,7 +568,7 @@ function tagHTML(name) {
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const SEED_SCORED_AT = 1717200000000; // fixed past timestamp for all seed scores
 
-const topics = [
+const SEED_TOPICS = [
   {
     id:1, topic:'Sales pipeline Q2 below target by €700k',
     category:'Strategic', priority:'High', owner:'Marc',
@@ -703,6 +703,8 @@ const topics = [
     priorityScore:{ alignment:3, alignmentRationale:'Not directly tied to any stated strategic priority or goal.', delayCost:4, delayCostRationale:'Security exposure and access friction grow slowly but remain manageable short-term.', effortHours:8, score:3.4, scoredAt:SEED_SCORED_AT, contextSavedAt:null, manual:false },
   },
 ];
+
+let topics = []; // populated at boot by seedBacklogTopicsOnce + loadFromLocalStorage
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let selId       = null;
@@ -2048,19 +2050,20 @@ function seedBacklogTopicsOnce() {
   try {
     const stored = JSON.parse(localStorage.getItem('catalyze_backlog_topics') || '[]');
     if (stored.length > 0) return;
-    const projection = topics.map(t => ({
-      id:           t.id,
-      title:        t.topic,
-      category:     t.category,
-      priority:     t.priority,
-      owner:        t.owner,
-      forum:        t.forum,
-      source:       t.source,
-      status:       t.status,
-      tags:         t.tags,
-      rationale:    t.desc,
-      _new:         false,
-      priorityScore: t.priorityScore || null,
+    const projection = SEED_TOPICS.map(t => ({
+      id:              t.id,
+      title:           t.topic,
+      category:        t.category,
+      priority:        t.priority,
+      owner:           t.owner,
+      forum:           t.forum,
+      source:          t.source,
+      status:          t.status,
+      tags:            t.tags,
+      rationale:       t.desc,
+      _new:            false,
+      priorityScore:   t.priorityScore || null,
+      _fromLocalStorage: true,
     }));
     localStorage.setItem('catalyze_backlog_topics', JSON.stringify(projection));
   } catch(e) { console.warn('seedBacklogTopicsOnce error:', e); }
