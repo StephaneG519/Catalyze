@@ -942,6 +942,11 @@ function renderTable() {
 // ─── Select goal ──────────────────────────────────────────────────────────────
 function selectGoal(id) {
   selectedId = id;
+  const g = goals.find(x => x.id === id);
+  if (g?.priorityScore?.score != null && g.priorityScore.prevScore !== g.priorityScore.score) {
+    g.priorityScore.prevScore = g.priorityScore.score;
+    saveGoals();
+  }
   renderTable();
   renderDD();
   triggerAI(id);
