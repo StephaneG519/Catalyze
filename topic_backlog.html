@@ -869,6 +869,11 @@ function renderTable() {
 // ─── Select topic ─────────────────────────────────────────────────────────────
 function selectTopic(id) {
   selId = id;
+  const t = byId(id);
+  if (t?.priorityScore?.score != null && t.priorityScore.prevScore !== t.priorityScore.score) {
+    t.priorityScore.prevScore = t.priorityScore.score;
+    savePriorityScoreToLocalStorage(t);
+  }
   renderTable();
   renderDD();
 }
