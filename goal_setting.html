@@ -577,7 +577,9 @@ tbody td { padding: 9px 10px; color: #111; vertical-align: middle; }
 <script src="catalyze-config.js"></script>
 <script>
 // ─── Goal data ────────────────────────────────────────────────────────────────
-const DEFAULT_GOALS = [
+const SEED_SCORED_AT = 1717200000000; // fixed past timestamp for all seed scores
+
+const SEED_GOALS = [
   {
     id: 1,
     title: 'Recover Q2 commercial momentum',
@@ -594,6 +596,8 @@ const DEFAULT_GOALS = [
       { text: 'Technic Pro renewal proposal submitted', progress: 40, deadline: '26 May', lastUpdated: '1 day ago', stale: false },
       { text: 'Lefebvre Industries meeting rescheduled', progress: 0, deadline: '23 May', lastUpdated: '8 days ago', stale: true },
     ],
+    userCreated: true,
+    priorityScore: { alignment:9, alignmentRationale:'Directly addresses Q2 commercial recovery priority.', delayCost:8, delayCostRationale:'Revenue slips every week pipeline stays stalled.', effortHours:20, score:9, scoredAt:SEED_SCORED_AT, contextSavedAt:null, manual:false },
   },
   {
     id: 2,
@@ -608,6 +612,8 @@ const DEFAULT_GOALS = [
     objective: 'Ensure both new sales reps have full CRM access and are no longer using spreadsheets by end of May.',
     keyResults: [],
     progress: 60,
+    userCreated: true,
+    priorityScore: { alignment:5, alignmentRationale:'Supports sales ramp but indirect to top priorities.', delayCost:6, delayCostRationale:'New reps stay underproductive while access is blocked.', effortHours:20, score:5, scoredAt:SEED_SCORED_AT, contextSavedAt:null, manual:false },
   },
   {
     id: 3,
@@ -625,6 +631,8 @@ const DEFAULT_GOALS = [
       { text: 'Margin improvement plan presented to board', progress: 0, deadline: '15 Jun', lastUpdated: 'Not started', stale: false },
       { text: 'Q2 EBITDA closes ≥6.8%', progress: 0, deadline: '30 Jun', lastUpdated: 'Not started', stale: false },
     ],
+    userCreated: true,
+    priorityScore: { alignment:9, alignmentRationale:'EBITDA margin is a stated company priority.', delayCost:9, delayCostRationale:'Margin erosion compounds across all accounts monthly.', effortHours:20, score:9, scoredAt:SEED_SCORED_AT, contextSavedAt:null, manual:false },
   },
   {
     id: 4,
@@ -639,6 +647,8 @@ const DEFAULT_GOALS = [
     objective: 'Define and implement a structured onboarding process for all new sales hires by end of May.',
     keyResults: [],
     progress: 45,
+    userCreated: true,
+    priorityScore: { alignment:5, alignmentRationale:'Enables sales scaling but one step removed from revenue.', delayCost:5, delayCostRationale:'Each new hire repeats the same ramp cost without it.', effortHours:20, score:5, scoredAt:SEED_SCORED_AT, contextSavedAt:null, manual:false },
   },
   {
     id: 5,
@@ -655,6 +665,8 @@ const DEFAULT_GOALS = [
       { text: 'Weekly 30-min key account review cadence running', progress: 0, deadline: '2 Jun', lastUpdated: 'Not started', stale: false },
       { text: 'Account health template defined and shared', progress: 0, deadline: '27 May', lastUpdated: 'Not started', stale: false },
     ],
+    userCreated: true,
+    priorityScore: { alignment:8, alignmentRationale:'Protects margin on the largest accounts.', delayCost:5, delayCostRationale:'Account risk builds slowly but is costly when it lands.', effortHours:20, score:7, scoredAt:SEED_SCORED_AT, contextSavedAt:null, manual:false },
   },
   {
     id: 6,
@@ -669,6 +681,8 @@ const DEFAULT_GOALS = [
     objective: 'Cut total executive meeting hours by 20% vs Q1 baseline through agenda discipline and meeting removal.',
     keyResults: [],
     progress: 75,
+    userCreated: true,
+    priorityScore: { alignment:7, alignmentRationale:'Improves exec focus, indirect to commercial results.', delayCost:3, delayCostRationale:'Wasted exec time accumulates but is rarely urgent.', effortHours:20, score:5, scoredAt:SEED_SCORED_AT, contextSavedAt:null, manual:false },
   },
 ];
 
@@ -684,22 +698,36 @@ const openOv  = id => $(id).classList.add('open');
 const closeOv = id => $(id).classList.remove('open');
 
 // ─── localStorage ────────────────────────────────────────────────────────────
+function seedGoalsOnce() {
+  if (localStorage.getItem('catalyze_goals_seeded')) return;
+  const existing = JSON.parse(localStorage.getItem('catalyze_goals') || '[]');
+  const seenTitles = new Set(existing.map(g => g.title));
+  const seenIds = new Set(existing.map(g => g.id));
+  SEED_GOALS.forEach(g => {
+    if (!seenTitles.has(g.title) && !seenIds.has(g.id)) {
+      existing.push(JSON.parse(JSON.stringify(g)));
+    }
+  });
+  localStorage.setItem('catalyze_goals', JSON.stringify(existing));
+  localStorage.setItem('catalyze_goals_seeded', '1');
+}
+
 function saveGoals() {
   try { localStorage.setItem('catalyze_goals', JSON.stringify(goals)); } catch(e) { console.warn('localStorage error:', e); }
 }
 
 function loadGoals() {
-  const base = DEFAULT_GOALS.map(g => JSON.parse(JSON.stringify(g)));
+  const base = [];
   try {
     const stored = JSON.parse(localStorage.getItem('catalyze_goals') || 'null');
     if (stored && Array.isArray(stored)) {
-      const baseTitles = new Set(base.map(g => g.title));
-      const seenIds = new Set(base.map(g => g.id));
+      const seenIds = new Set();
+      const seenTitles = new Set();
       stored.forEach(g => {
-        if ((g.autoCreated || g.userCreated) && !seenIds.has(g.id) && !baseTitles.has(g.title)) {
-          base.push(g);
-          seenIds.add(g.id);
-        }
+        if (seenIds.has(g.id) || seenTitles.has(g.title)) return;
+        base.push(g);
+        seenIds.add(g.id);
+        seenTitles.add(g.title);
       });
     }
   } catch(e) { console.warn('localStorage error:', e); }
@@ -707,6 +735,7 @@ function loadGoals() {
 }
 
 // ─── State ────────────────────────────────────────────────────────────────────
+seedGoalsOnce();
 let goals = loadGoals();
 let selectedId = null;
 let activeFilter = 'all';
